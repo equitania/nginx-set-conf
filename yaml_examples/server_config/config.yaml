@@ -1,0 +1,15 @@
+Server:
+  server_path: /etc/nginx/conf.d/
+  old_domain: server.domain.de
+  old_ip: ip.ip.ip.ip
+  old_port: oldport
+  old_pollport: oldpollport
+  old_crt: zertifikat.crt
+  old_key: zertifikat.key
+
+config_template: ngx_odoo_ssl_pagespeed
+ip: 1.2.3.4
+domain: equitania
+port: 443
+cert_name: cert1
+pollport: 8099
