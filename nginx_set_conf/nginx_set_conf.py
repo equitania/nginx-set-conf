@@ -64,17 +64,7 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
     script_path = os.path.dirname(os.path.realpath(__file__)) + "/config_templates"
     if config_path or (config_template and ip and domain and port and cert_name and pollport):
         # Get vars from yaml file
-        if config_path:
-            yaml_config = parse_yaml_folder(config_path)[0]
-            default_vars = yaml_config["Server"]
-            config_template = yaml_config["config_template"]
-            ip = yaml_config["ip"]
-            domain = yaml_config["domain"]
-            port = str(yaml_config["port"])
-            cert_name = yaml_config["cert_name"]
-            pollport = str(yaml_config["pollport"])
-        else:
-            default_vars = get_default_vars()
+        default_vars = get_default_vars()
 
         server_path = default_vars["server_path"]
         old_domain = default_vars["old_domain"]
