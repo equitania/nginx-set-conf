@@ -60,9 +60,9 @@ Files with the same name + .conf has to be stored in the same folder.
 @click.option('--config_path', help='Configuration folder',
               prompt='Please enter the path to your configuration folder')
 def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, config_path):
-
+    # Get relative path
+    script_path = os.path.dirname(os.path.realpath(__file__)) + "/config_templates"
     if config_path or (config_template and ip and domain and port and cert_name and pollport):
-        script_path = os.popen('pwd').read().rstrip("\n")
         # Get vars from yaml file
         if config_path:
             yaml_config = parse_yaml_folder(config_path)[0]
