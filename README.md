@@ -1,5 +1,5 @@
 # Nginx-set-conf
-====================================================================================    
+====================================================================================
 This is a simple python library that helps you to create configurations for different docker based applications with nginx as reverse proxy.
 
 ## Installation
@@ -41,8 +41,14 @@ Optional arguments:
 ```bash
 # Execution with config file
 nginx-set-conf --config_path server_config
+
 # Execution without config file
-nginx-set-conf --config_template ngx_odoo_ssl_pagespeed --ip 1.2.3.4 --domain equitania --port 443 --cert_name cert1 --pollport 8099
+nginx-set-conf --config_template ngx_odoo_ssl_pagespeed --ip 1.2.3.4 --domain www.equitania.de --port 8069 --cert_name www.equitania.de --pollport 8072
+
+# Create your cert with
+certbot certonly --standalone --agree-tos --register-unsafely-without-email -d www.equitania.de
+# Install certbot on Ubuntu with
+apt-get install certbot  
 ```
 
 This project is licensed under the terms of the **AGPLv3** license.
