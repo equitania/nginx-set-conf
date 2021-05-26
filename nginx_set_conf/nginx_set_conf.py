@@ -64,8 +64,16 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
     script_path = os.path.dirname(os.path.realpath(__file__)) + "/config_templates"
     if config_path or (config_template and ip and domain and port and cert_name and pollport):
         # Get vars from yaml file
-        default_vars = get_default_vars()
+        if config_path:
+            yaml_config = parse_yaml_folder(config_path)[0]
+            config_template = yaml_config["config_template"]
+            ip = yaml_config["ip"]
+            domain = yaml_config["domain"]
+            port = str(yaml_config["port"])
+            cert_name = yaml_config["cert_name"]
+            pollport = str(yaml_config["pollport"])
 
+        default_vars = get_default_vars()
         server_path = default_vars["server_path"]
         old_domain = default_vars["old_domain"]
         old_ip = default_vars["old_ip"]
@@ -80,19 +88,19 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
         click.echo(eq_display_message.rstrip("\n"))
         os.system(eq_copy_command)
 
-        # sed command - domain
+        # send command - domain
         eq_display_message = "Set domain name in conf to " + domain
         eq_set_domain_cmd = "sed -i s/" + old_domain + "/" + domain + "/g " + server_path + "/" + domain + ".conf"
         click.echo(eq_display_message.rstrip("\n"))
         os.system(eq_set_domain_cmd)
 
-        # sed command - ip
+        # send command - ip
         eq_display_message = "Set ip in conf to " + ip
         eq_set_ip_cmd = "sed -i s/" + old_ip + "/" + ip + "/g " + server_path + "/" + domain + ".conf"
         click.echo(eq_display_message.rstrip("\n"))
         os.system(eq_set_ip_cmd)
 
-        # sed command - cert, key
+        # send command - cert, key
         eq_display_message = "Set cert name in conf to " + cert_name
         eq_set_cert_cmd = "sed -i s/" + old_crt + "/" + cert_name + "/g " + server_path + "/" + domain + ".conf"
         eq_set_key_cmd = "sed -i s/" + old_key + "/" + cert_name + "/g " + server_path + "/" + domain + ".conf"
@@ -100,14 +108,14 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
         os.system(eq_set_cert_cmd)
         os.system(eq_set_key_cmd)
 
-        # sed command - port
+        # send command - port
         eq_display_message = "Set port in conf to " + port
         eq_set_port_cmd = "sed -i s/" + old_port + "/" + port + "/g " + server_path + "/" + domain + ".conf"
         click.echo(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
 
         if "odoo" in config_template and pollport != "":
-            # sed command - polling port
+            # send command - polling port
             eq_display_message = "Set polling port in conf to " + pollport
             eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
             click.echo(eq_display_message.rstrip("\n"))
