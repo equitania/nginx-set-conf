@@ -47,7 +47,7 @@ Files with the same name + .conf has to be stored in the same folder.
 @click.option('--config_path', help='Yaml configuration folder')
 def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, config_path):
     if config_path:
-        yaml_configs = parse_yaml_folder(config_path)
+        yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
             for yaml_config in yaml_config_file:
                 config_template = yaml_config["config_template"]
