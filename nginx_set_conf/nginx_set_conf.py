@@ -49,13 +49,16 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
-            for yaml_config in yaml_config_file:
+            for _, yaml_config in yaml_config_file.items():
                 config_template = yaml_config["config_template"]
                 ip = yaml_config["ip"]
                 domain = yaml_config["domain"]
                 port = str(yaml_config["port"])
                 cert_name = yaml_config["cert_name"]
-                pollport = str(yaml_config["pollport"])
+                try:
+                    pollport = str(yaml_config["pollport"])
+                except:
+                    pollport = None
                 execute_commands(config_template, domain, ip, cert_name, port, pollport)
     elif config_template and ip and domain and port and cert_name and pollport:
         execute_commands(config_template, domain, ip, cert_name, port, pollport)

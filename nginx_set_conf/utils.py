@@ -119,7 +119,7 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_port_cmd)
 
-    if "odoo" in config_template and pollport != "":
+    if "odoo" in config_template and pollport:
         # send command - polling port
         eq_display_message = "Set polling port in conf to " + pollport
         eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
