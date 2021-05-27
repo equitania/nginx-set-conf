@@ -58,7 +58,7 @@ def parse_yaml_folder(path):
 
 def get_default_vars():
     return {
-        "server_path": "/etc/nginx/conf.d/",
+        "server_path": "/etc/nginx/conf.d",
         "old_domain": "server.domain.de",
         "old_ip": "ip.ip.ip.ip",
         "old_port": "oldport",
@@ -94,8 +94,8 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
         with open(file_path, 'w') as f:
             f.write(config_template_content)
         # copy command
-        eq_display_message = "Copy " + file_path + server_path + "/" + domain + ".conf"
-        eq_copy_command = "cp " + file_path + server_path + "/" + domain + ".conf"
+        eq_display_message = "Copy " + file_path + " " + server_path + "/" + domain + ".conf"
+        eq_copy_command = "cp " + file_path + " " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
         os.system(eq_copy_command)
         os.remove(file_path)
@@ -121,6 +121,12 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_cert_cmd)
     os.system(eq_set_key_cmd)
+
+    # Search for certificate and create it when it does not exist
+    cert_exists = os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/fullchain.pem") and os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/privkey.pem")
+    if not cert_exists:
+        eq_create_cert = "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d " + cert_name
+        os.system(eq_create_cert)
 
     # send command - port
     eq_display_message = "Set port in conf to " + port
