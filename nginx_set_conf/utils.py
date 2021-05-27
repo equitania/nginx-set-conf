@@ -5,7 +5,6 @@
 import yaml
 import os
 
-
 def fire_all_functions(function_list: list):
     """
         Execute each function in a list
@@ -54,3 +53,75 @@ def parse_yaml_folder(path):
             if yaml_object:
                 yaml_objects.append(yaml_object)
     return yaml_objects
+
+
+def get_default_vars():
+    return {
+        "server_path": "/etc/nginx/conf.d/",
+        "old_domain": "server.domain.de",
+        "old_ip": "ip.ip.ip.ip",
+        "old_port": "oldport",
+        "old_pollport": "oldpollport",
+        "old_crt": "zertifikat.crt",
+        "old_key": "zertifikat.key"
+    }
+
+
+def retrieve_valid_input(message):
+    user_input = input(message)
+    if user_input:
+        return user_input
+    else:
+        return retrieve_valid_input(message)
+    
+    
+def execute_commands(config_template, domain, ip, cert_name, port, pollport):
+    # Get default vars
+    default_vars = get_default_vars()
+    server_path = default_vars["server_path"]
+    old_domain = default_vars["old_domain"]
+    old_ip = default_vars["old_ip"]
+    old_crt = default_vars["old_crt"]
+    old_key = default_vars["old_key"]
+    old_port = default_vars["old_port"]
+    old_pollport = default_vars["old_pollport"]
+    # Get relative path
+    script_path = os.path.dirname(os.path.realpath(__file__)) + "/config_templates"
+    # copy command
+    eq_display_message = "Copy " + script_path + "/" + config_template + ".conf " + server_path + "/" + domain + ".conf"
+    eq_copy_command = "cp " + script_path + "/" + config_template + ".conf " + server_path + "/" + domain + ".conf"
+    print(eq_display_message.rstrip("\n"))
+    os.system(eq_copy_command)
+
+    # send command - domain
+    eq_display_message = "Set domain name in conf to " + domain
+    eq_set_domain_cmd = "sed -i s/" + old_domain + "/" + domain + "/g " + server_path + "/" + domain + ".conf"
+    print(eq_display_message.rstrip("\n"))
+    os.system(eq_set_domain_cmd)
+
+    # send command - ip
+    eq_display_message = "Set ip in conf to " + ip
+    eq_set_ip_cmd = "sed -i s/" + old_ip + "/" + ip + "/g " + server_path + "/" + domain + ".conf"
+    print(eq_display_message.rstrip("\n"))
+    os.system(eq_set_ip_cmd)
+
+    # send command - cert, key
+    eq_display_message = "Set cert name in conf to " + cert_name
+    eq_set_cert_cmd = "sed -i s/" + old_crt + "/" + cert_name + "/g " + server_path + "/" + domain + ".conf"
+    eq_set_key_cmd = "sed -i s/" + old_key + "/" + cert_name + "/g " + server_path + "/" + domain + ".conf"
+    print(eq_display_message.rstrip("\n"))
+    os.system(eq_set_cert_cmd)
+    os.system(eq_set_key_cmd)
+
+    # send command - port
+    eq_display_message = "Set port in conf to " + port
+    eq_set_port_cmd = "sed -i s/" + old_port + "/" + port + "/g " + server_path + "/" + domain + ".conf"
+    print(eq_display_message.rstrip("\n"))
+    os.system(eq_set_port_cmd)
+
+    if "odoo" in config_template and pollport != "":
+        # send command - polling port
+        eq_display_message = "Set polling port in conf to " + pollport
+        eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
+        print(eq_display_message.rstrip("\n"))
+        os.system(eq_set_port_cmd)

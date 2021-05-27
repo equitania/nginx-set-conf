@@ -1,6 +1,14 @@
-config_template: ngx_odoo_ssl_pagespeed
-ip: 1.2.3.4
-domain: equitania
-port: 443
-cert_name: cert1
-pollport: 8099
+Config1:
+  config_template: ngx_odoo_ssl_pagespeed
+  ip: 1.2.3.4
+  domain: equitania
+  port: 443
+  cert_name: cert1
+  pollport: 8099
+Config2:
+  config_template: ngx_odoo_ssl_pagespeed
+  ip: 1.2.3.4
+  domain: equitania2
+  port: 443
+  cert_name: cert1
+  pollport: 8099
