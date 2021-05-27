@@ -4,6 +4,7 @@
 
 import yaml
 import os
+from .config_templates import get_config_template
 
 def fire_all_functions(function_list: list):
     """
@@ -85,13 +86,21 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     old_key = default_vars["old_key"]
     old_port = default_vars["old_port"]
     old_pollport = default_vars["old_pollport"]
-    # Get relative path
-    script_path = os.path.dirname(os.path.realpath(__file__)) + "/config_templates"
-    # copy command
-    eq_display_message = "Copy " + script_path + "/" + config_template + ".conf " + server_path + "/" + domain + ".conf"
-    eq_copy_command = "cp " + script_path + "/" + config_template + ".conf " + server_path + "/" + domain + ".conf"
-    print(eq_display_message.rstrip("\n"))
-    os.system(eq_copy_command)
+    # Get config templates
+    config_template_content = get_config_template(config_template)
+    if config_template_content:
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        file_path = current_path + "/" + config_template + ".conf"
+        with open(file_path, 'w') as f:
+            f.write(config_template_content)
+        # copy command
+        eq_display_message = "Copy " + file_path + server_path + "/" + domain + ".conf"
+        eq_copy_command = "cp " + file_path + server_path + "/" + domain + ".conf"
+        print(eq_display_message.rstrip("\n"))
+        os.system(eq_copy_command)
+        os.remove(file_path)
+    else:
+        print("No valid config template")
 
     # send command - domain
     eq_display_message = "Set domain name in conf to " + domain
