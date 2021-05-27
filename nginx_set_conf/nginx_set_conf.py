@@ -60,7 +60,7 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
                 except:
                     pollport = None
                 execute_commands(config_template, domain, ip, cert_name, port, pollport)
-    elif config_template and ip and domain and port and cert_name and pollport:
+    elif config_template and ip and domain and port and cert_name:
         execute_commands(config_template, domain, ip, cert_name, port, pollport)
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
