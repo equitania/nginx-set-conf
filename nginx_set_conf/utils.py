@@ -145,3 +145,4 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     os.system("systemctl start nginx.service")
     os.system("systemctl status nginx.service")
     os.system("nginx -t")
+    os.system("nginx -V")
