@@ -74,8 +74,8 @@ def retrieve_valid_input(message):
         return user_input
     else:
         return retrieve_valid_input(message)
-    
-    
+
+
 def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     # Get default vars
     default_vars = get_default_vars()
@@ -125,6 +125,7 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     # Search for certificate and create it when it does not exist
     cert_exists = os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/fullchain.pem") and os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/privkey.pem")
     if not cert_exists:
+        os.system("systemctl stop nginx.service")
         eq_create_cert = "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d " + cert_name
         os.system(eq_create_cert)
 
@@ -140,3 +141,7 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
         eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
+
+    os.system("systemctl start nginx.service")
+    os.system("systemctl status nginx.service")
+    os.system("nginx -t")

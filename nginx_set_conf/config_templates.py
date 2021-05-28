@@ -1,5 +1,5 @@
 config_template_dict = {
-    "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
+"ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -38,7 +38,7 @@ server {
 
     location = /robots.txt {
         add_header Content-Type text/plain;
-        return 200 "User-agent: *\nDisallow: /\n";
+        return 200 "User-agent: *Disallow: /";
     }
 
     #general proxy settings
@@ -68,7 +68,7 @@ server {
 }
 """,
 
-    "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
+"ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -113,7 +113,7 @@ server {
 
     location = /robots.txt {
         add_header Content-Type text/plain;
-        return 200 "User-agent: *\nDisallow: /\n";
+        return 200 "User-agent: *Disallow: /";
     }
 
     #general proxy settings
@@ -137,7 +137,7 @@ server {
 }
 """,
 
-    "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
+"ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -179,7 +179,7 @@ server {
 
     location = /robots.txt {
         add_header Content-Type text/plain;
-        return 200 "User-agent: *\nDisallow: /\n";
+        return 200 "User-agent: *Disallow: /";
     }
 
     # Raise file upload size
@@ -216,7 +216,7 @@ server {
     }
 }""",
 
-    "ngx_odoo_http": """# Template for Odoo configuration nginx
+"ngx_odoo_http": """# Template for Odoo configuration nginx
 # version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -258,7 +258,7 @@ server {
 
     #location = /robots.txt {
     #    add_header Content-Type text/plain;
-    #    return 200 "User-agent: *\nDisallow: /\n";
+    #    return 200 "User-agent: *Disallow: /";
     #}
 
     location / {
@@ -279,7 +279,7 @@ server {
     }
 }""",
 
-    "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
+"ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -334,7 +334,7 @@ server {
 
     #location = /robots.txt {
     #    add_header Content-Type text/plain;
-    #    return 200 "User-agent: *\nDisallow: /\n";
+    #    return 200 "User-agent: *Disallow: /";
     #}
 
     pagespeed off;
@@ -365,7 +365,7 @@ server {
 
 """,
 
-    "ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
+"ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
 # source: https://github.com/apache/incubator-pagespeed-ngx/blob/master/scripts/build_ngx_pagespeed.sh
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
@@ -421,7 +421,7 @@ server {
 
     #location = /robots.txt {
     #    add_header Content-Type text/plain;
-    #    return 200 "User-agent: *\nDisallow: /\n";
+    #    return 200 "User-agent: *Disallow: /";
     #}
 
     # Add Headers for odoo proxy mode
@@ -492,7 +492,7 @@ server {
     }
 }""",
 
-    "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
+"ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -531,7 +531,7 @@ server {
 
     location = /robots.txt {
         add_header Content-Type text/plain;
-        return 200 "User-agent: *\nDisallow: /\n";
+        return 200 "User-agent: *Disallow: /";
     }
 
     #general proxy settings
@@ -553,7 +553,7 @@ server {
 }
 """,
 
-    "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
+"ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -601,7 +601,7 @@ server {
 
     location = /robots.txt {
         add_header Content-Type text/plain;
-        return 200 "User-agent: *\nDisallow: /\n";
+        return 200 "User-agent: *Disallow: /";
     }
 
     # Add Headers for odoo proxy mode
@@ -617,7 +617,7 @@ server {
     }
 }""",
 
-    "ngx_redirect": """# Template for Redirect Domain configuration nginx
+"ngx_redirect": """# Template for Redirect Domain configuration nginx
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
@@ -630,7 +630,8 @@ server {
     access_log /var/log/nginx/target.domain.de-access.log;
     error_log /var/log/nginx/target.domain.de-error.log;
 }""",
-    "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
+
+"ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
 # Version 3.1 from 26.05.2021
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;

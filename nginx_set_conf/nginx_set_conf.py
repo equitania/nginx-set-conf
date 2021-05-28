@@ -25,9 +25,7 @@ We support:\f
 - ngx_pgadmin (pgAdmin4 with ssl)
 - ngx_pwa (Progressive Web App with ssl)
 - ngx_redirect_ssl (Redirect Domain with ssl)
-- ngx_redirect (Redirect Domain without ssl) 
-\f
-Files with the same name + .conf has to be stored in the same folder.
+- ngx_redirect (Redirect Domain without ssl)
 """
 
 
