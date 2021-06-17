@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nginx-set-conf-equitania",
-    version="0.0.9",
-    author="Lukas von Ehr - Equitania Software GmbH",
-    author_email="l.von.ehr@equitania.de",
-    description="A package to create configurations for docker based applications",
+    version="0.1.2",
+    author="Martin Schmid - Equitania Software GmbH",
+    author_email="m.schmid@equitania.de",
+    description="A package to create configurations for nginx with pagespeed for different web applications",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=['nginx_set_conf'],

@@ -4,7 +4,7 @@
 
 from .utils import parse_yaml_folder, retrieve_valid_input, execute_commands
 import click
-
+import os
 
 def welcome():
     click.echo("Welcome to the nginx_set_conf!")
@@ -68,6 +68,11 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
         cert_name = retrieve_valid_input("Name of certificate" + "\n")
         pollport = retrieve_valid_input("Secondary Docker container port for odoo pollings" + "\n")
         execute_commands(config_template, domain, ip, cert_name, port, pollport)
+    # Restart and check the nginx service
+    os.system("systemctl start nginx.service")
+    os.system("systemctl status nginx.service")
+    os.system("nginx -t")
+    os.system("nginx -V")
 
 
 if __name__ == "__main__":

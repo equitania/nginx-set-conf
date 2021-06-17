@@ -49,7 +49,7 @@ def parse_yaml_folder(path):
     """
     yaml_objects = []
     for file in os.listdir(path):
-        if file.endswith(".yaml"):
+        if file.endswith(".yaml") or file.endswith(".yml"):
             yaml_object = parse_yaml(os.path.join(path, file))
             if yaml_object:
                 yaml_objects.append(yaml_object)
@@ -141,8 +141,3 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
         eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
-
-    os.system("systemctl start nginx.service")
-    os.system("systemctl status nginx.service")
-    os.system("nginx -t")
-    os.system("nginx -V")

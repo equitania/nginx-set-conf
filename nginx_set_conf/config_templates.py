@@ -263,7 +263,9 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:oldport;
-        proxy_set_header X-Forwarded-Proto http;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
 
     # Chat Odoo
@@ -348,6 +350,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
 
     # Chat Odoo
@@ -433,6 +437,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
         #auth_basic       "Restricted Area";
         #auth_basic_user_file  htpasswd/testmyodoo;
     }
