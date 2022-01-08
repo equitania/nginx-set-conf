@@ -47,7 +47,7 @@ We support:\f
 @click.option('--redirect_domain',
               help='Redirect domain')
 @click.option('--config_path', help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"')
-def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, config_path):
+def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, redirect_domain, config_path):
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
@@ -55,19 +55,22 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
                 config_template = yaml_config["config_template"]
                 ip = yaml_config["ip"]
                 domain = yaml_config["domain"]
-                port = str(yaml_config["port"])
+                try:
+                    port = str(yaml_config["port"])
+                except:
+                    port = ""
                 cert_name = yaml_config["cert_name"]
                 try:
                     pollport = str(yaml_config["pollport"])
                 except:
-                    pollport = None
+                    pollport = ""
                 try:
                     redirect_domain = str(yaml_config["redirect_domain"])
                 except:
-                    redirect_domain = None
+                    redirect_domain = ""
                 execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain)
     elif config_template and ip and domain and port and cert_name:
-        execute_commands(config_template, domain, ip, cert_name, port, pollport)
+        execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain)
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
         ip = retrieve_valid_input("IP address of the server" + "\n")

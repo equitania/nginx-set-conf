@@ -78,7 +78,7 @@ def retrieve_valid_input(message):
         return retrieve_valid_input(message)
 
 
-def execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain:
+def execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain):
     # Get default vars
     default_vars = get_default_vars()
     server_path = default_vars["server_path"]
@@ -88,7 +88,7 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport, red
     old_key = default_vars["old_key"]
     old_port = default_vars["old_port"]
     old_pollport = default_vars["old_pollport"]
-    old_redirect_domain = default_vars["redirect_domain"]
+    old_redirect_domain = default_vars["old_redirect_domain"]
     # Get config templates
     config_template_content = get_config_template(config_template)
     if config_template_content:
