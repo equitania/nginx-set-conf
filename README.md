@@ -22,7 +22,7 @@ pip install nginx-set-conf-equitania
 
 ```bash
 $ nginx-set-conf --help
-usage: nginx-set-conf [--help] [--config_template] [--ip] [--domain] [--port] [--cert_name] [--pollport] [--config_path]
+usage: nginx-set-conf [--help] [--config_template] [--ip] [--domain] [--port] [--cert_name] [--pollport] [--redirect_domain] [--config_path]
 ```
 ```bash
 Options:
@@ -46,6 +46,7 @@ Options:
   --port TEXT             Primary port for the Docker container
   --cert_name TEXT        Name of certificate
   --pollport TEXT         Secondary Docker container port for odoo pollings
+  --redirect_domain TEXT  Redirect domain
   --config_path TEXT      Yaml configuration folder
   --help                  Show this message and exit.
 ```
@@ -59,7 +60,7 @@ f.e.
 nginx-set-conf --config_path=$HOME/docker-builds/ngx-conf
   
 # Execution without config file
-nginx-set-conf --config_template ngx_odoo_ssl_pagespeed --ip 1.2.3.4 --domain www.equitania.de --port 8069 --cert_name www.equitania.de --pollport 8072
+nginx-set-conf --config_template ngx_odoo_ssl_pagespeed --ip 1.2.3.4 --domain www.equitania.de --port 8069 --cert_name www.equitania.de --pollport 8072 
 
 # Create your cert with
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d www.equitania.de

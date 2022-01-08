@@ -65,7 +65,8 @@ def get_default_vars():
         "old_port": "oldport",
         "old_pollport": "oldpollport",
         "old_crt": "zertifikat.crt",
-        "old_key": "zertifikat.key"
+        "old_key": "zertifikat.key",
+        "old_redirect_domain" : "target.domain.de"
     }
 
 
@@ -77,7 +78,7 @@ def retrieve_valid_input(message):
         return retrieve_valid_input(message)
 
 
-def execute_commands(config_template, domain, ip, cert_name, port, pollport):
+def execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain:
     # Get default vars
     default_vars = get_default_vars()
     server_path = default_vars["server_path"]
@@ -87,6 +88,7 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
     old_key = default_vars["old_key"]
     old_port = default_vars["old_port"]
     old_pollport = default_vars["old_pollport"]
+    old_redirect_domain = default_vars["redirect_domain"]
     # Get config templates
     config_template_content = get_config_template(config_template)
     if config_template_content:
@@ -105,7 +107,6 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
 
     # send command - domain
     eq_display_message = "Set domain name in conf to " + domain
-    print("sed -i s/" + old_domain + "/" + domain + "/g " + server_path + "/" + domain + ".conf")
     eq_set_domain_cmd = "sed -i s/" + old_domain + "/" + domain + "/g " + server_path + "/" + domain + ".conf"
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_domain_cmd)
@@ -143,3 +144,18 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
         eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
+
+    if "redirect" in config_template and redirect_domain:
+        # send command - redirect domain
+        eq_display_message = "Set redirect domain in conf to " + redirect_domain
+        eq_set_redirect_cmd = "sed -i s/" + old_redirect_domain + "/" + redirect_domain + "/g " + server_path + "/" + domain + ".conf"
+        print(eq_display_message.rstrip("\n"))
+        os.system(eq_set_redirect_cmd)
+
+    # Search for certificate and create it when it does not exist
+    if "redirect_ssl" in config_template and redirect_domain:
+        cert_exists = os.path.isfile("/etc/letsencrypt/live/" + redirect_domain + "/fullchain.pem") and os.path.isfile("/etc/letsencrypt/live/" + redirect_domain + "/privkey.pem")
+        if not cert_exists:
+            os.system("systemctl stop nginx.service")
+            eq_create_cert = "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d " + redirect_domain
+            os.system(eq_create_cert)
