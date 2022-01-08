@@ -16,16 +16,18 @@ Insert the conf-template.
 \f
 We support:\f
 \b
-- ngx_odoo_ssl_pagespeed (Odoo with ssl and PageSpeed)
-- ngx_fast_report (FastReport with ssl)
 - ngx_code_server (code-server with ssl)
+- ngx_fast_report (FastReport with ssl)
 - ngx_nextcloud (NextCloud with ssl)
 - ngx_odoo_http (Odoo only http)
 - ngx_odoo_ssl (Odoo with ssl)
+- ngx_odoo_ssl_pagespeed (Odoo with ssl and PageSpeed)
 - ngx_pgadmin (pgAdmin4 with ssl)
+- ngx_portainer (Portainer with ssl)
 - ngx_pwa (Progressive Web App with ssl)
-- ngx_redirect_ssl (Redirect Domain with ssl)
 - ngx_redirect (Redirect Domain without ssl)
+- ngx_redirect_ssl (Redirect Domain with ssl)
+\b
 """
 
 
@@ -42,7 +44,7 @@ We support:\f
               help='Name of certificate')
 @click.option('--pollport',
               help='Secondary Docker container port for odoo pollings')
-@click.option('--config_path', help='Yaml configuration folder')
+@click.option('--config_path', help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"')
 def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, config_path):
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)

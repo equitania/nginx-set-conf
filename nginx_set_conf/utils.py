@@ -58,7 +58,8 @@ def parse_yaml_folder(path):
 
 def get_default_vars():
     return {
-        "server_path": "/etc/nginx/conf.d",
+        #"server_path": "/etc/nginx/conf.d",
+        "server_path": "$HOME/Public",
         "old_domain": "server.domain.de",
         "old_ip": "ip.ip.ip.ip",
         "old_port": "oldport",
@@ -104,6 +105,7 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport):
 
     # send command - domain
     eq_display_message = "Set domain name in conf to " + domain
+    print("sed -i s/" + old_domain + "/" + domain + "/g " + server_path + "/" + domain + ".conf")
     eq_set_domain_cmd = "sed -i s/" + old_domain + "/" + domain + "/g " + server_path + "/" + domain + ".conf"
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_domain_cmd)

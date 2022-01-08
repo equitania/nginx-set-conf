@@ -1,14 +1,56 @@
-Config1:
+Odoo https:
+  config_template: ngx_odoo_ssl
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+  pollport: 0000
+Odoo https PageSpeed:
   config_template: ngx_odoo_ssl_pagespeed
   ip: 1.2.3.4
-  domain: equitania
-  port: 443
-  cert_name: cert1
-  pollport: 8099
-Config2:
-  config_template: ngx_odoo_ssl_pagespeed
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+  pollport: 0000
+Odoo only http:
+  config_template: ngx_odoo_http
   ip: 1.2.3.4
-  domain: equitania2
-  port: 443
-  cert_name: cert1
-  pollport: 8099
+  domain: www.ownerp.com
+  port: 0000
+  pollport: 0000
+Fast Report:
+  config_template: ngx_fast_report
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+Code Server:
+  config_template: ngx_code_server
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+NextCloud:
+  config_template: ngx_nextcloud
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+Portainer:
+  config_template: ngx_portainer
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+pgAdmin:
+  config_template: ngx_pgadmin
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com
+PWA:
+  config_template: ngx_pwa
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  port: 0000
+  cert_name: www.ownerp.com

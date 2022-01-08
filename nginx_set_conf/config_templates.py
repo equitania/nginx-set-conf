@@ -216,6 +216,63 @@ server {
     }
 }""",
 
+
+"ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
+# Version 1.0 from 10.08.2021
+upstream server.domain.de {
+    server ip.ip.ip.ip weight=1 fail_timeout=0;
+}
+
+server {
+    listen server.domain.de:80;
+    server_name server.domain.de;
+    rewrite ^/.*$ https://$host$request_uri? permanent;
+}
+
+server {
+    listen server.domain.de:443 ssl http2;
+    server_name server.domain.de;
+
+    add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+    add_header Referrer-Policy no-referrer always;
+
+    access_log /var/log/nginx/server.domain.de-access.log;
+    error_log /var/log/nginx/server.domain.de-error.log;
+
+    # ssl certificate files
+    ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zertifikat.key/privkey.pem;
+
+    # add ssl specific settings
+    keepalive_timeout    60;
+    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # limit ciphers
+    ssl_session_timeout  5m;
+
+    pagespeed off;
+
+    #general proxy settings
+    # force timeouts if the backend dies
+    proxy_connect_timeout 720s;
+    proxy_send_timeout 720s;
+    proxy_read_timeout 720s;
+    proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
+
+    # Proxy for portainer docker
+    location / {
+        proxy_http_version         1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-PORT $remote_port;
+        proxy_pass http://127.0.0.1:oldport;
+    }
+}""",
+
 "ngx_odoo_http": """# Template for Odoo configuration nginx
 # version 3.1 from 26.05.2021
 upstream server.domain.de {
@@ -547,7 +604,7 @@ server {
     proxy_read_timeout 720s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
-    # Proxy for docker
+    # Proxy for pgadmin
     location / {
         # Connect to local port
         proxy_set_header Host $host;
