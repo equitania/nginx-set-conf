@@ -58,8 +58,8 @@ def parse_yaml_folder(path):
 
 def get_default_vars():
     return {
-        #"server_path": "/etc/nginx/conf.d",
-        "server_path": "$HOME/Public",
+        #"server_path": "$HOME/Public",
+        "server_path": "/etc/nginx/conf.d",
         "old_domain": "server.domain.de",
         "old_ip": "ip.ip.ip.ip",
         "old_port": "oldport",
