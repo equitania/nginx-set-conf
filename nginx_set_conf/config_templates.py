@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -26,7 +26,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.1 TLSv1.2;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -69,7 +69,7 @@ server {
 """,
 
 "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -95,7 +95,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -138,7 +138,7 @@ server {
 """,
 
 "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -165,7 +165,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -218,7 +218,7 @@ server {
 
 
 "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 1.0 from 10.08.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -245,7 +245,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -274,7 +274,7 @@ server {
 }""",
 
 "ngx_odoo_http": """# Template for Odoo configuration nginx
-# version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -339,7 +339,7 @@ server {
 }""",
 
 "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -363,7 +363,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -428,7 +428,7 @@ server {
 
 "ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
 # source: https://github.com/apache/incubator-pagespeed-ngx/blob/master/scripts/build_ngx_pagespeed.sh
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -452,7 +452,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -556,7 +556,7 @@ server {
 }""",
 
 "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -582,7 +582,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -617,7 +617,7 @@ server {
 """,
 
 "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 3.1 from 26.05.2021
+# Version 3.2 from 01.02.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -643,7 +643,7 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 

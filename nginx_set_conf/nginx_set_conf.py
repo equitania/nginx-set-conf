@@ -48,6 +48,7 @@ We support:\f
               help='Redirect domain')
 @click.option('--config_path', help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"')
 def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, redirect_domain, config_path):
+    os.system("systemctl start nginx.service")
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:

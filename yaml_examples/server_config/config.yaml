@@ -54,3 +54,14 @@ PWA:
   domain: www.ownerp.com
   port: 0000
   cert_name: www.ownerp.com
+Redirect:
+  config_template: ngx_redirect
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  redirect_domain: www.ownerp.com
+Redirect_SSL:
+  config_template: ngx_redirect_ssl
+  ip: 1.2.3.4
+  domain: www.ownerp.com
+  cert_name: www.ownerp.com
+  redirect_domain: www.ownerp.com

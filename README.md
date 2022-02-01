@@ -1,17 +1,17 @@
 # Nginx-set-conf
-====================================================================================
-This is a simple python library that helps you to create configurations for different docker based applications with nginx as reverse proxy.
-
+====================================================================================  
+This is a simple python library that helps you to create configurations for different docker based applications with nginx as reverse proxy.  
+  
 ## Installation
-
+  
 ### Nginx-set-conf requires:
-
-- Python (>= 3.6)
-- click (>= 8.0.3)
-- PyYaml (>= 5.4.1)
-
+  
+- Python (>= 3.6)  
+- click (>= 8.0.3)  
+- PyYaml (>= 5.4.1)  
+  
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install nginx-set-conf.
-
+  
 ```bash
 pip install nginx-set-conf-equitania
 ```
@@ -67,5 +67,5 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d w
 # Install certbot on Ubuntu with
 apt-get install certbot
 ```
-
-This project is licensed under the terms of the **AGPLv3** license.
+  
+This project is licensed under the terms of the **AGPLv3** license.  
