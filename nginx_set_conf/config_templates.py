@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -34,8 +34,6 @@ server {
     ssl_session_cache    shared:SSL:1m;
     ssl_session_timeout  5m;
 
-    pagespeed off;
-
     location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
@@ -65,11 +63,12 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }
 """,
 
 "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -109,8 +108,6 @@ server {
     client_max_body_size 10G;
     fastcgi_buffers 64 4K;
 
-    pagespeed off;
-
     location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
@@ -134,11 +131,12 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }
 """,
 
 "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -187,8 +185,6 @@ server {
     # Limit download size
     proxy_max_temp_file_size 4096m;
 
-    pagespeed off;
-
     #general proxy settings
     # force timeouts if the backend dies
     proxy_connect_timeout 720s;
@@ -214,11 +210,12 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;        # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }""",
 
 
 "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -252,8 +249,6 @@ server {
     # limit ciphers
     ssl_session_timeout  5m;
 
-    pagespeed off;
-
     #general proxy settings
     # force timeouts if the backend dies
     proxy_connect_timeout 720s;
@@ -271,10 +266,11 @@ server {
         proxy_set_header X-Real-PORT $remote_port;
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }""",
 
 "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -306,8 +302,6 @@ server {
         internal;
     }
 
-    pagespeed off;
-
     # set headers
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -321,8 +315,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        #proxy_set_header Host $host;
+        #proxy_set_header X-Forwarded-For $remote_addr;
     }
 
     # Chat Odoo
@@ -336,10 +330,11 @@ server {
         expires 864000;
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }""",
 
 "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -396,8 +391,6 @@ server {
     #    return 200 "User-agent: *Disallow: /";
     #}
 
-    pagespeed off;
-
     # Add Headers for odoo proxy mode
     proxy_set_header X-Forwarded-Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -407,8 +400,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        #proxy_set_header Host $host;
+        #proxy_set_header X-Forwarded-For $remote_addr;
     }
 
     # Chat Odoo
@@ -422,13 +415,14 @@ server {
         expires 864000;
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }
 
 """,
 
 "ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
 # source: https://github.com/apache/incubator-pagespeed-ngx/blob/master/scripts/build_ngx_pagespeed.sh
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -494,8 +488,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        #proxy_set_header Host $host;
+        #proxy_set_header X-Forwarded-For $remote_addr;
         #auth_basic       "Restricted Area";
         #auth_basic_user_file  htpasswd/testmyodoo;
     }
@@ -512,51 +506,11 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
 
-    # let's speed up PageSpeed by storing it in the super duper fast memcached
-    pagespeed MemcachedThreads 1;
-    pagespeed MemcachedServers "localhost:11211";
-
-    # Filter settings
-    pagespeed RewriteLevel OptimizeForBandwidth;
-    pagespeed EnableFilters remove_quotes,collapse_whitespace,remove_comments,extend_cache;
-    pagespeed ForbidFilters inline_javascript,rewrite_javascript,combine_javascript;
-    pagespeed DisableFilters inline_javascript,rewrite_javascript,combine_javascript;
-
-    #  Ensure requests for pagespeed optimized resources go to the pagespeed
-    #  handler and no extraneous headers get set.
-    location ~ "\.pagespeed\.([a-z]\.)?[a-z]{2}\.[^.]{10}\.[^.]+" {
-        add_header "" "";
-    }
-
-    location ~ "^/ngx_pagespeed_static/" {
-    }
-
-    location ~ "^/ngx_pagespeed_beacon$" {
-    }
-
-    location /ngx_pagespeed_statistics {
-        allow 127.0.0.1;
-        deny all;
-    }
-
-    location /ngx_pagespeed_global_statistics {
-        allow 127.0.0.1;
-        deny all;
-    }
-
-    location /ngx_pagespeed_message {
-        allow 127.0.0.1;
-        deny all;
-    }
-
-    location /pagespeed_console {
-        allow 127.0.0.1;
-        deny all;
-    }
+    include "pagespeed_main.conf";
 }""",
 
 "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -590,8 +544,6 @@ server {
     ssl_session_cache    shared:SSL:1m;
     ssl_session_timeout  5m;
 
-    pagespeed off;
-
     location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
@@ -613,11 +565,12 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }
 """,
 
 "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 3.2 from 01.02.2022
+# Version 3.3 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -653,8 +606,6 @@ server {
 
     index index.html;
 
-    pagespeed off;
-
     #general proxy settings
     # force timeouts if the backend dies
     proxy_connect_timeout 720s;
@@ -678,6 +629,7 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
+    #include "pagespeed_main.conf";
 }""",
 
 "ngx_redirect": """# Template for Redirect Domain configuration nginx
@@ -695,7 +647,7 @@ server {
 }""",
 
 "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
-# Version 3.1 from 26.05.2021
+# Version 3.1 from 17.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -728,13 +680,14 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
     # limit ciphers
     ssl_session_cache    shared:SSL:1m;
     ssl_session_timeout  5m;
+    #include "pagespeed_main.conf";
 }"""
 }
 

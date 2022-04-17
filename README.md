@@ -68,4 +68,8 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d w
 apt-get install certbot
 ```
   
+## Compile your nginx with PageSpeed   
+  
+At github you can find the script to do that: [nginx build script](https://github.com/equitania/myodoo-docker/tree/2022/scripts/build_nginx)  
+  
 This project is licensed under the terms of the **AGPLv3** license.  
