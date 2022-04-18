@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -63,12 +63,14 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
+    # Pagespeed
+    pagespeed off;
     #include "pagespeed_main.conf";
 }
 """,
 
 "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -132,11 +134,13 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }
 """,
 
 "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -211,11 +215,13 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }""",
 
 
 "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -267,10 +273,12 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }""",
 
 "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -331,10 +339,12 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }""",
 
 "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -416,13 +426,15 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }
 
 """,
 
 "ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
 # source: https://github.com/apache/incubator-pagespeed-ngx/blob/master/scripts/build_ngx_pagespeed.sh
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -507,10 +519,12 @@ server {
     }
 
     include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed on;
 }""",
 
 "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -566,11 +580,13 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }
 """,
 
 "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 3.3 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -630,10 +646,12 @@ server {
         proxy_pass http://127.0.0.1:oldport;
     }
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }""",
 
 "ngx_redirect": """# Template for Redirect Domain configuration nginx
-# Version 3.1 from 26.05.2021
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -644,10 +662,12 @@ server {
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log;
     error_log /var/log/nginx/target.domain.de-error.log;
+    # Pagespeed
+    pagespeed off;
 }""",
 
 "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
-# Version 3.1 from 17.04.2022
+# Version 3.4 from 18.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -688,6 +708,8 @@ server {
     ssl_session_cache    shared:SSL:1m;
     ssl_session_timeout  5m;
     #include "pagespeed_main.conf";
+    # Pagespeed
+    pagespeed off;
 }"""
 }
 
