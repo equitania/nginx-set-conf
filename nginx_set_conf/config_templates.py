@@ -41,9 +41,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # Raise file upload size
@@ -117,9 +117,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # Add Headers for odoo proxy mode
@@ -191,9 +191,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # Proxy for nextcloud docker
@@ -257,9 +257,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # Proxy for portainer docker
@@ -298,9 +298,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -384,9 +384,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -474,9 +474,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -565,9 +565,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # Proxy for pgadmin
@@ -624,9 +624,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     location = /robots.txt {
@@ -693,9 +693,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_read_timeout 720s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # add ssl specific settings
