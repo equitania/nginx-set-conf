@@ -47,6 +47,7 @@ Options:
   --cert_name TEXT        Name of certificate
   --pollport TEXT         Secondary Docker container port for odoo pollings
   --redirect_domain TEXT  Redirect domain
+  --auth_file TEXT         Use authfile for htAccess 
   --config_path TEXT      Yaml configuration folder
   --help                  Show this message and exit.
 ```

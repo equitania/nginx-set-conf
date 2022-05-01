@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -65,12 +65,11 @@ server {
     }
     # Pagespeed
     pagespeed off;
-    #include "pagespeed_main.conf";
 }
 """,
 
 "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -133,14 +132,13 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
     # Pagespeed
     pagespeed off;
 }
 """,
 
 "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -214,14 +212,13 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;        # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
     # Pagespeed
     pagespeed off;
 }""",
 
 
 "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -272,13 +269,12 @@ server {
         proxy_set_header X-Real-PORT $remote_port;
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
     # Pagespeed
     pagespeed off;
 }""",
 
 "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -315,14 +311,16 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forward-For $proxy_add_x_forwarded_for;
 
-    #location = /robots.txt {
-    #    add_header Content-Type text/plain;
-    #    return 200 "User-agent: *Disallow: /";
-    #}
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *Disallow: /";
+    }
 
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
+        #auth_basic       "Restricted Area";
+        #auth_basic_user_file  htpasswd/testmyodoo;
         #proxy_set_header Host $host;
         #proxy_set_header X-Forwarded-For $remote_addr;
     }
@@ -338,13 +336,12 @@ server {
         expires 864000;
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
     # Pagespeed
     pagespeed off;
 }""",
 
 "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 3.4 from 18.04.2022
+# Version 3.6 from 01.05.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -396,10 +393,10 @@ server {
         internal;
     }
 
-    #location = /robots.txt {
-    #    add_header Content-Type text/plain;
-    #    return 200 "User-agent: *Disallow: /";
-    #}
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *Disallow: /";
+    }
 
     # Add Headers for odoo proxy mode
     proxy_set_header X-Forwarded-Host $host;
@@ -410,8 +407,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
-        #proxy_set_header Host $host;
-        #proxy_set_header X-Forwarded-For $remote_addr;
+        #auth_basic       "Restricted Area";
+        #auth_basic_user_file  htpasswd/authfile;
     }
 
     # Chat Odoo
@@ -524,7 +521,7 @@ server {
 }""",
 
 "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -579,14 +576,13 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
     # Pagespeed
     pagespeed off;
 }
 """,
 
 "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -645,13 +641,12 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
     # Pagespeed
     pagespeed off;
 }""",
 
 "ngx_redirect": """# Template for Redirect Domain configuration nginx
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -667,7 +662,7 @@ server {
 }""",
 
 "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
-# Version 3.4 from 18.04.2022
+# Version 3.5 from 25.04.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }

@@ -66,9 +66,9 @@ def get_default_vars():
         "old_pollport": "oldpollport",
         "old_crt": "zertifikat.crt",
         "old_key": "zertifikat.key",
-        "old_redirect_domain" : "target.domain.de"
+        "old_redirect_domain" : "target.domain.de",
+        "old_auth_file" : "authfile",
     }
-
 
 def retrieve_valid_input(message):
     user_input = input(message)
@@ -78,7 +78,7 @@ def retrieve_valid_input(message):
         return retrieve_valid_input(message)
 
 
-def execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain):
+def execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain, auth_file):
     # Get default vars
     default_vars = get_default_vars()
     server_path = default_vars["server_path"]
@@ -144,6 +144,19 @@ def execute_commands(config_template, domain, ip, cert_name, port, pollport, red
         eq_set_port_cmd = "sed -i s/" + old_pollport + "/" + pollport + "/g " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
+
+    eq_display_message = "Try set auth file to " + auth_file
+    print(eq_display_message.rstrip("\n"))
+    if "ngx_odoo_ssl" in config_template and auth_file:
+        eq_display_message = "Set auth file to " + auth_file
+        print(eq_display_message.rstrip("\n"))
+        _filename=server_path + "/" + domain + ".conf"
+        with open(_filename, 'r', encoding='utf-8') as _file:
+            _data = _file.readlines()
+        _data[67]='        auth_basic       "Restricted Area";' + '\n'
+        _data[68]='        auth_basic_user_file  htpasswd/' + auth_file + ';' + '\n'
+        with open(_filename, 'w', encoding='utf-8') as _file:
+            _file.writelines(_data)
 
     if "redirect" in config_template and redirect_domain:
         # send command - redirect domain
