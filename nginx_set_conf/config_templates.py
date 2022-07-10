@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.5 from 25.04.2022
+# Version 3.6 from 10.07.2022
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -294,9 +294,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 1200s;
-    proxy_send_timeout 1200s;
-    proxy_read_timeout 1200s;
+    proxy_connect_timeout 3000s;
+    proxy_send_timeout 3000s;
+    proxy_read_timeout 3000s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -381,9 +381,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 1200s;
-    proxy_send_timeout 1200s;
-    proxy_read_timeout 1200s;
+    proxy_connect_timeout 3000s;
+    proxy_send_timeout 3000s;
+    proxy_read_timeout 3000s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -471,9 +471,9 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 1200s;
-    proxy_send_timeout 1200s;
-    proxy_read_timeout 1200s;
+    proxy_connect_timeout 3000s;
+    proxy_send_timeout 3000s;
+    proxy_read_timeout 3000s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
