@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nginx-set-conf-equitania",
-    version="0.7.6",
+    version="0.7.7",
     author="Equitania Software GmbH",
     author_email="info@equitania.de",
     description="A package to create configurations for nginx with/without pagespeed for different web applications",
@@ -24,6 +24,6 @@ setuptools.setup(
     ''',
     install_requires=[
         'click>=8.1.3',
-        'PyYaml>=6.0'
+        'PyYaml>=5.4.1'
     ]
 )
