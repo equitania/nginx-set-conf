@@ -2,7 +2,7 @@
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from utils import parse_yaml_folder, retrieve_valid_input, execute_commands
+from .utils import parse_yaml_folder, retrieve_valid_input, execute_commands
 import click
 import os
 

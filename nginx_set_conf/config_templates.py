@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -69,7 +69,7 @@ server {
 """,
 
 "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -138,7 +138,7 @@ server {
 """,
 
 "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -218,7 +218,7 @@ server {
 
 
 "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -274,7 +274,7 @@ server {
 }""",
 
 "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -341,7 +341,7 @@ server {
 }""",
 
 "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -431,7 +431,7 @@ server {
 
 "ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
 # source: https://github.com/apache/incubator-pagespeed-ngx/blob/master/scripts/build_ngx_pagespeed.sh
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -521,7 +521,7 @@ server {
 }""",
 
 "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -582,7 +582,7 @@ server {
 """,
 
 "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -646,7 +646,7 @@ server {
 }""",
 
 "ngx_redirect": """# Template for Redirect Domain configuration nginx
-# Version 3.5 from 25.04.2022
+# Version 3.6 from 10.05.2023
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -662,7 +662,7 @@ server {
 }""",
 
 "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
-# Version 3.7 from 02.05.2023
+# Version 3.8 from 10.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }

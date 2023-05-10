@@ -4,7 +4,7 @@
 
 import yaml
 import os
-from config_templates import get_config_template
+from .config_templates import get_config_template
 
 def fire_all_functions(function_list: list):
     """
