@@ -1,6 +1,6 @@
 config_template_dict = {
 "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -63,13 +63,11 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
 }
 """,
 
 "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -132,13 +130,11 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
 }
 """,
 
 "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -212,13 +208,11 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;        # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
-}""",
-
+}
+""",
 
 "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -269,12 +263,11 @@ server {
         proxy_set_header X-Real-PORT $remote_port;
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
-}""",
+}
+""",
 
 "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -336,12 +329,11 @@ server {
         expires 864000;
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
-}""",
+}
+""",
 
 "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -422,11 +414,7 @@ server {
         expires 864000;
         proxy_pass http://127.0.0.1:oldport;
     }
-    #include "pagespeed_main.conf";
-    # Pagespeed
-    pagespeed off;
 }
-
 """,
 
 "ngx_odoo_ssl_pagespeed": """# Template for Odoo configuration nginx incl. SSL/http2 and Google PageSpeed
@@ -521,7 +509,7 @@ server {
 }""",
 
 "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -576,13 +564,11 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
 }
 """,
 
 "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 3.8 from 10.05.2023
+# Version 3.9 from 25.05.2023
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -641,12 +627,11 @@ server {
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
-    # Pagespeed
-    pagespeed off;
-}""",
+}
+""",
 
 "ngx_redirect": """# Template for Redirect Domain configuration nginx
-# Version 3.6 from 10.05.2023
+# Version 3.7 from 25.05.2023
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
@@ -657,9 +642,8 @@ server {
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log;
     error_log /var/log/nginx/target.domain.de-error.log;
-    # Pagespeed
-    pagespeed off;
-}""",
+}
+""",
 
 "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
 # Version 3.8 from 10.05.2023
@@ -702,10 +686,8 @@ server {
     # limit ciphers
     ssl_session_cache    shared:SSL:1m;
     ssl_session_timeout  5m;
-    #include "pagespeed_main.conf";
-    # Pagespeed
-    pagespeed off;
-}"""
+}
+"""
 }
 
 
