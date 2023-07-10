@@ -6,13 +6,6 @@ Odoo https:
   cert_name: www.ownerp.com
   pollport: 0000
   auth_file: authfile
-Odoo https PageSpeed:
-  config_template: ngx_odoo_ssl_pagespeed
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
-  pollport: 0000
 Odoo only http:
   config_template: ngx_odoo_http
   ip: 1.2.3.4

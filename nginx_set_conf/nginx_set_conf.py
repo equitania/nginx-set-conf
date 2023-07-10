@@ -21,7 +21,6 @@ We support:\f
 - ngx_nextcloud (NextCloud with ssl)
 - ngx_odoo_http (Odoo only http)
 - ngx_odoo_ssl (Odoo with ssl)
-- ngx_odoo_ssl_pagespeed (Odoo with ssl and PageSpeed)
 - ngx_pgadmin (pgAdmin4 with ssl)
 - ngx_portainer (Portainer with ssl)
 - ngx_pwa (Progressive Web App with ssl)

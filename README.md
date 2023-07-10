@@ -35,7 +35,6 @@ Options:
                           - ngx_nextcloud (NextCloud with ssl)
                           - ngx_odoo_http (Odoo only http)
                           - ngx_odoo_ssl (Odoo with ssl)
-                          - ngx_odoo_ssl_pagespeed (Odoo with ssl and PageSpeed)
                           - ngx_pgadmin (pgAdmin4 with ssl)
                           - ngx_portainer (NextCloud with ssl)
                           - ngx_pwa (Progressive Web App with ssl)
@@ -61,16 +60,18 @@ f.e.
 nginx-set-conf --config_path=$HOME/docker-builds/ngx-conf
   
 # Execution without config file
-nginx-set-conf --config_template ngx_odoo_ssl_pagespeed --ip 1.2.3.4 --domain www.equitania.de --port 8069 --cert_name www.equitania.de --pollport 8072 
+nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.equitania.de --port 8069 --cert_name www.equitania.de --pollport 8072 
 
 # Create your cert with
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d www.equitania.de
-# Install certbot on Ubuntu with
+# Install certbot on Debian/Ubuntu with
 apt-get install certbot
 ```
   
-## Compile your nginx with PageSpeed   
+## nginx template settings  
   
-At github you can find the script to do that: [nginx build script](https://github.com/equitania/myodoo-docker/tree/2022/scripts/build_nginx)  
+You can download our settings: [nginx.conf](https://rm.ownerp.io/staff/nginx.conf)  
+and the : [nginxconfig.io.zip](https://rm.ownerp.io/staff/nginxconfig.io.zip)  
+based on [https://www.digitalocean.com/community/tools/nginx](https://www.digitalocean.com/community/tools/nginx)  
   
 This project is licensed under the terms of the **AGPLv3** license.  
