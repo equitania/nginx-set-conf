@@ -159,7 +159,7 @@ server {
     add_header Referrer-Policy no-referrer always;
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -241,7 +241,7 @@ server {
     add_header Referrer-Policy no-referrer always;
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -291,7 +291,7 @@ server {
     server_name server.domain.de;
     client_max_body_size 8192m;
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log;
 
     # increase proxy buffer to handle some Odoo web requests
     proxy_buffers 16 64k;
@@ -369,7 +369,7 @@ server {
     server_name server.domain.de;
     client_max_body_size 8192m;
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -459,7 +459,7 @@ server {
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -521,7 +521,7 @@ server {
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -579,7 +579,7 @@ server {
     server_name server.domain.de;
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/target.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/target.domain.de-error.log;
 }
 """,
 
@@ -594,7 +594,7 @@ server {
     server_name server.domain.de;
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/target.domain.de-error.log flush=2m;
+    error_log /var/log/nginx/target.domain.de-error.log;
 
     # additional config
     include                 nginxconfig.io/general.conf;

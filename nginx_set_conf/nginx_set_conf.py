@@ -88,7 +88,7 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
         auth_file = retrieve_valid_input("authfile" + "\n")
         execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain, auth_file)
     # Restart and check the nginx service
-    os.system("systemctl start nginx.service")
+    os.system("systemctl restart nginx.service")
     os.system("systemctl status nginx.service")
     os.system("nginx -t")
     os.system("nginx -V")
