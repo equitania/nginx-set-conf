@@ -18,7 +18,7 @@ server {
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log warn flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log warn;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -40,6 +40,13 @@ server {
     location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
     }
 
     #general proxy settings
@@ -88,7 +95,7 @@ server {
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
-    error_log /var/log/nginx/server.domain.de-error.log warn flush=2m;
+    error_log /var/log/nginx/server.domain.de-error.log warn;
 
     # ssl certificate files
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
@@ -116,6 +123,13 @@ server {
     location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
     }
 
     #general proxy settings
@@ -183,9 +197,16 @@ server {
     # additional config
     include                 nginxconfig.io/general.conf;
 
-        location = /robots.txt {
+    location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
     }
 
     # Raise file upload size
@@ -260,7 +281,18 @@ server {
     # additional config
     include                 nginxconfig.io/general.conf;
 
-        #general proxy settings
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
+    }
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *Disallow: /";
+    }
+
+    #general proxy settings
     # force timeouts if the backend dies
     proxy_connect_timeout 1200s;
     proxy_send_timeout 1200s;
@@ -402,10 +434,10 @@ server {
         internal;
     }
 
-    location = /robots.txt {
-        add_header Content-Type text/plain;
-        return 200 "User-agent: *Disallow: /";
-    }
+    #location = /robots.txt {
+    #    add_header Content-Type text/plain;
+    #    return 200 "User-agent: *Disallow: /";
+    #}
 
     # security
     include                 nginxconfig.io/security.conf;
@@ -475,6 +507,13 @@ server {
     location = /robots.txt {
         add_header Content-Type text/plain;
         return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
     }
 
     # security
@@ -548,7 +587,14 @@ server {
         return 200 "User-agent: *Disallow: /";
     }
 
-    # security
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
+    }
+
+        # security
     include                 nginxconfig.io/security.conf;
 
     # additional config
