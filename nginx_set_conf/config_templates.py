@@ -371,7 +371,9 @@ server {
     }
 
     # Chat Odoo
-    location /longpolling {
+    #location /longpolling {
+    location /websocket {
+        proxy_redirect off;
         proxy_pass http://127.0.0.1:oldpollport;
     }
 
@@ -459,7 +461,9 @@ server {
     }
 
     # Chat Odoo
-    location /longpolling {
+    #location /longpolling {
+    location /websocket {
+        proxy_redirect off;
         proxy_pass http://127.0.0.1:oldpollport;
     }
 

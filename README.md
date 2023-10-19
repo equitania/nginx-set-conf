@@ -6,7 +6,7 @@ This is a simple python library that helps you to create configurations for diff
   
 ### Nginx-set-conf requires:
   
-- Python (>= 3.6)  
+- Python (>= 3.8)  
 - click (>= 8.1.3)  
 - PyYaml (>= 5.4.1)  
   

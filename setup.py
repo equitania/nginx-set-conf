@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nginx-set-conf-equitania",
-    version="0.9.4",
+    version="0.9.5",
     author="Equitania Software GmbH",
     author_email="info@equitania.de",
     description="A package to create configurations for nginx for different web applications",
@@ -17,7 +17,7 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     entry_points='''
     [console_scripts]
     nginx-set-conf=nginx_set_conf.nginx_set_conf:start_nginx_set_conf
