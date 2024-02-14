@@ -1,2 +1,1 @@
-from . import utils
-from . import config_templates
+from . import config_templates, utils

@@ -1,62 +1,77 @@
-Odoo https:
+odoo-https:
   config_template: ngx_odoo_ssl
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
-  pollport: 0000
-  auth_file: authfile
+  ip: 
+  domain: www.
+  port: 11000
+  cert_name: www.
+  pollport: 12000
+  #auth_file: authfile
 Odoo only http:
   config_template: ngx_odoo_http
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  pollport: 0000
-  auth_file: authfile
+  ip: 
+  domain: www.
+  port: 11000
+  pollport: 12000
+  #auth_file: authfile
 Fast Report:
   config_template: ngx_fast_report
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
+  ip: 
+  domain: www.
+  port: 8899
+  cert_name: www.
+  #auth_file: authfile
 Code Server:
   config_template: ngx_code_server
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
+  ip: 
+  domain: www.
+  port: 
+  cert_name: www.
+  #auth_file: authfile
 NextCloud:
   config_template: ngx_nextcloud
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
+  ip: 
+  domain: www.
+  port: 
+  cert_name: www.
+  #auth_file: authfile
 Portainer:
   config_template: ngx_portainer
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
+  ip: 
+  domain: www.
+  port: 
+  cert_name: www.
+  #auth_file: authfile
 pgAdmin:
   config_template: ngx_pgadmin
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
+  ip: 
+  domain: www.
+  port: 
+  cert_name: www.
+  #auth_file: authfile
 PWA:
   config_template: ngx_pwa
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  port: 0000
-  cert_name: www.ownerp.com
+  ip: 
+  domain: www.
+  port: 
+  cert_name: www.
+  #auth_file: authfile
+mailhog:
+  config_template: ngx_mailhog
+  ip: 
+  domain: www.
+  port: 
+  cert_name: www.
+  #auth_file: authfile
 Redirect:
   config_template: ngx_redirect
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  redirect_domain: www.ownerp.com
+  ip: 
+  domain: www.
+  redirect_domain: www.
+  #auth_file: authfile
 Redirect_SSL:
   config_template: ngx_redirect_ssl
-  ip: 1.2.3.4
-  domain: www.ownerp.com
-  cert_name: www.ownerp.com
-  redirect_domain: www.ownerp.com
+  ip: 
+  domain: www.
+  cert_name: www.
+  redirect_domain: www.
+  #auth_file: authfile

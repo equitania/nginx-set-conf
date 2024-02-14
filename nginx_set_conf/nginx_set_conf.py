@@ -2,9 +2,12 @@
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from .utils import parse_yaml_folder, retrieve_valid_input, execute_commands
-import click
 import os
+
+import click
+
+from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
+
 
 def welcome():
     click.echo("Welcome to the nginx_set_conf!")
@@ -18,6 +21,7 @@ We support:\f
 \b
 - ngx_code_server (code-server with ssl)
 - ngx_fast_report (FastReport with ssl)
+- ngx_mailhog (MailHog with ssl)
 - ngx_nextcloud (NextCloud with ssl)
 - ngx_odoo_http (Odoo only http)
 - ngx_odoo_ssl (Odoo with ssl)
@@ -31,24 +35,29 @@ We support:\f
 
 
 @click.command()
-@click.option('--config_template',
-              help=eq_config_support)
-@click.option('--ip',
-              help='IP address of the server')
-@click.option('--domain',
-              help='Name of the domain')
-@click.option('--port',
-              help='Primary port for the Docker container')
-@click.option('--cert_name',
-              help='Name of certificate')
-@click.option('--pollport',
-              help='Secondary Docker container port for odoo pollings')
-@click.option('--redirect_domain',
-              help='Redirect domain')
-@click.option('--auth_file',
-              help='Use authfile for htAccess')
-@click.option('--config_path', help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"')
-def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport, redirect_domain, auth_file, config_path):
+@click.option("--config_template", help=eq_config_support)
+@click.option("--ip", help="IP address of the server")
+@click.option("--domain", help="Name of the domain")
+@click.option("--port", help="Primary port for the Docker container")
+@click.option("--cert_name", help="Name of certificate")
+@click.option("--pollport", help="Secondary Docker container port for odoo pollings")
+@click.option("--redirect_domain", help="Redirect domain")
+@click.option("--auth_file", help="Use authfile for htAccess")
+@click.option(
+    "--config_path",
+    help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"',
+)
+def start_nginx_set_conf(
+    config_template,
+    ip,
+    domain,
+    port,
+    cert_name,
+    pollport,
+    redirect_domain,
+    auth_file,
+    config_path,
+):
     os.system("systemctl start nginx.service")
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
@@ -74,19 +83,48 @@ def start_nginx_set_conf(config_template, ip, domain, port, cert_name, pollport,
                     auth_file = str(yaml_config["auth_file"])
                 except:
                     auth_file = ""
-                execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain, auth_file)
+                execute_commands(
+                    config_template,
+                    domain,
+                    ip,
+                    cert_name,
+                    port,
+                    pollport,
+                    redirect_domain,
+                    auth_file,
+                )
     elif config_template and ip and domain and port and cert_name:
-        execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain, auth_file)
+        execute_commands(
+            config_template,
+            domain,
+            ip,
+            cert_name,
+            port,
+            pollport,
+            redirect_domain,
+            auth_file,
+        )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
         ip = retrieve_valid_input("IP address of the server" + "\n")
         domain = retrieve_valid_input("Name of the domain" + "\n")
         port = retrieve_valid_input("Primary port for the Docker container" + "\n")
         cert_name = retrieve_valid_input("Name of certificate" + "\n")
-        pollport = retrieve_valid_input("Secondary Docker container port for odoo pollings" + "\n")
+        pollport = retrieve_valid_input(
+            "Secondary Docker container port for odoo pollings" + "\n"
+        )
         redirect_domain = retrieve_valid_input("Redirect domain" + "\n")
         auth_file = retrieve_valid_input("authfile" + "\n")
-        execute_commands(config_template, domain, ip, cert_name, port, pollport, redirect_domain, auth_file)
+        execute_commands(
+            config_template,
+            domain,
+            ip,
+            cert_name,
+            port,
+            pollport,
+            redirect_domain,
+            auth_file,
+        )
     # Restart and check the nginx service
     os.system("systemctl restart nginx.service")
     os.system("systemctl status nginx.service")
