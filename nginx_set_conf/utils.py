@@ -229,18 +229,32 @@ def execute_commands(
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
 
+    # authentication
     eq_display_message = "Try set auth file to " + auth_file
     print(eq_display_message.rstrip("\n"))
-    if "ngx_odoo_ssl" in config_template and auth_file:
+    if auth_file:
         eq_display_message = "Set auth file to " + auth_file
         print(eq_display_message.rstrip("\n"))
         _filename = server_path + "/" + domain + ".conf"
+    
         with open(_filename, "r", encoding="utf-8") as _file:
             _data = _file.readlines()
-        _data[67] = '        auth_basic       "Restricted Area";' + "\n"
-        _data[68] = "        auth_basic_user_file  htpasswd/" + auth_file + ";" + "\n"
+    
+        # Find the index of the line containing #authentication and add 1 to insert after this line
+        insertion_index = None
+        for i, line in enumerate(_data):
+            if '#authentication' in line:  # Check if this is the line we're looking for
+                insertion_index = i + 1
+                break
+    
+        # If the marker was found, insert the authentication lines after it
+        if insertion_index is not None:
+            _data.insert(insertion_index, '        auth_basic       "Restricted Area";' + "\n")
+            _data.insert(insertion_index + 1, "        auth_basic_user_file  " + auth_file + ";" + "\n")
+    
         with open(_filename, "w", encoding="utf-8") as _file:
             _file.writelines(_data)
+
 
     if "redirect" in config_template and redirect_domain:
         # send command - redirect domain

@@ -1,6 +1,6 @@
 config_template_dict = {
     "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -71,14 +71,13 @@ server {
     location ~ ^/(.*)
     {
         # Connect to local port
-        #auth_basic            "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         proxy_pass http://127.0.0.1:oldport;
     }
 }
 """,
     "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -149,14 +148,13 @@ server {
     # Proxy for docker
     location / {
         # Connect to local port
-        #auth_basic            "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         proxy_pass http://127.0.0.1:oldport;
     }
 }
 """,
     "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -232,8 +230,7 @@ server {
         # Secure Cookie / Allow cookies only over https
         # https://en.wikipedia.org/wiki/Secure_cookies
         # https://maximilian-boehm.com/hp2134/NGINX-as-Proxy-Rewrite-Set-Cookie-to-Secure-and-HttpOnly.htm
-        #auth_basic            "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         proxy_cookie_path / "/; secure; HttpOnly";
         # And don't forget to include our proxy parameters
         #include /etc/nginx/proxy_params;
@@ -246,7 +243,7 @@ server {
 }
 """,
     "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -304,8 +301,7 @@ server {
 
     # Proxy for portainer docker
     location / {
-        #auth_basic            "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         proxy_http_version         1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -317,7 +313,7 @@ server {
 }
 """,
     "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -368,8 +364,7 @@ server {
     location / {
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
-        #auth_basic       "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         #proxy_set_header Host $host;
         #proxy_set_header X-Forwarded-For $remote_addr;
     }
@@ -390,7 +385,7 @@ server {
 }
 """,
     "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -457,10 +452,9 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
 
     location / {
+        #authentication
         proxy_pass http://127.0.0.1:oldport;
         proxy_redirect off;
-        #auth_basic       "Restricted Area";
-        #auth_basic_user_file  htpasswd/authfile;
     }
 
     # Chat Odoo
@@ -479,7 +473,7 @@ server {
 }
 """,
     "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -538,8 +532,7 @@ server {
     # Proxy for pgadmin
     location / {
         # Connect to local port
-        #auth_basic            "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -549,7 +542,7 @@ server {
 }
 """,
     "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 4.1 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -616,12 +609,13 @@ server {
     # Proxy for docker
     location / {
         # Connect to local port
+        #authentication
         proxy_pass http://127.0.0.1:oldport;
     }
 }
 """,
     "ngx_mailhog": """# Template for mailhog https://github.com/mailhog/MailHog/tree/master configuration nginx incl. SSL/http2
-# Version 4.0 from 10.07.2023
+# Version 1.0 from 15.02.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -687,8 +681,7 @@ server {
 
     # Proxy for docker
     location / {
-        #auth_basic            "Restricted Area";
-        #auth_basic_user_file  htpasswd/testmyodoo;
+        #authentication
         # Connect to local port
         proxy_pass http://127.0.0.1:oldport;
     }
