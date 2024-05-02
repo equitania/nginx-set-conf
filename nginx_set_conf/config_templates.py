@@ -1,6 +1,6 @@
 config_template_dict = {
     "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -12,7 +12,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -77,7 +78,7 @@ server {
 }
 """,
     "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -89,7 +90,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -154,7 +156,7 @@ server {
 }
 """,
     "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -166,7 +168,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -243,7 +246,7 @@ server {
 }
 """,
     "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -255,7 +258,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -385,7 +389,7 @@ server {
 }
 """,
     "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -397,7 +401,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
     client_max_body_size 8192m;
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
@@ -473,7 +478,7 @@ server {
 }
 """,
     "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -485,7 +490,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -542,7 +548,7 @@ server {
 }
 """,
     "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# Version 4.1 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -554,7 +560,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -615,7 +622,7 @@ server {
 }
 """,
     "ngx_mailhog": """# Template for mailhog https://github.com/mailhog/MailHog/tree/master configuration nginx incl. SSL/http2
-# Version 1.0 from 15.02.2024
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -627,7 +634,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
 
     add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
@@ -702,7 +710,7 @@ server {
 }
 """,
     "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
-# Version 4.0 from 10.07.2023
+# 02.05.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -719,7 +727,8 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl http2;
+    listen server.domain.de:443 ssl;
+    http2 on;
     server_name server.domain.de;
     rewrite ^/.*$ https://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log;
