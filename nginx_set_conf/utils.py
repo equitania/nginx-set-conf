@@ -130,6 +130,7 @@ def execute_commands(
         eq_copy_command = "cp " + file_path + " " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
         os.system(eq_copy_command)
+        print(eq_copy_command.rstrip("\n"))
         os.remove(file_path)
     else:
         print("No valid config template")
@@ -137,11 +138,11 @@ def execute_commands(
     # send command - domain
     eq_display_message = "Set domain name in conf to " + domain
     eq_set_domain_cmd = (
-        "sed -i s/"
+        "sed -i 's|"
         + old_domain
-        + "/"
+        + "|"
         + domain
-        + "/g "
+        + "|g' "
         + server_path
         + "/"
         + domain
@@ -149,14 +150,16 @@ def execute_commands(
     )
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_domain_cmd)
+    print(eq_set_domain_cmd.rstrip("\n"))
 
     # send command - ip
     eq_display_message = "Set ip in conf to " + ip
     eq_set_ip_cmd = (
-        "sed -i s/" + old_ip + "/" + ip + "/g " + server_path + "/" + domain + ".conf"
+        "sed -i 's|" + old_ip + "|" + ip + "|g' " + server_path + "/" + domain + ".conf"
     )
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_ip_cmd)
+    print(eq_set_ip_cmd.rstrip("\n"))
 
     if cert_key != "":
         old_crt = old_self_crt
@@ -167,22 +170,22 @@ def execute_commands(
     # send command - cert, key
     eq_display_message = "Set cert name in conf to " + cert_name
     eq_set_cert_cmd = (
-        "sed -i s/"
+        "sed -i 's|"
         + old_crt
-        + "/"
+        + "|"
         + cert_name
-        + "/g "
+        + "|g' "
         + server_path
         + "/"
         + domain
         + ".conf"
     )
     eq_set_key_cmd = (
-        "sed -i s/"
+        "sed -i 's|"
         + old_key
-        + "/"
+        + "|"
         + cert_key
-        + "/g "
+        + "|g' "
         + server_path
         + "/"
         + domain
@@ -190,9 +193,12 @@ def execute_commands(
     )
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_cert_cmd)
+    print(eq_set_cert_cmd.rstrip("\n"))
     os.system(eq_set_key_cmd)
+    print(eq_set_key_cmd.rstrip("\n"))
 
-    if cert_key == "":
+    # Letsencrypt
+    if cert_key == cert_name:
         # Search for certificate and create it when it does not exist
         cert_exists = os.path.isfile(
             "/etc/letsencrypt/live/" + cert_name + "/fullchain.pem"
@@ -204,15 +210,16 @@ def execute_commands(
                 + cert_name
             )
             os.system(eq_create_cert)
+            print(eq_create_cert.rstrip("\n"))
 
     # send command - port
     eq_display_message = "Set port in conf to " + port
     eq_set_port_cmd = (
-        "sed -i s/"
+        "sed -i 's|"
         + old_port
-        + "/"
+        + "|"
         + port
-        + "/g "
+        + "|g' "
         + server_path
         + "/"
         + domain
@@ -220,16 +227,18 @@ def execute_commands(
     )
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_port_cmd)
+    print(eq_set_port_cmd.rstrip("\n"))
 
+    # Odoo polling port
     if "odoo" in config_template and pollport:
         # send command - polling port
         eq_display_message = "Set polling port in conf to " + pollport
         eq_set_port_cmd = (
-            "sed -i s/"
+            "sed -i 's|"
             + old_pollport
-            + "/"
+            + "|"
             + pollport
-            + "/g "
+            + "|g' "
             + server_path
             + "/"
             + domain
@@ -237,6 +246,7 @@ def execute_commands(
         )
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_port_cmd)
+        print(eq_set_port_cmd.rstrip("\n"))
 
     # authentication
     eq_display_message = "Try set auth file to " + auth_file
@@ -269,11 +279,11 @@ def execute_commands(
         # send command - redirect domain
         eq_display_message = "Set redirect domain in conf to " + redirect_domain
         eq_set_redirect_cmd = (
-            "sed -i s/"
+            "sed -i 's|"
             + old_redirect_domain
-            + "/"
+            + "|"
             + redirect_domain
-            + "/g "
+            + "|g' "
             + server_path
             + "/"
             + domain
@@ -281,6 +291,7 @@ def execute_commands(
         )
         print(eq_display_message.rstrip("\n"))
         os.system(eq_set_redirect_cmd)
+        print(eq_set_redirect_cmd.rstrip("\n"))
 
     # Search for certificate and create it when it does not exist
     if "redirect_ssl" in config_template and redirect_domain:
@@ -296,3 +307,4 @@ def execute_commands(
                 + redirect_domain
             )
             os.system(eq_create_cert)
+            print(eq_create_cert.rstrip("\n"))
