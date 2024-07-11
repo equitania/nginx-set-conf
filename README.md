@@ -46,7 +46,8 @@ Options:
   --ip TEXT               IP address of the server
   --domain TEXT           Name of the domain
   --port TEXT             Primary port for the Docker container
-  --cert_name TEXT        Name of certificate
+  --cert_name TEXT        Name of certificate if you want to use letsencrypt - complete path for self signed or purchased certificates
+  --cert_key TEXT         Name and path of certificate key - for self signed or purchased certificates - leave empty for letsencrypt
   --pollport TEXT         Secondary Docker container port for odoo pollings
   --redirect_domain TEXT  Redirect domain
   --auth_file TEXT        Use authfile for htAccess 

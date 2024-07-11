@@ -22,9 +22,7 @@ execute_commands generates and deploys Nginx config files based on input params.
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import os
-
 import yaml
-
 from .config_templates import get_config_template
 
 
@@ -88,6 +86,8 @@ def get_default_vars():
         "old_pollport": "oldpollport",
         "old_crt": "zertifikat.crt",
         "old_key": "zertifikat.key",
+        "old_self_crt": "/etc/letsencrypt/live/zertifikat.crt/fullchain.pem",
+        "old_self_key": "/etc/letsencrypt/live/zertifikat.key/privkey.pem",
         "old_redirect_domain": "target.domain.de",
         "old_auth_file": "authfile",
     }
@@ -102,7 +102,7 @@ def retrieve_valid_input(message):
 
 
 def execute_commands(
-    config_template, domain, ip, cert_name, port, pollport, redirect_domain, auth_file
+    config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file
 ):
     # Get default vars
     default_vars = get_default_vars()
@@ -111,6 +111,8 @@ def execute_commands(
     old_ip = default_vars["old_ip"]
     old_crt = default_vars["old_crt"]
     old_key = default_vars["old_key"]
+    old_self_crt = default_vars["old_self_crt"]
+    old_self_key = default_vars["old_self_key"]
     old_port = default_vars["old_port"]
     old_pollport = default_vars["old_pollport"]
     old_redirect_domain = default_vars["old_redirect_domain"]
@@ -156,6 +158,12 @@ def execute_commands(
     print(eq_display_message.rstrip("\n"))
     os.system(eq_set_ip_cmd)
 
+    if cert_key != "":
+        old_crt = old_self_crt
+        old_key = old_self_key
+    else:
+        cert_key = cert_name
+
     # send command - cert, key
     eq_display_message = "Set cert name in conf to " + cert_name
     eq_set_cert_cmd = (
@@ -173,7 +181,7 @@ def execute_commands(
         "sed -i s/"
         + old_key
         + "/"
-        + cert_name
+        + cert_key
         + "/g "
         + server_path
         + "/"
@@ -184,17 +192,18 @@ def execute_commands(
     os.system(eq_set_cert_cmd)
     os.system(eq_set_key_cmd)
 
-    # Search for certificate and create it when it does not exist
-    cert_exists = os.path.isfile(
-        "/etc/letsencrypt/live/" + cert_name + "/fullchain.pem"
-    ) and os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/privkey.pem")
-    if not cert_exists:
-        os.system("systemctl stop nginx.service")
-        eq_create_cert = (
-            "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d "
-            + cert_name
-        )
-        os.system(eq_create_cert)
+    if cert_key == "":
+        # Search for certificate and create it when it does not exist
+        cert_exists = os.path.isfile(
+            "/etc/letsencrypt/live/" + cert_name + "/fullchain.pem"
+        ) and os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/privkey.pem")
+        if not cert_exists:
+            os.system("systemctl stop nginx.service")
+            eq_create_cert = (
+                "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d "
+                + cert_name
+            )
+            os.system(eq_create_cert)
 
     # send command - port
     eq_display_message = "Set port in conf to " + port

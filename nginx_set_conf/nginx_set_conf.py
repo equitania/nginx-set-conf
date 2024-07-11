@@ -3,16 +3,16 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import os
-
 import click
-
 from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
-
 
 def welcome():
     click.echo("Welcome to the nginx_set_conf!")
-
-
+    click.echo("Version 0.9.9")
+    click.echo("Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany")
+    click.echo("License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).")
+    click.echo('nginx_set_conf  --config_path="$HOME/docker-builds/ngx-conf/"')
+    
 # Help text conf
 eq_config_support = """
 Insert the conf-template.
@@ -39,7 +39,8 @@ We support:\f
 @click.option("--ip", help="IP address of the server")
 @click.option("--domain", help="Name of the domain")
 @click.option("--port", help="Primary port for the Docker container")
-@click.option("--cert_name", help="Name of certificate")
+@click.option("--cert_name", help="Name of certificate if you want to use letsencrypt - complete path for self signed or purchased certificates")
+@click.option("--cert_key", help="Name and path of certificate key - for self signed or purchased certificates - leave empty for letsencrypt")
 @click.option("--pollport", help="Secondary Docker container port for odoo pollings")
 @click.option("--redirect_domain", help="Redirect domain")
 @click.option("--auth_file", help="Use authfile for htAccess")
@@ -70,7 +71,14 @@ def start_nginx_set_conf(
                     port = str(yaml_config["port"])
                 except:
                     port = ""
-                cert_name = yaml_config["cert_name"]
+                try:
+                    cert_name = yaml_config["cert_name"]
+                except:
+                    cert_name = ""
+                try:
+                    cert_key = yaml_config["cert_key"]
+                except:
+                    cert_key = ""
                 try:
                     pollport = str(yaml_config["pollport"])
                 except:
@@ -88,6 +96,7 @@ def start_nginx_set_conf(
                     domain,
                     ip,
                     cert_name,
+                    cert_key,
                     port,
                     pollport,
                     redirect_domain,
