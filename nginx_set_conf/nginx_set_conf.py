@@ -8,7 +8,7 @@ from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
 
 def welcome():
     click.echo("Welcome to the nginx_set_conf!")
-    click.echo("Version 0.9.9")
+    click.echo("Version 1.0.7")
     click.echo("Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany")
     click.echo("License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).")
     click.echo('nginx_set_conf  --config_path="$HOME/docker-builds/ngx-conf/"')

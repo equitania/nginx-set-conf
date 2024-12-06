@@ -1,3 +1,5 @@
+
+
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -5,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="nginx-set-conf-equitania",
-    version="1.0.6",
+    version="1.0.7",
     author="Equitania Software GmbH",
     author_email="info@equitania.de",
     description="A package to create configurations for nginx for different web applications",

@@ -6,13 +6,13 @@ config_template_dict = {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -84,13 +84,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -162,13 +162,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -252,13 +252,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -323,7 +323,7 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     client_max_body_size 8192m;
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
@@ -395,13 +395,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
     client_max_body_size 8192m;
@@ -484,13 +484,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -554,13 +554,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -628,13 +628,13 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -702,7 +702,7 @@ upstream server.domain.de {
 }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
@@ -716,7 +716,7 @@ server {
 # }
 
 server {
-    listen server.domain.de:80;
+    listen 80;
     server_name server.domain.de;
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
@@ -727,7 +727,7 @@ server {
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen 443 ssl;
     http2 on;
     server_name server.domain.de;
     rewrite ^/.*$ https://target.domain.de$request_uri? permanent;
