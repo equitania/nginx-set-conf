@@ -1,18 +1,18 @@
 config_template_dict = {
     "ngx_code_server": """# Template for code-server configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -78,19 +78,19 @@ server {
 }
 """,
     "ngx_fast_report": """# Template for FastReport configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -156,19 +156,19 @@ server {
 }
 """,
     "ngx_nextcloud": """# Template for NextCloud configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -246,19 +246,19 @@ server {
 }
 """,
     "ngx_portainer": """# Template for Portainer configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -317,13 +317,13 @@ server {
 }
 """,
     "ngx_odoo_http": """# Template for Odoo configuration nginx
-# Version 4.1 from 15.02.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     client_max_body_size 8192m;
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
@@ -389,19 +389,19 @@ server {
 }
 """,
     "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
     client_max_body_size 8192m;
@@ -478,19 +478,19 @@ server {
 }
 """,
     "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -548,19 +548,19 @@ server {
 }
 """,
     "ngx_pwa": """# Template for Progressive Web App .NET Core configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -622,19 +622,19 @@ server {
 }
 """,
     "ngx_mailhog": """# Template for mailhog https://github.com/mailhog/MailHog/tree/master configuration nginx incl. SSL/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
 
@@ -696,13 +696,13 @@ server {
 }
 """,
     "ngx_redirect": """# Template for Redirect Domain configuration nginx
-# Version 3.7 from 25.05.2023
+# 10.12.2024
 upstream server.domain.de {
     server ip.ip.ip.ip weight=1 fail_timeout=0;
 }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
@@ -710,13 +710,13 @@ server {
 }
 """,
     "ngx_redirect_ssl": """# Template for Redirect domain configuration nginx ssl/http2
-# 02.05.2024
+# 10.12.2024
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ http://target.domain.de$request_uri? permanent;
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
@@ -727,7 +727,7 @@ server {
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
     rewrite ^/.*$ https://target.domain.de$request_uri? permanent;

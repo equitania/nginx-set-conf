@@ -4,14 +4,39 @@
 
 import os
 import click
+import logging
+from logging.handlers import RotatingFileHandler
 from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
 
+# Setup logging
+logger = logging.getLogger('nginx_set_conf')
+logger.setLevel(logging.INFO)
+
+# Create handlers
+console_handler = logging.StreamHandler()
+file_handler = RotatingFileHandler(
+    'nginx_set_conf.log',
+    maxBytes=1024*1024,  # 1MB
+    backupCount=3
+)
+
+# Create formatters and add it to handlers
+log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(log_format)
+file_handler.setFormatter(log_format)
+
+# Add handlers to the logger
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
+__version__ = '1.0.8'
+
 def welcome():
-    click.echo("Welcome to the nginx_set_conf!")
-    click.echo("Version 1.0.7")
-    click.echo("Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany")
-    click.echo("License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).")
-    click.echo('nginx_set_conf  --config_path="$HOME/docker-builds/ngx-conf/"')
+    logger.info("Welcome to the nginx_set_conf!")
+    logger.info(f"Version {__version__}")
+    logger.info("Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany")
+    logger.info("License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).")
+    logger.info('nginx_set_conf  --config_path="$HOME/docker-builds/ngx-conf/"')
     
 # Help text conf
 eq_config_support = """
@@ -60,6 +85,7 @@ def start_nginx_set_conf(
     auth_file,
     config_path,
 ):
+    logger.info("Starting nginx service")
     os.system("systemctl start nginx.service")
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
@@ -138,9 +164,13 @@ def start_nginx_set_conf(
             auth_file,
         )
     # Restart and check the nginx service
+    logger.info("Restarting nginx service")
     os.system("systemctl restart nginx.service")
+    logger.info("Checking nginx service status")
     os.system("systemctl status nginx.service")
+    logger.info("Testing nginx configuration")
     os.system("nginx -t")
+    logger.info("Checking nginx version")
     os.system("nginx -V")
 
 

@@ -14,7 +14,7 @@ This is a simple python library that helps you to create configurations for diff
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install nginx-set-conf.
   
 ```bash
-pip install nginx-set-conf-equitania
+pip install nginx-set-conf
 ```
 
 ---
@@ -31,7 +31,6 @@ Options:
   --config_template TEXT  Insert the conf-template.  
   
                           We support:
-
                           - ngx_code_server (code-server with ssl)
                           - ngx_fast_report (FastReport with ssl)
                           - ngx_mailhog (MailHog with ssl)
