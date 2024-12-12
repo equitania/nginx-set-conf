@@ -71,7 +71,8 @@ We support:\f
 """
 
 
-@click.command()
+@click.command(help=f"nginx-set-conf {__version__} - Command-line interface for configuring Nginx servers")
+@click.version_option(version=__version__)
 @click.option("--config_template", help=eq_config_support)
 @click.option("--ip", help="IP address of the server")
 @click.option("--domain", help="Name of the domain")

@@ -343,12 +343,6 @@ server {
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
-upstream odoo {
-  server 127.0.0.1:oldport;
-}
-upstream odoochat {
-  server 127.0.0.1:oldpollport;
-}
 map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
@@ -404,7 +398,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_redirect off;
-        proxy_pass http://odoo;
+        proxy_pass http://127.0.0.1:oldport;
 
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
         proxy_cookie_flags session_id samesite=lax secure; 
@@ -413,7 +407,7 @@ server {
 
     # Chat Odoo
     location /websocket {
-        proxy_pass http://odoochat;
+        proxy_pass http://127.0.0.1:oldpollport;
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
@@ -444,12 +438,6 @@ server {
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
-upstream odoo {
-  server 127.0.0.1:oldport;
-}
-upstream odoochat {
-  server 127.0.0.1:oldpollport;
-}
 map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
@@ -469,7 +457,7 @@ server {
     listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
-    client_max_body_size 8192m;
+    #client_max_body_size 8192m;
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
     error_log /var/log/nginx/server.domain.de-error.log;
 
@@ -478,9 +466,8 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/zertifikat.key/privkey.pem;
 
     # add ssl specific settings
-    ssl_protocols        TLSv1.3 TLSv1.2;
+    ssl_protocols TLSv1.3 TLSv1.2;
     ssl_session_timeout 30m;
-    ssl_protocols TLSv1.2;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
 
@@ -522,7 +509,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_redirect off;
-        proxy_pass http://odoo;
+        proxy_pass http://127.0.0.1:oldport;
 
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
         proxy_cookie_flags session_id samesite=lax secure; 
@@ -531,7 +518,7 @@ server {
 
     # Chat Odoo
     location /websocket {
-        proxy_pass http://odoochat;
+        proxy_pass http://127.0.0.1:oldpollport;
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
