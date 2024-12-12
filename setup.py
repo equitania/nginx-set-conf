@@ -1,9 +1,10 @@
 # setup.py
 from setuptools import setup, find_packages
+from nginx_set_conf import __version__
 
 setup(
     name='nginx_set_conf',
-    version='1.1.3',
+    version=__version__,
     description='Ein Werkzeug zur Verwaltung von Nginx-Konfigurationen',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',

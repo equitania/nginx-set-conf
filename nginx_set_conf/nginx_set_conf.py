@@ -19,6 +19,7 @@ import click
 import logging
 from logging.handlers import RotatingFileHandler
 from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
+from . import __version__
 
 # Setup logging
 logger = logging.getLogger('nginx_set_conf')
@@ -41,7 +42,7 @@ file_handler.setFormatter(log_format)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-__version__ = '1.0.8'
+__version__ = __version__
 
 def welcome():
     logger.info("Welcome to the nginx_set_conf!")

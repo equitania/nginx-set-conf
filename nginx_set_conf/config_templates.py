@@ -420,16 +420,11 @@ server {
         proxy_cookie_flags session_id samesite=lax secure;
     }
 
-    root /opt/odoo;
-    try_files /odoo-server/odoo/addons$uri @odoo;
-
-    # Serve static files right away
-    location ~ ^/[^/]+/static/.+$ {
-        # root and try_files both depend on your addons paths
-        root ...;
-        try_files ... @odoo;
-        expires 24h;
-        add_header Content-Security-Policy $content_type_csp;
+    location ~* /web/static/ {
+        proxy_cache_valid 200 60m;
+        proxy_buffering    on;
+        expires 864000;
+        proxy_pass http://127.0.0.1:oldport;
     }
 }
 """,
@@ -531,17 +526,13 @@ server {
         proxy_cookie_flags session_id samesite=lax secure;
     }
 
-    root /opt/odoo;
-    try_files /odoo-server/odoo/addons$uri @odoo;
-
-    # Serve static files right away
-    location ~ ^/[^/]+/static/.+$ {
-        # root and try_files both depend on your addons paths
-        root ...;
-        try_files ... @odoo;
-        expires 24h;
-        add_header Content-Security-Policy $content_type_csp;
+    location ~* /web/static/ {
+        proxy_cache_valid 200 60m;
+        proxy_buffering    on;
+        expires 864000;
+        proxy_pass http://127.0.0.1:oldport;
     }
+
 }
 """,
     "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
