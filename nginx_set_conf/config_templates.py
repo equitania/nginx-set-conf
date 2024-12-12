@@ -437,10 +437,6 @@ server {
         expires 24h;
         add_header Content-Security-Policy $content_type_csp;
     }
-
-    # common gzip
-    gzip_types text/css text/scss text/plain text/xml application/xml application/json application/javascript;
-    gzip on;
 }
 """,
     "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
@@ -526,7 +522,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_redirect off;
-        proxy_pass http://odoo
+        proxy_pass http://odoo;
 
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
         proxy_cookie_flags session_id samesite=lax secure; 
@@ -559,10 +555,6 @@ server {
         expires 24h;
         add_header Content-Security-Policy $content_type_csp;
     }
-
-    # common gzip
-    gzip_types text/css text/scss text/plain text/xml application/xml application/json application/javascript;
-    gzip on;
 }
 """,
     "ngx_pgadmin": """# Template for pgAdmin configuration nginx incl. SSL/http2
