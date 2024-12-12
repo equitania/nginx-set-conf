@@ -1,20 +1,13 @@
 """
-This module contains utility functions for configuring Nginx for various
-use cases.
+Utility functions for Nginx configuration management.
 
-fire_all_functions executes all functions in a list.
+This module provides helper functions for managing Nginx configurations,
+including YAML parsing, configuration deployment, and input validation.
+All functions are designed to work with the nginx_set_conf package.
 
-self_clean removes duplicate values from a dictionary. 
-
-parse_yaml parses a YAML file into a Python object.
-
-parse_yaml_folder parses all YAML files in a folder into a list of objects.
-
-get_default_vars provides default variable values for Nginx configs.
-
-retrieve_valid_input prompts user for input until valid input is provided.
-
-execute_commands generates and deploys Nginx config files based on input params.
+Typical usage example:
+    yaml_config = parse_yaml('config.yaml')
+    execute_commands(yaml_config['template'], yaml_config['domain'], ...)
 """
 
 # -*- coding: utf-8 -*-
@@ -26,20 +19,24 @@ import yaml
 from .config_templates import get_config_template
 
 
-def fire_all_functions(function_list: list):
-    """
-    Execute each function in a list
-    :param function_list: List of functions
+def fire_all_functions(function_list: list) -> None:
+    """Executes a list of functions in sequence.
+
+    Args:
+        function_list: A list of callable functions to be executed.
     """
     for func in function_list:
         func()
 
 
 def self_clean(input_dictionary: dict) -> dict:
-    """
-    Remove duplicates in dictionary
-    :param: input_dictionary
-    :return: return_dict
+    """Removes duplicate values from dictionary values while preserving keys.
+
+    Args:
+        input_dictionary: Dictionary to clean.
+
+    Returns:
+        A new dictionary with duplicate values removed from each key's value list.
     """
     return_dict = input_dictionary.copy()
     for key, value in input_dictionary.items():
@@ -47,11 +44,18 @@ def self_clean(input_dictionary: dict) -> dict:
     return return_dict
 
 
-def parse_yaml(yaml_file):
-    """
-    Parse yaml file to object and return it
-    :param: yaml_file: path to yaml file
-    :return: yaml_object
+def parse_yaml(yaml_file: str) -> dict:
+    """Parses a YAML file into a Python dictionary.
+
+    Args:
+        yaml_file: Path to the YAML file to parse.
+
+    Returns:
+        Dictionary containing the parsed YAML data.
+        Returns False if parsing fails.
+
+    Raises:
+        yaml.YAMLError: If the YAML file is malformed.
     """
     with open(yaml_file, "r") as stream:
         try:
@@ -61,11 +65,17 @@ def parse_yaml(yaml_file):
             return False
 
 
-def parse_yaml_folder(path):
-    """
-    Parse multiple yaml files to list of objects and return them
-    :param: yaml_file: path to yaml files
-    :return: yaml_objects
+def parse_yaml_folder(path: str) -> list:
+    """Parses all YAML files in a directory.
+
+    Searches for files with .yaml or .yml extensions in the specified directory
+    and parses each one into a Python object.
+
+    Args:
+        path: Directory path containing YAML files.
+
+    Returns:
+        List of parsed YAML objects.
     """
     yaml_objects = []
     for file in os.listdir(path):
@@ -76,9 +86,14 @@ def parse_yaml_folder(path):
     return yaml_objects
 
 
-def get_default_vars():
+def get_default_vars() -> dict:
+    """Returns default variables for Nginx configuration.
+
+    Returns:
+        Dictionary containing default values for Nginx configuration variables
+        including server paths, domains, ports, and certificate locations.
+    """
     return {
-        # "server_path": "$HOME/Public",
         "server_path": "/etc/nginx/conf.d",
         "old_domain": "server.domain.de",
         "old_ip": "ip.ip.ip.ip",
@@ -93,7 +108,15 @@ def get_default_vars():
     }
 
 
-def retrieve_valid_input(message):
+def retrieve_valid_input(message: str) -> str:
+    """Prompts user for input until non-empty input is provided.
+
+    Args:
+        message: Prompt message to display to user.
+
+    Returns:
+        User's non-empty input string.
+    """
     user_input = input(message)
     if user_input:
         return user_input
@@ -104,6 +127,19 @@ def retrieve_valid_input(message):
 def execute_commands(
     config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file
 ):
+    """Generates and deploys Nginx config files based on input parameters.
+
+    Args:
+        config_template: Template name for Nginx configuration.
+        domain: Domain name for Nginx configuration.
+        ip: IP address for Nginx configuration.
+        cert_name: Certificate name for Nginx configuration.
+        cert_key: Certificate key for Nginx configuration.
+        port: Port number for Nginx configuration.
+        pollport: Polling port number for Nginx configuration (optional).
+        redirect_domain: Redirect domain for Nginx configuration (optional).
+        auth_file: Authentication file for Nginx configuration (optional).
+    """
     # Get default vars
     default_vars = get_default_vars()
     server_path = default_vars["server_path"]

@@ -1,3 +1,15 @@
+"""
+Command-line interface for configuring Nginx servers with various templates.
+
+This module provides a CLI tool for setting up Nginx configurations with support
+for different use cases like code-server, FastReport, MailHog, NextCloud, Odoo,
+pgAdmin4, Portainer, PWA, and domain redirects. It supports both HTTP and HTTPS
+configurations.
+
+Typical usage example:
+    nginx_set_conf --config_template="ngx_odoo_ssl" --domain="example.com" --ip="10.0.0.1"
+"""
+
 # -*- coding: utf-8 -*-
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
