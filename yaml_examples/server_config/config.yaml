@@ -75,3 +75,27 @@ Redirect_SSL:
   cert_name: www.
   redirect_domain: www.
   #auth_file: authfile
+
+n8n:
+  config_template: ngx_n8n
+  ip: 
+  domain: www.
+  port: 5678
+  cert_name: www.
+  #auth_file: authfile
+
+Kasm:
+  config_template: ngx_kasm
+  ip: 
+  domain: www.
+  port: 8443
+  cert_name: www.
+  #auth_file: authfile
+
+Mailpit:
+  config_template: ngx_mailpit
+  ip: 
+  domain: www.
+  port: 8025
+  cert_name: www.
+  #auth_file: authfile

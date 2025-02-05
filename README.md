@@ -29,16 +29,19 @@ usage: nginx-set-conf [--help] [--config_template] [--ip] [--domain] [--port] [-
 ```bash
 Options:
   --config_template TEXT  Insert the conf-template.  
+  --show_template        Show the template configuration without applying it
   
                           We support:
                           - ngx_code_server (code-server with ssl)
                           - ngx_fast_report (FastReport with ssl)
-                          - ngx_mailhog (MailHog with ssl)
+                          - ngx_kasm (Kasm Workspaces with ssl/http2)
+                          - ngx_mailpit (Mailpit with ssl/http2)
+                          - ngx_n8n (n8n with ssl/http2)
                           - ngx_nextcloud (NextCloud with ssl)
                           - ngx_odoo_http (Odoo only http)
                           - ngx_odoo_ssl (Odoo with ssl)
                           - ngx_pgadmin (pgAdmin4 with ssl)
-                          - ngx_portainer (NextCloud with ssl)
+                          - ngx_portainer (Portainer with ssl)
                           - ngx_pwa (Progressive Web App with ssl)
                           - ngx_redirect (Redirect Domain without ssl)
                           - ngx_redirect_ssl (Redirect Domain with ssl)
@@ -104,3 +107,11 @@ and the : [nginxconfig.io.zip](https://rm.ownerp.io/staff/nginxconfig.io.zip)
 based on [https://www.digitalocean.com/community/tools/nginx](https://www.digitalocean.com/community/tools/nginx)  
   
 This project is licensed under the terms of the **AGPLv3** license.  
+
+```bash
+# Show template configuration
+nginx-set-conf --config_template ngx_odoo_ssl --show_template
+
+# Show kasm template
+nginx-set-conf --config_template ngx_kasm --show_template
+```

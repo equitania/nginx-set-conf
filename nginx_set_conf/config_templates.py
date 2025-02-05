@@ -9,7 +9,7 @@ where applicable.
 Available templates:
     - ngx_code_server: Code-server with SSL/HTTP2
     - ngx_fast_report: FastReport with SSL
-    - ngx_mailhog: MailHog with SSL
+    - ngx_mailpit: Mailpit with SSL
     - ngx_nextcloud: NextCloud with SSL
     - ngx_odoo_http: Odoo HTTP only
     - ngx_odoo_ssl: Odoo with SSL
@@ -18,6 +18,8 @@ Available templates:
     - ngx_pwa: Progressive Web App with SSL
     - ngx_redirect: Domain redirect without SSL
     - ngx_redirect_ssl: Domain redirect with SSL
+    - ngx_n8n: n8n configuration with SSL/http2
+    - ngx_kasm: Kasm Workspaces configuration with SSL/http2
 """
 
 config_template_dict = {
@@ -339,7 +341,7 @@ server {
 }
 """,
     "ngx_odoo_http": """# Template for Odoo configuration nginx
-# 12.12.2024
+# 01.02.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -347,29 +349,26 @@ map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
 }
-map $sent_http_content_type $content_type_csp {
-    default "";
-    ~image/ "default-src 'none'";
-}
 
 server {
     listen server.domain.de:80;
     server_name server.domain.de;
-    #client_max_body_size 8192m;
+    
+    # Set max upload size
+    client_max_body_size 10G;
+    
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
     error_log /var/log/nginx/server.domain.de-error.log;
 
     # increase proxy buffer to handle some Odoo web requests
-    # proxy_buffers 16 64k;
-    # proxy_buffer_size 128k;
-    # proxy_headers_hash_max_size 76800;
-    # proxy_headers_hash_bucket_size 9600;
+    proxy_buffers 16 64k;
+    proxy_buffer_size 128k;
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 3000s;
-    proxy_send_timeout 3000s;
-    proxy_read_timeout 3000s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -378,7 +377,6 @@ server {
         root /etc/nginx/html/;
         internal;
     }
-
 
     location = /robots.txt {
         add_header Content-Type text/plain;
@@ -429,17 +427,13 @@ server {
 }
 """,
     "ngx_odoo_ssl": """# Template for Odoo configuration nginx incl. SSL
-# 12.12.2024
+# 01.02.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
 map $http_upgrade $connection_upgrade {
   default upgrade;
   ''      close;
-}
-map $sent_http_content_type $content_type_csp {
-    default "";
-    ~image/ "default-src 'none'";
 }
 
 server {
@@ -452,7 +446,10 @@ server {
     listen server.domain.de:443 ssl;
     http2 on;
     server_name server.domain.de;
-    #client_max_body_size 8192m;
+    
+    # Set max upload size
+    client_max_body_size 10G;
+    
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
     error_log /var/log/nginx/server.domain.de-error.log;
 
@@ -467,16 +464,14 @@ server {
     ssl_prefer_server_ciphers off;
 
     # increase proxy buffer to handle some Odoo web requests
-    # proxy_buffers 16 64k;
-    # proxy_buffer_size 128k;
-    # proxy_headers_hash_max_size 76800;
-    # proxy_headers_hash_bucket_size 9600;
+    proxy_buffers 16 64k;
+    proxy_buffer_size 128k;
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 3000s;
-    proxy_send_timeout 3000s;
-    proxy_read_timeout 3000s;
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # error pages
@@ -679,8 +674,8 @@ server {
     }
 }
 """,
-    "ngx_mailhog": """# Template for mailhog https://github.com/mailhog/MailHog/tree/master configuration nginx incl. SSL/http2
-# 10.12.2024
+    "ngx_mailpit": """# Template für Mailpit https://github.com/axllent/mailpit configuration nginx incl. SSL/http2
+# 01.02.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -733,17 +728,22 @@ server {
         internal;
     }
 
-        # security
+    # security
     include                 nginxconfig.io/security.conf;
 
     # additional config
     include                 nginxconfig.io/general.conf;
 
-    # Add Headers for odoo proxy mode
+    # Add Headers for proxy mode
     proxy_set_header X-Forwarded-Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Real-IP $remote_addr;
+
+    # Websocket support
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 
     # Proxy for docker
     location / {
@@ -817,8 +817,176 @@ server {
     include                 nginxconfig.io/general.conf;
 }
 """,
+    "ngx_n8n": """# Template für n8n Konfiguration nginx inkl. SSL/http2
+# 10.12.2024
+# upstream server.domain.de {
+#     server ip.ip.ip.ip weight=1 fail_timeout=0;
+# }
+
+server {
+    listen server.domain.de:80;
+    server_name server.domain.de;
+    rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
+server {
+    listen server.domain.de:443 ssl;
+    http2 on;
+    server_name server.domain.de;
+
+    add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+
+    access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
+    error_log /var/log/nginx/server.domain.de-error.log warn;
+
+    # ssl certificate files
+    ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zertifikat.key/privkey.pem;
+
+    # add ssl specific settings
+    keepalive_timeout    60;
+    ssl_protocols        TLSv1.3 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_timeout  5m;
+
+    # security
+    include                 nginxconfig.io/security.conf;
+
+    # additional config
+    include                 nginxconfig.io/general.conf;
+
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
+    }
+
+    #general proxy settings
+    # force timeouts if the backend dies
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
+    proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
+
+    # Raise file upload size
+    client_max_body_size 128M;
+
+    # Websocket support
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # Proxy headers
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+
+    location / {
+        #authentication
+        proxy_pass http://127.0.0.1:oldport;
+    }
+
+    # Webhook endpoint
+    location /webhook/ {
+        #authentication
+        proxy_pass http://127.0.0.1:oldport;
+    }
+
+    # Editor UI
+    location /editor/ {
+        #authentication
+        proxy_pass http://127.0.0.1:oldport;
+    }
+}
+""",
+    "ngx_kasm": """# Template für Kasm Workspaces configuration nginx incl. SSL/http2
+# 05.02.2025
+# upstream server.domain.de {
+#     server ip.ip.ip.ip weight=1 fail_timeout=0;
+# }
+
+server {
+    listen server.domain.de:80;
+    server_name server.domain.de;
+    rewrite ^/.*$ https://$host$request_uri? permanent;
+}
+
+server {
+    listen server.domain.de:443 ssl;
+    http2 on;
+    server_name server.domain.de;
+
+    add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+
+    access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
+    error_log /var/log/nginx/server.domain.de-error.log warn;
+
+    # ssl certificate files
+    ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zertifikat.key/privkey.pem;
+
+    # add ssl specific settings
+    keepalive_timeout    60;
+    ssl_protocols        TLSv1.3 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_timeout  5m;
+
+    # security
+    include                 nginxconfig.io/security.conf;
+
+    # additional config
+    include                 nginxconfig.io/general.conf;
+
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
+    }
+
+    location / {
+        #authentication
+        
+        # WebSocket Support
+        proxy_set_header        Upgrade $http_upgrade;
+        proxy_set_header        Connection "upgrade";
+
+        # Host and X headers
+        proxy_set_header        Host $host;
+        proxy_set_header        X-Real-IP $remote_addr;
+        proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header        X-Forwarded-Proto $scheme;
+
+        # Connectivity Options
+        proxy_http_version      1.1;
+        proxy_read_timeout      1800s;
+        proxy_send_timeout      1800s;
+        proxy_connect_timeout   1800s;
+        proxy_buffering         off;
+
+        # Allow large requests to support file uploads to sessions
+        client_max_body_size    10M;
+
+        # Connect to local port with SSL
+        proxy_pass             https://127.0.0.1:oldport;
+    }
+}
+""",
+}
 
 def get_config_template(config_template_name):
     if config_template_name in config_template_dict:

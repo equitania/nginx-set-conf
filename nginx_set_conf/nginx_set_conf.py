@@ -20,6 +20,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
 from . import __version__
+from .config_templates import get_config_template
 
 # Setup logging
 logger = logging.getLogger('nginx_set_conf')
@@ -59,7 +60,9 @@ We support:\f
 \b
 - ngx_code_server (code-server with ssl)
 - ngx_fast_report (FastReport with ssl)
-- ngx_mailhog (MailHog with ssl)
+- ngx_kasm (Kasm Workspaces with ssl/http2)
+- ngx_mailpit (Mailpit with ssl/http2)
+- ngx_n8n (n8n with ssl/http2)
 - ngx_nextcloud (NextCloud with ssl)
 - ngx_odoo_http (Odoo only http)
 - ngx_odoo_ssl (Odoo with ssl)
@@ -75,6 +78,7 @@ We support:\f
 @click.command(help=f"nginx-set-conf {__version__} - Command-line interface for configuring Nginx servers")
 @click.version_option(version=__version__)
 @click.option("--config_template", help=eq_config_support)
+@click.option("--show_template", is_flag=True, help="Show the template configuration without applying it")
 @click.option("--ip", help="IP address of the server")
 @click.option("--domain", help="Name of the domain")
 @click.option("--port", help="Primary port for the Docker container")
@@ -89,6 +93,7 @@ We support:\f
 )
 def start_nginx_set_conf(
     config_template,
+    show_template,
     ip,
     domain,
     port,
@@ -99,6 +104,17 @@ def start_nginx_set_conf(
     auth_file,
     config_path,
 ):
+    # Add new template display logic
+    if show_template and config_template:
+        template_content = get_config_template(config_template)
+        if template_content:
+            logger.info(f"\nTemplate for {config_template}:\n")
+            print(template_content)
+            return
+        else:
+            logger.error(f"Template {config_template} not found!")
+            return
+
     logger.info("Starting nginx service")
     os.system("systemctl start nginx.service")
     if config_path:
