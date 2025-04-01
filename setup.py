@@ -5,7 +5,7 @@ from nginx_set_conf import __version__
 setup(
     name='nginx_set_conf',
     version=__version__,
-    description='Ein Werkzeug zur Verwaltung von Nginx-Konfigurationen',
+    description='Python library for generating nginx reverse proxy configurations for Docker applications.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Equitania Software GmbH',

@@ -8,6 +8,7 @@ configurations.
 
 Typical usage example:
     nginx_set_conf --config_template="ngx_odoo_ssl" --domain="example.com" --ip="10.0.0.1"
+    nginx_set_conf --config_template="ngx_odoo_ssl" --domain="example.com" --target_path="/tmp/nginx/" --dry_run
 """
 
 # -*- coding: utf-8 -*-
@@ -69,6 +70,7 @@ We support:\f
 - ngx_pgadmin (pgAdmin4 with ssl)
 - ngx_portainer (Portainer with ssl)
 - ngx_pwa (Progressive Web App with ssl)
+- ngx_qdrant (Qdrant vector database with ssl/http2 and gRPC support)
 - ngx_redirect (Redirect Domain without ssl)
 - ngx_redirect_ssl (Redirect Domain with ssl)
 \b
@@ -85,11 +87,21 @@ We support:\f
 @click.option("--cert_name", help="Name of certificate if you want to use letsencrypt - complete path for self signed or purchased certificates")
 @click.option("--cert_key", help="Name and path of certificate key - for self signed or purchased certificates - leave empty for letsencrypt")
 @click.option("--pollport", help="Secondary Docker container port for odoo pollings")
+@click.option("--grpcport", help="Secondary Docker container port for qdrant grpc")
 @click.option("--redirect_domain", help="Redirect domain")
 @click.option("--auth_file", help="Use authfile for htAccess")
 @click.option(
     "--config_path",
     help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"',
+)
+@click.option(
+    "--target_path",
+    help="Target path where the configuration files will be saved (default: /etc/nginx/conf.d)",
+)
+@click.option(
+    "--dry_run",
+    is_flag=True,
+    help="Run configuration generation without applying changes or creating certificates",
 )
 def start_nginx_set_conf(
     config_template,
@@ -103,6 +115,8 @@ def start_nginx_set_conf(
     redirect_domain,
     auth_file,
     config_path,
+    target_path,
+    dry_run,
 ):
     # Add new template display logic
     if show_template and config_template:
@@ -115,8 +129,14 @@ def start_nginx_set_conf(
             logger.error(f"Template {config_template} not found!")
             return
 
-    logger.info("Starting nginx service")
-    os.system("systemctl start nginx.service")
+    if dry_run:
+        logger.info("DRY RUN MODE: No actual changes will be made to your system")
+        logger.info("No certificates will be created, and no configurations will be applied")
+
+    if not dry_run:
+        logger.info("Starting nginx service")
+        os.system("systemctl start nginx.service")
+        
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
@@ -148,6 +168,11 @@ def start_nginx_set_conf(
                     auth_file = str(yaml_config["auth_file"])
                 except:
                     auth_file = ""
+                try:
+                    yaml_target_path = str(yaml_config["target_path"])
+                except:
+                    yaml_target_path = target_path
+                    
                 execute_commands(
                     config_template,
                     domain,
@@ -158,6 +183,8 @@ def start_nginx_set_conf(
                     pollport,
                     redirect_domain,
                     auth_file,
+                    yaml_target_path,
+                    dry_run,
                 )
     elif config_template and ip and domain and port and cert_name:
         execute_commands(
@@ -170,6 +197,8 @@ def start_nginx_set_conf(
             pollport,
             redirect_domain,
             auth_file,
+            target_path,
+            dry_run,
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
@@ -182,6 +211,9 @@ def start_nginx_set_conf(
         )
         redirect_domain = retrieve_valid_input("Redirect domain" + "\n")
         auth_file = retrieve_valid_input("authfile" + "\n")
+        custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)" + "\n")
+        target_path = custom_target_path if custom_target_path else target_path
+        
         execute_commands(
             config_template,
             domain,
@@ -192,16 +224,23 @@ def start_nginx_set_conf(
             pollport,
             redirect_domain,
             auth_file,
+            target_path,
+            dry_run,
         )
-    # Restart and check the nginx service
-    logger.info("Restarting nginx service")
-    os.system("systemctl restart nginx.service")
-    logger.info("Checking nginx service status")
-    os.system("systemctl status nginx.service")
-    logger.info("Testing nginx configuration")
-    os.system("nginx -t")
-    logger.info("Checking nginx version")
-    os.system("nginx -V")
+    
+    if not dry_run:
+        # Restart and check the nginx service
+        logger.info("Restarting nginx service")
+        os.system("systemctl restart nginx.service")
+        logger.info("Checking nginx service status")
+        os.system("systemctl status nginx.service")
+        logger.info("Testing nginx configuration")
+        os.system("nginx -t")
+        logger.info("Checking nginx version")
+        os.system("nginx -V")
+    else:
+        logger.info("DRY RUN COMPLETED: Configuration would have been generated but not applied")
+        logger.info("To apply the configuration, run again without the --dry_run flag")
 
 
 if __name__ == "__main__":

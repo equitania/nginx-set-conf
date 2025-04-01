@@ -95,16 +95,17 @@ def get_default_vars() -> dict:
     """
     return {
         "server_path": "/etc/nginx/conf.d",
-        "old_domain": "server.domain.de",
-        "old_ip": "ip.ip.ip.ip",
-        "old_port": "oldport",
-        "old_pollport": "oldpollport",
-        "old_crt": "zertifikat.crt",
-        "old_key": "zertifikat.key",
-        "old_self_crt": "/etc/letsencrypt/live/zertifikat.crt/fullchain.pem",
-        "old_self_key": "/etc/letsencrypt/live/zertifikat.key/privkey.pem",
-        "old_redirect_domain": "target.domain.de",
-        "old_auth_file": "authfile",
+        "template_domain": "server.domain.de",
+        "template_ip": "ip.ip.ip.ip",
+        "template_port": "{{PORT}}",
+        "template_poll_port": "{{POLL_PORT}}",
+        "template_grpc_port": "{{GRPC_PORT}}",
+        "template_crt": "zertifikat.crt",
+        "template_key": "zertifikat.key",
+        "template_self_crt": "/etc/letsencrypt/live/zertifikat.crt/fullchain.pem",
+        "template_self_key": "/etc/letsencrypt/live/zertifikat.key/privkey.pem",
+        "template_redirect_domain": "target.domain.de",
+        "template_auth_file": "authfile",
     }
 
 
@@ -125,7 +126,8 @@ def retrieve_valid_input(message: str) -> str:
 
 
 def execute_commands(
-    config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file
+    config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file,
+    target_path=None, dry_run=False
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -139,19 +141,27 @@ def execute_commands(
         pollport: Polling port number for Nginx configuration (optional).
         redirect_domain: Redirect domain for Nginx configuration (optional).
         auth_file: Authentication file for Nginx configuration (optional).
+        target_path: Custom target path for generated configs (optional, default is /etc/nginx/conf.d).
+        dry_run: If True, display commands without executing them (optional, default is False).
     """
     # Get default vars
     default_vars = get_default_vars()
-    server_path = default_vars["server_path"]
-    old_domain = default_vars["old_domain"]
-    old_ip = default_vars["old_ip"]
-    old_crt = default_vars["old_crt"]
-    old_key = default_vars["old_key"]
-    old_self_crt = default_vars["old_self_crt"]
-    old_self_key = default_vars["old_self_key"]
-    old_port = default_vars["old_port"]
-    old_pollport = default_vars["old_pollport"]
-    old_redirect_domain = default_vars["old_redirect_domain"]
+    server_path = target_path if target_path else default_vars["server_path"]
+    template_domain = default_vars["template_domain"]
+    template_ip = default_vars["template_ip"]
+    template_crt = default_vars["template_crt"]
+    template_key = default_vars["template_key"]
+    template_self_crt = default_vars["template_self_crt"]
+    template_self_key = default_vars["template_self_key"]
+    template_port = default_vars["template_port"]
+    template_poll_port = default_vars["template_poll_port"]
+    template_redirect_domain = default_vars["template_redirect_domain"]
+    
+    # Create target directory if it doesn't exist
+    if not dry_run and target_path and not os.path.exists(target_path):
+        os.makedirs(target_path, exist_ok=True)
+        print(f"Created directory: {target_path}")
+    
     # Get config templates
     config_template_content = get_config_template(config_template)
     if config_template_content:
@@ -165,17 +175,21 @@ def execute_commands(
         )
         eq_copy_command = "cp " + file_path + " " + server_path + "/" + domain + ".conf"
         print(eq_display_message.rstrip("\n"))
-        os.system(eq_copy_command)
-        print(eq_copy_command.rstrip("\n"))
-        os.remove(file_path)
+        if not dry_run:
+            os.system(eq_copy_command)
+            print(eq_copy_command.rstrip("\n"))
+            os.remove(file_path)
+        else:
+            print(f"[DRY RUN] Would execute: {eq_copy_command}")
     else:
         print("No valid config template")
+        return
 
     # send command - domain
     eq_display_message = "Set domain name in conf to " + domain
     eq_set_domain_cmd = (
         "sed -i 's|"
-        + old_domain
+        + template_domain
         + "|"
         + domain
         + "|g' "
@@ -185,21 +199,27 @@ def execute_commands(
         + ".conf"
     )
     print(eq_display_message.rstrip("\n"))
-    os.system(eq_set_domain_cmd)
-    print(eq_set_domain_cmd.rstrip("\n"))
+    if not dry_run:
+        os.system(eq_set_domain_cmd)
+        print(eq_set_domain_cmd.rstrip("\n"))
+    else:
+        print(f"[DRY RUN] Would execute: {eq_set_domain_cmd}")
 
     # send command - ip
     eq_display_message = "Set ip in conf to " + ip
     eq_set_ip_cmd = (
-        "sed -i 's|" + old_ip + "|" + ip + "|g' " + server_path + "/" + domain + ".conf"
+        "sed -i 's|" + template_ip + "|" + ip + "|g' " + server_path + "/" + domain + ".conf"
     )
     print(eq_display_message.rstrip("\n"))
-    os.system(eq_set_ip_cmd)
-    print(eq_set_ip_cmd.rstrip("\n"))
+    if not dry_run:
+        os.system(eq_set_ip_cmd)
+        print(eq_set_ip_cmd.rstrip("\n"))
+    else:
+        print(f"[DRY RUN] Would execute: {eq_set_ip_cmd}")
 
     if cert_key != "":
-        old_crt = old_self_crt
-        old_key = old_self_key
+        template_crt = template_self_crt
+        template_key = template_self_key
     else:
         cert_key = cert_name
 
@@ -207,7 +227,7 @@ def execute_commands(
     eq_display_message = "Set cert name in conf to " + cert_name
     eq_set_cert_cmd = (
         "sed -i 's|"
-        + old_crt
+        + template_crt
         + "|"
         + cert_name
         + "|g' "
@@ -218,7 +238,7 @@ def execute_commands(
     )
     eq_set_key_cmd = (
         "sed -i 's|"
-        + old_key
+        + template_key
         + "|"
         + cert_key
         + "|g' "
@@ -228,13 +248,17 @@ def execute_commands(
         + ".conf"
     )
     print(eq_display_message.rstrip("\n"))
-    os.system(eq_set_cert_cmd)
-    print(eq_set_cert_cmd.rstrip("\n"))
-    os.system(eq_set_key_cmd)
-    print(eq_set_key_cmd.rstrip("\n"))
+    if not dry_run:
+        os.system(eq_set_cert_cmd)
+        print(eq_set_cert_cmd.rstrip("\n"))
+        os.system(eq_set_key_cmd)
+        print(eq_set_key_cmd.rstrip("\n"))
+    else:
+        print(f"[DRY RUN] Would execute: {eq_set_cert_cmd}")
+        print(f"[DRY RUN] Would execute: {eq_set_key_cmd}")
 
-    # Letsencrypt
-    if cert_key == cert_name:
+    # Letsencrypt - skip certificate creation during dry run
+    if cert_key == cert_name and not dry_run:
         # Search for certificate and create it when it does not exist
         cert_exists = os.path.isfile(
             "/etc/letsencrypt/live/" + cert_name + "/fullchain.pem"
@@ -247,12 +271,14 @@ def execute_commands(
             )
             os.system(eq_create_cert)
             print(eq_create_cert.rstrip("\n"))
+    elif cert_key == cert_name and dry_run:
+        print(f"[DRY RUN] Would check for and possibly create certificate for: {cert_name}")
 
     # send command - port
     eq_display_message = "Set port in conf to " + port
     eq_set_port_cmd = (
         "sed -i 's|"
-        + old_port
+        + template_port
         + "|"
         + port
         + "|g' "
@@ -262,8 +288,11 @@ def execute_commands(
         + ".conf"
     )
     print(eq_display_message.rstrip("\n"))
-    os.system(eq_set_port_cmd)
-    print(eq_set_port_cmd.rstrip("\n"))
+    if not dry_run:
+        os.system(eq_set_port_cmd)
+        print(eq_set_port_cmd.rstrip("\n"))
+    else:
+        print(f"[DRY RUN] Would execute: {eq_set_port_cmd}")
 
     # Odoo polling port
     if "odoo" in config_template and pollport:
@@ -271,7 +300,7 @@ def execute_commands(
         eq_display_message = "Set polling port in conf to " + pollport
         eq_set_port_cmd = (
             "sed -i 's|"
-            + old_pollport
+            + template_poll_port
             + "|"
             + pollport
             + "|g' "
@@ -281,8 +310,11 @@ def execute_commands(
             + ".conf"
         )
         print(eq_display_message.rstrip("\n"))
-        os.system(eq_set_port_cmd)
-        print(eq_set_port_cmd.rstrip("\n"))
+        if not dry_run:
+            os.system(eq_set_port_cmd)
+            print(eq_set_port_cmd.rstrip("\n"))
+        else:
+            print(f"[DRY RUN] Would execute: {eq_set_port_cmd}")
 
     # authentication
     eq_display_message = "Try set auth file to " + auth_file
@@ -291,24 +323,27 @@ def execute_commands(
         eq_display_message = "Set auth file to " + auth_file
         print(eq_display_message.rstrip("\n"))
         _filename = server_path + "/" + domain + ".conf"
-    
-        with open(_filename, "r", encoding="utf-8") as _file:
-            _data = _file.readlines()
-    
-        # Find the index of the line containing #authentication and add 1 to insert after this line
-        insertion_index = None
-        for i, line in enumerate(_data):
-            if '#authentication' in line:  # Check if this is the line we're looking for
-                insertion_index = i + 1
-                break
-    
-        # If the marker was found, insert the authentication lines after it
-        if insertion_index is not None:
-            _data.insert(insertion_index, '        auth_basic       "Restricted Area";' + "\n")
-            _data.insert(insertion_index + 1, "        auth_basic_user_file  " + auth_file + ";" + "\n")
-    
-        with open(_filename, "w", encoding="utf-8") as _file:
-            _file.writelines(_data)
+        
+        if not dry_run:
+            with open(_filename, "r", encoding="utf-8") as _file:
+                _data = _file.readlines()
+        
+            # Find the index of the line containing #authentication and add 1 to insert after this line
+            insertion_index = None
+            for i, line in enumerate(_data):
+                if '#authentication' in line:  # Check if this is the line we're looking for
+                    insertion_index = i + 1
+                    break
+        
+            # If the marker was found, insert the authentication lines after it
+            if insertion_index is not None:
+                _data.insert(insertion_index, '        auth_basic       "Restricted Area";' + "\n")
+                _data.insert(insertion_index + 1, "        auth_basic_user_file  " + auth_file + ";" + "\n")
+        
+            with open(_filename, "w", encoding="utf-8") as _file:
+                _file.writelines(_data)
+        else:
+            print(f"[DRY RUN] Would add authentication settings using: {auth_file}")
 
 
     if "redirect" in config_template and redirect_domain:
@@ -316,7 +351,7 @@ def execute_commands(
         eq_display_message = "Set redirect domain in conf to " + redirect_domain
         eq_set_redirect_cmd = (
             "sed -i 's|"
-            + old_redirect_domain
+            + template_redirect_domain
             + "|"
             + redirect_domain
             + "|g' "
@@ -326,11 +361,14 @@ def execute_commands(
             + ".conf"
         )
         print(eq_display_message.rstrip("\n"))
-        os.system(eq_set_redirect_cmd)
-        print(eq_set_redirect_cmd.rstrip("\n"))
+        if not dry_run:
+            os.system(eq_set_redirect_cmd)
+            print(eq_set_redirect_cmd.rstrip("\n"))
+        else:
+            print(f"[DRY RUN] Would execute: {eq_set_redirect_cmd}")
 
     # Search for certificate and create it when it does not exist
-    if "redirect_ssl" in config_template and redirect_domain:
+    if "redirect_ssl" in config_template and redirect_domain and not dry_run:
         cert_exists = os.path.isfile(
             "/etc/letsencrypt/live/" + redirect_domain + "/fullchain.pem"
         ) and os.path.isfile(
@@ -344,3 +382,5 @@ def execute_commands(
             )
             os.system(eq_create_cert)
             print(eq_create_cert.rstrip("\n"))
+    elif "redirect_ssl" in config_template and redirect_domain and dry_run:
+        print(f"[DRY RUN] Would check for and possibly create certificate for redirect domain: {redirect_domain}")

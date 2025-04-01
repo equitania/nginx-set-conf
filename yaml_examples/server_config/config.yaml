@@ -101,3 +101,12 @@ Mailpit:
   port: 8025
   cert_name: www.
   #auth_file: authfile
+
+Qdrant:
+  config_template: ngx_qdrant
+  ip: 
+  domain: www.
+  port: 6333
+  cert_name: www.
+  grpcport: 6334
+  #auth_file: authfile
