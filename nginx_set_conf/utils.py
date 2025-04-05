@@ -127,7 +127,7 @@ def retrieve_valid_input(message: str) -> str:
 
 def execute_commands(
     config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file,
-    target_path=None, dry_run=False
+    target_path=None, dry_run=False, grpcport=None
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -143,6 +143,7 @@ def execute_commands(
         auth_file: Authentication file for Nginx configuration (optional).
         target_path: Custom target path for generated configs (optional, default is /etc/nginx/conf.d).
         dry_run: If True, display commands without executing them (optional, default is False).
+        grpcport: gRPC port number for Nginx configuration (optional, used by Qdrant template).
     """
     # Get default vars
     default_vars = get_default_vars()
@@ -155,6 +156,7 @@ def execute_commands(
     template_self_key = default_vars["template_self_key"]
     template_port = default_vars["template_port"]
     template_poll_port = default_vars["template_poll_port"]
+    template_grpc_port = default_vars["template_grpc_port"]
     template_redirect_domain = default_vars["template_redirect_domain"]
     
     # Create target directory if it doesn't exist
@@ -275,34 +277,13 @@ def execute_commands(
         print(f"[DRY RUN] Would check for and possibly create certificate for: {cert_name}")
 
     # send command - port
-    eq_display_message = "Set port in conf to " + port
-    eq_set_port_cmd = (
-        "sed -i 's|"
-        + template_port
-        + "|"
-        + port
-        + "|g' "
-        + server_path
-        + "/"
-        + domain
-        + ".conf"
-    )
-    print(eq_display_message.rstrip("\n"))
-    if not dry_run:
-        os.system(eq_set_port_cmd)
-        print(eq_set_port_cmd.rstrip("\n"))
-    else:
-        print(f"[DRY RUN] Would execute: {eq_set_port_cmd}")
-
-    # Odoo polling port
-    if "odoo" in config_template and pollport:
-        # send command - polling port
-        eq_display_message = "Set polling port in conf to " + pollport
+    if port:
+        eq_display_message = "Set port in conf to " + port
         eq_set_port_cmd = (
             "sed -i 's|"
-            + template_poll_port
+            + template_port
             + "|"
-            + pollport
+            + port
             + "|g' "
             + server_path
             + "/"
@@ -315,6 +296,48 @@ def execute_commands(
             print(eq_set_port_cmd.rstrip("\n"))
         else:
             print(f"[DRY RUN] Would execute: {eq_set_port_cmd}")
+
+    # send command - poll port
+    if pollport:
+        eq_display_message = "Set poll port in conf to " + pollport
+        eq_set_poll_port_cmd = (
+            "sed -i 's|"
+            + template_poll_port
+            + "|"
+            + pollport
+            + "|g' "
+            + server_path
+            + "/"
+            + domain
+            + ".conf"
+        )
+        print(eq_display_message.rstrip("\n"))
+        if not dry_run:
+            os.system(eq_set_poll_port_cmd)
+            print(eq_set_poll_port_cmd.rstrip("\n"))
+        else:
+            print(f"[DRY RUN] Would execute: {eq_set_poll_port_cmd}")
+            
+    # send command - grpc port
+    if grpcport:
+        eq_display_message = "Set gRPC port in conf to " + grpcport
+        eq_set_grpc_port_cmd = (
+            "sed -i 's|"
+            + template_grpc_port
+            + "|"
+            + grpcport
+            + "|g' "
+            + server_path
+            + "/"
+            + domain
+            + ".conf"
+        )
+        print(eq_display_message.rstrip("\n"))
+        if not dry_run:
+            os.system(eq_set_grpc_port_cmd)
+            print(eq_set_grpc_port_cmd.rstrip("\n"))
+        else:
+            print(f"[DRY RUN] Would execute: {eq_set_grpc_port_cmd}")
 
     # authentication
     eq_display_message = "Try set auth file to " + auth_file

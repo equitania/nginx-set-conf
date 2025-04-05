@@ -112,6 +112,7 @@ def start_nginx_set_conf(
     cert_name,
     cert_key,
     pollport,
+    grpcport,
     redirect_domain,
     auth_file,
     config_path,
@@ -161,6 +162,10 @@ def start_nginx_set_conf(
                 except:
                     pollport = ""
                 try:
+                    grpcport = str(yaml_config["grpcport"])
+                except:
+                    grpcport = ""
+                try:
                     redirect_domain = str(yaml_config["redirect_domain"])
                 except:
                     redirect_domain = ""
@@ -185,6 +190,7 @@ def start_nginx_set_conf(
                     auth_file,
                     yaml_target_path,
                     dry_run,
+                    grpcport,
                 )
     elif config_template and ip and domain and port and cert_name:
         execute_commands(
@@ -199,6 +205,7 @@ def start_nginx_set_conf(
             auth_file,
             target_path,
             dry_run,
+            grpcport,
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
@@ -208,6 +215,9 @@ def start_nginx_set_conf(
         cert_name = retrieve_valid_input("Name of certificate" + "\n")
         pollport = retrieve_valid_input(
             "Secondary Docker container port for odoo pollings" + "\n"
+        )
+        grpcport = retrieve_valid_input(
+            "Secondary Docker container port for qdrant gRPC" + "\n"
         )
         redirect_domain = retrieve_valid_input("Redirect domain" + "\n")
         auth_file = retrieve_valid_input("authfile" + "\n")
@@ -226,6 +236,7 @@ def start_nginx_set_conf(
             auth_file,
             target_path,
             dry_run,
+            grpcport,
         )
     
     if not dry_run:
