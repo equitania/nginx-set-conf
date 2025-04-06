@@ -2,13 +2,14 @@
 nginx-set-conf - Ein Werkzeug zur Verwaltung von Nginx-Konfigurationen
 """
 
-__version__ = '1.3.4'
+__version__ = '1.3.5'
 
 from . import config_templates, utils
 
 def replace_cache_path(template, service_name):
     """Replace the cache path in a template with a unique path based on service name.
     Also replace the zone name to be unique for each service.
+    Also replace the limit_req_zone name to be unique per service.
     
     Args:
         template (str): The nginx config template
@@ -17,8 +18,9 @@ def replace_cache_path(template, service_name):
     Returns:
         str: Template with updated cache path and zone name
     """
-    # Create a unique zone name based on the service
-    zone_name = f"{service_name}_cache"
+    # Create unique names based on the service
+    cache_zone_name = f"{service_name}_cache"
+    limit_zone_name = f"{service_name}_limit"
     
     # First replace the cache path
     updated_template = template.replace(
@@ -26,10 +28,16 @@ def replace_cache_path(template, service_name):
         f'proxy_cache_path /var/cache/nginx/{service_name}'
     )
     
-    # Then replace the zone name
+    # Then replace the cache zone name
     updated_template = updated_template.replace(
         'keys_zone=my_cache:',
-        f'keys_zone={zone_name}:'
+        f'keys_zone={cache_zone_name}:'
+    )
+    
+    # Finally replace the limit_req_zone name
+    updated_template = updated_template.replace(
+        'zone=iprl:',
+        f'zone={limit_zone_name}:'
     )
     
     return updated_template
