@@ -2,7 +2,7 @@
 nginx-set-conf - Ein Werkzeug zur Verwaltung von Nginx-Konfigurationen
 """
 
-__version__ = '1.3.6'
+__version__ = '1.3.7'
 
 from . import config_templates, utils
 
@@ -46,5 +46,14 @@ def replace_cache_path(template, service_name):
         return f'limit_req_zone $binary_remote_addr$http_x_forwarded_for zone={limit_zone_name}:{size} rate={rate};'
     
     updated_template = re.sub(limit_req_pattern, replace_limit_req, updated_template)
+    
+    # Also replace any references to the zone in limit_req directives
+    # Example: limit_req zone=iprl burst=500 nodelay;
+    # Changed to: limit_req zone=service_name_limit burst=500 nodelay;
+    updated_template = re.sub(
+        r'limit_req\s+zone=iprl(\s+[^;]*);', 
+        f'limit_req zone={limit_zone_name}\\1;', 
+        updated_template
+    )
     
     return updated_template
