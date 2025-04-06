@@ -164,6 +164,21 @@ def execute_commands(
         os.makedirs(target_path, exist_ok=True)
         print(f"Created directory: {target_path}")
     
+    # Create cache directory if needed
+    cache_dir = f"/var/cache/nginx/{config_template.replace('ngx_', '')}"
+    if not dry_run and not os.path.exists(cache_dir):
+        try:
+            os.makedirs(cache_dir, exist_ok=True)
+            print(f"Created cache directory: {cache_dir}")
+            # Set proper permissions for nginx
+            os.system(f"chown -R nginx:nginx {cache_dir}")
+            os.system(f"chmod -R 755 {cache_dir}")
+            print(f"Set permissions for: {cache_dir}")
+        except Exception as e:
+            print(f"Warning: Could not create cache directory: {e}")
+    elif dry_run:
+        print(f"[DRY RUN] Would create cache directory: {cache_dir}")
+    
     # Get config templates
     config_template_content = get_config_template(config_template)
     if config_template_content:
