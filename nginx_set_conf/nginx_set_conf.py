@@ -73,6 +73,7 @@ We support:\f
 - ngx_qdrant (Qdrant vector database with ssl/http2 and gRPC support)
 - ngx_redirect (Redirect Domain without ssl)
 - ngx_redirect_ssl (Redirect Domain with ssl)
+- ngx_supabase (Supabase database server with ssl/http2)
 \b
 """
 

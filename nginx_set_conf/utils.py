@@ -164,8 +164,18 @@ def execute_commands(
         os.makedirs(target_path, exist_ok=True)
         print(f"Created directory: {target_path}")
     
-    # Create cache directory if needed
-    cache_dir = f"/var/cache/nginx/{config_template.replace('ngx_', '')}"
+    # Extract service name from template name
+    service_name = config_template.replace('ngx_', '')
+    
+    # Create unique cache directory if needed
+    # Use domain in the cache path to ensure uniqueness
+    if domain:
+        domain_id = domain.replace('.', '_')
+        unique_id = f"{service_name}_{domain_id}"
+    else:
+        unique_id = service_name
+    
+    cache_dir = f"/var/cache/nginx/{unique_id}"
     if not dry_run and not os.path.exists(cache_dir):
         try:
             os.makedirs(cache_dir, exist_ok=True)
@@ -179,8 +189,8 @@ def execute_commands(
     elif dry_run:
         print(f"[DRY RUN] Would create cache directory: {cache_dir}")
     
-    # Get config templates
-    config_template_content = get_config_template(config_template)
+    # Get config templates with domain-specific cache paths
+    config_template_content = get_config_template(config_template, domain)
     if config_template_content:
         current_path = os.path.dirname(os.path.realpath(__file__))
         file_path = current_path + "/" + config_template + ".conf"

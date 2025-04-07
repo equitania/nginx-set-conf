@@ -2,7 +2,7 @@
 Nginx configuration templates for various services.
 
 This module contains predefined Nginx configuration templates for different
-services like code-server, FastReport, MailHog, NextCloud, Odoo, pgAdmin4,
+services like code-server, FastReport, MailPit, NextCloud, Odoo, pgAdmin4,
 Portainer, and PWA. Each template includes SSL/TLS and HTTP/2 configurations
 where applicable.
 
@@ -21,6 +21,7 @@ Available templates:
     - ngx_n8n: n8n configuration with SSL/http2
     - ngx_kasm: Kasm Workspaces configuration with SSL/http2
     - ngx_qdrant: Qdrant vector database with SSL/http2 and gRPC support
+    - ngx_supabase: Supabase database server with SSL/http2
 
 Note: This module is deprecated and will be removed in a future version.
       Please use nginx_set_conf.templates.all_templates instead.
@@ -45,20 +46,26 @@ config_template_dict = {
     "ngx_n8n": get_config_template("ngx_n8n"),
     "ngx_kasm": get_config_template("ngx_kasm"),
     "ngx_qdrant": get_config_template("ngx_qdrant"),
+    "ngx_supabase": get_config_template("ngx_supabase"),
 }
 
 # Keeping the function for backward compatibility
-def get_config_template(config_template_name):
+def get_config_template(config_template_name, domain=None):
     """
     Get template by name (legacy function for backward compatibility).
     
     Args:
         config_template_name (str): Name of the template to retrieve
+        domain (str, optional): Domain name to create unique cache paths
         
     Returns:
         str: Template content or empty string if not found
     """
     if config_template_name in config_template_dict:
+        if domain:
+            # Import the original function to regenerate with domain-specific paths
+            from nginx_set_conf.templates.all_templates import get_config_template as get_template
+            return get_template(config_template_name, domain)
         return config_template_dict[config_template_name]
     else:
         return ""

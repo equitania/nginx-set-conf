@@ -46,6 +46,7 @@ Options:
                           - ngx_qdrant (Qdrant vector database with ssl/http2 and gRPC support)
                           - ngx_redirect (Redirect Domain without ssl)
                           - ngx_redirect_ssl (Redirect Domain with ssl)
+                          - ngx_supabase (Supabase database server with ssl/http2)
   --ip TEXT               IP address of the server
   --domain TEXT           Name of the domain
   --port TEXT             Primary port for the Docker container
@@ -145,4 +146,14 @@ nginx-set-conf --config_template ngx_qdrant --ip 1.2.3.4 --domain vector.example
 
 # Show qdrant template configuration
 nginx-set-conf --config_template ngx_qdrant --show_template
+```
+
+### Supabase Database Server Example
+
+```bash
+# Supabase database server
+nginx-set-conf --config_template ngx_supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
+
+# Show supabase template configuration
+nginx-set-conf --config_template ngx_supabase --show_template
 ```

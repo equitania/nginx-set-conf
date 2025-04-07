@@ -19,29 +19,41 @@ from nginx_set_conf.templates.redirect_ssl import TEMPLATE as REDIRECT_SSL_TEMPL
 from nginx_set_conf.templates.n8n import TEMPLATE as N8N_TEMPLATE
 from nginx_set_conf.templates.kasm import TEMPLATE as KASM_TEMPLATE
 from nginx_set_conf.templates.qdrant import TEMPLATE as QDRANT_TEMPLATE
+from nginx_set_conf.templates.supabase import TEMPLATE as SUPABASE_TEMPLATE
 
 # Replace cache paths to avoid conflicts
-def replace_cache_path(template, service_name):
-    """Replace the cache path in a template with a unique path based on service name.
+def replace_cache_path(template, service_name, domain=None):
+    """Replace the cache path in a template with a unique path based on service name and domain.
     Also replace the zone name to be unique for each service.
     Also replace the limit_req_zone name to be unique per service.
     
     Args:
         template (str): The nginx config template
         service_name (str): Name of the service to create unique path
+        domain (str, optional): Domain name to ensure unique cache paths when 
+                               multiple instances of the same service are running
         
     Returns:
         str: Template with updated cache path and zone name
     """
     import re
-    # Create unique names based on the service
-    cache_zone_name = f"{service_name}_cache"
-    limit_zone_name = f"{service_name}_limit"
+    
+    # If domain is provided, create a unique identifier using domain
+    if domain:
+        # Convert domain to a valid directory name by replacing dots with underscores
+        domain_id = domain.replace('.', '_')
+        unique_id = f"{service_name}_{domain_id}"
+    else:
+        unique_id = service_name
+    
+    # Create unique names based on the service and optional domain
+    cache_zone_name = f"{unique_id}_cache"
+    limit_zone_name = f"{unique_id}_limit"
     
     # First replace the cache path
     updated_template = template.replace(
         'proxy_cache_path /tmp', 
-        f'proxy_cache_path /var/cache/nginx/{service_name}'
+        f'proxy_cache_path /var/cache/nginx/{unique_id}'
     )
     
     # Then replace the cache zone name
@@ -91,20 +103,31 @@ TEMPLATES = {
     "ngx_n8n": replace_cache_path(N8N_TEMPLATE, "n8n"),
     "ngx_kasm": replace_cache_path(KASM_TEMPLATE, "kasm"),
     "ngx_qdrant": replace_cache_path(QDRANT_TEMPLATE, "qdrant"),
+    "ngx_supabase": replace_cache_path(SUPABASE_TEMPLATE, "supabase"),
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 }
 
-def get_config_template(config_template_name):
+def get_config_template(config_template_name, domain=None):
     """
     Get template by name.
     
     Args:
         config_template_name (str): Name of the template to retrieve
+        domain (str, optional): Domain name to create unique cache paths
         
     Returns:
         str: Template content or empty string if not found
     """
     if config_template_name in TEMPLATES:
-        return TEMPLATES[config_template_name]
+        # Get the base template
+        base_template = TEMPLATES[config_template_name]
+        
+        # If domain is provided, create a domain-specific version
+        if domain:
+            # Extract service name from the template name
+            service_name = config_template_name.replace('ngx_', '')
+            return replace_cache_path(base_template, service_name, domain)
+        
+        return base_template
     else:
         return "" 

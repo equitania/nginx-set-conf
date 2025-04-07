@@ -19,6 +19,8 @@ limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=iprl:16m rate=500r/
 server {
     listen server.domain.de:80;
     server_name server.domain.de;
+    rewrite ^/.*$ https://$host$request_uri? permanent;
+}
 
 server {
     listen server.domain.de:443 ssl;
