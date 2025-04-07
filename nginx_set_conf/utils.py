@@ -176,6 +176,8 @@ def execute_commands(
         unique_id = service_name
     
     cache_dir = f"/var/cache/nginx/{unique_id}"
+    print(f"Using domain-specific cache path: {cache_dir}")
+    
     if not dry_run and not os.path.exists(cache_dir):
         try:
             os.makedirs(cache_dir, exist_ok=True)
@@ -190,12 +192,26 @@ def execute_commands(
         print(f"[DRY RUN] Would create cache directory: {cache_dir}")
     
     # Get config templates with domain-specific cache paths
+    print(f"Generating domain-specific template for {domain} using {config_template}")
     config_template_content = get_config_template(config_template, domain)
+    
+    # Debug info: Print the proxy_cache_path line from the template
+    for line in config_template_content.split('\n'):
+        if 'proxy_cache_path' in line:
+            print(f"DEBUG - Cache path in template: {line}")
+    
     if config_template_content:
         current_path = os.path.dirname(os.path.realpath(__file__))
         file_path = current_path + "/" + config_template + ".conf"
         with open(file_path, "w") as f:
             f.write(config_template_content)
+            
+        # Debug info: Verify cache path in written file
+        with open(file_path, "r") as f:
+            for line in f:
+                if 'proxy_cache_path' in line:
+                    print(f"DEBUG - Cache path in written file: {line.strip()}")
+            
         # copy command
         eq_display_message = (
             "Copy " + file_path + " " + server_path + "/" + domain + ".conf"
@@ -206,6 +222,15 @@ def execute_commands(
             os.system(eq_copy_command)
             print(eq_copy_command.rstrip("\n"))
             os.remove(file_path)
+            
+            # Debug info: Verify the cache path in the final configuration file
+            final_config_path = server_path + "/" + domain + ".conf"
+            if os.path.exists(final_config_path):
+                print(f"Verifying cache path in the final config: {final_config_path}")
+                with open(final_config_path, "r") as f:
+                    for line in f:
+                        if 'proxy_cache_path' in line:
+                            print(f"DEBUG - Cache path in final config: {line.strip()}")
         else:
             print(f"[DRY RUN] Would execute: {eq_copy_command}")
     else:

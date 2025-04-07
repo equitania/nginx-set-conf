@@ -122,6 +122,7 @@ def start_nginx_set_conf(
 ):
     # Add new template display logic
     if show_template and config_template:
+        # For display purposes, we don't need domain-specific paths
         template_content = get_config_template(config_template)
         if template_content:
             logger.info(f"\nTemplate for {config_template}:\n")
@@ -178,6 +179,10 @@ def start_nginx_set_conf(
                     yaml_target_path = str(yaml_config["target_path"])
                 except:
                     yaml_target_path = target_path
+                
+                # Debug log for domain-specific cache paths
+                logger.info(f"Generating configuration for {domain} using template {config_template}")
+                logger.info(f"This will use domain-specific cache paths to avoid conflicts")
                     
                 execute_commands(
                     config_template,
@@ -194,6 +199,10 @@ def start_nginx_set_conf(
                     grpcport,
                 )
     elif config_template and ip and domain and port and cert_name:
+        # Debug log for domain-specific cache paths
+        logger.info(f"Generating configuration for {domain} using template {config_template}")
+        logger.info(f"This will use domain-specific cache paths to avoid conflicts")
+        
         execute_commands(
             config_template,
             domain,
