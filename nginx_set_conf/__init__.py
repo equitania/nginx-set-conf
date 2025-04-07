@@ -2,7 +2,7 @@
 nginx-set-conf - Ein Werkzeug zur Verwaltung von Nginx-Konfigurationen
 """
 
-__version__ = '1.4.0'
+__version__ = '1.4.4'
 
 from . import config_templates, utils
 
@@ -31,8 +31,9 @@ def replace_cache_path(template, service_name, domain=None):
         unique_id = service_name
     
     # Create unique names based on the service and optional domain
+    # Use different suffixes for cache and rate limiting to avoid conflicts
     cache_zone_name = f"{unique_id}_cache"
-    limit_zone_name = f"{unique_id}_limit"
+    rate_limit_zone_name = f"{unique_id}_ratelimit"
     
     # First replace the cache path
     updated_template = template.replace(
@@ -40,30 +41,32 @@ def replace_cache_path(template, service_name, domain=None):
         f'proxy_cache_path /var/cache/nginx/{unique_id}'
     )
     
-    # Then replace the cache zone name
-    updated_template = updated_template.replace(
-        'keys_zone=my_cache:',
-        f'keys_zone={cache_zone_name}:'
+    # Then specifically replace the keys_zone parameter in proxy_cache_path directives
+    updated_template = re.sub(
+        r'(proxy_cache_path\s+[^\s]+\s+[^;]*keys_zone=)[^\s:]+:', 
+        f'\\1{cache_zone_name}:',
+        updated_template
     )
     
     # Use regex to properly replace the limit_req_zone with size intact
     # Example: limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=iprl:16m rate=500r/m;
-    # Changed to: limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=service_name_limit:16m rate=500r/m;
-    limit_req_pattern = r'limit_req_zone\s+\$binary_remote_addr\$http_x_forwarded_for\s+zone=iprl:(\d+[kKmMgG])\s+rate=(\d+[rR]/[mshd]);'
+    # Changed to: limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=service_name_ratelimit:16m rate=500r/m;
+    limit_req_pattern = r'(limit_req_zone\s+\$binary_remote_addr\$http_x_forwarded_for\s+zone=)[^\s:]+:(\d+[kKmMgG])\s+rate=(\d+[rR]/[mshd]);'
     
     def replace_limit_req(match):
-        size = match.group(1)  # Captures the size (e.g., '16m')
-        rate = match.group(2)  # Captures the rate (e.g., '500r/m')
-        return f'limit_req_zone $binary_remote_addr$http_x_forwarded_for zone={limit_zone_name}:{size} rate={rate};'
+        prefix = match.group(1)  # The part before the zone name
+        size = match.group(2)    # Captures the size (e.g., '16m')
+        rate = match.group(3)    # Captures the rate (e.g., '500r/m')
+        return f'{prefix}{rate_limit_zone_name}:{size} rate={rate};'
     
     updated_template = re.sub(limit_req_pattern, replace_limit_req, updated_template)
     
     # Also replace any references to the zone in limit_req directives
     # Example: limit_req zone=iprl burst=500 nodelay;
-    # Changed to: limit_req zone=service_name_limit burst=500 nodelay;
+    # Changed to: limit_req zone=service_name_ratelimit burst=500 nodelay;
     updated_template = re.sub(
-        r'limit_req\s+zone=iprl(\s+[^;]*);', 
-        f'limit_req zone={limit_zone_name}\\1;', 
+        r'(limit_req\s+zone=)[^\s;]+', 
+        f'\\1{rate_limit_zone_name}', 
         updated_template
     )
     

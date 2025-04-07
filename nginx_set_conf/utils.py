@@ -211,7 +211,56 @@ def execute_commands(
             for line in f:
                 if 'proxy_cache_path' in line:
                     print(f"DEBUG - Cache path in written file: {line.strip()}")
+        
+        # DIRECT FIX: Ensure the cache path is correctly set in the file
+        # This is a very direct approach to ensure the path is correct
+        import re
+        with open(file_path, "r") as f:
+            content = f.read()
+        
+        # Create a more robust replacement for cache paths
+        domain_safe = domain.replace('.', '_')
+        unique_id = f"{service_name}_{domain_safe}"
+        
+        # Directly replace any proxy_cache_path that matches the pattern, regardless of content
+        content = re.sub(
+            r'proxy_cache_path\s+/var/cache/nginx/[^\s]+', 
+            f'proxy_cache_path /var/cache/nginx/{unique_id}',
+            content
+        )
+        
+        # Specifically fix the keys_zone= parameter in proxy_cache_path lines only
+        content = re.sub(
+            r'(proxy_cache_path\s+[^\s]+\s+[^;]*keys_zone=)[^\s:]+:', 
+            f'\\1{unique_id}_cache:',
+            content
+        )
+        
+        # Specifically fix the zone= parameter in limit_req_zone lines only
+        content = re.sub(
+            r'(limit_req_zone\s+[^\s]+\s+zone=)[^\s:]+:', 
+            f'\\1{unique_id}_ratelimit:',
+            content
+        )
+        
+        # Fix any limit_req directives referencing the zone
+        content = re.sub(
+            r'(limit_req\s+zone=)[^\s;]+', 
+            f'\\1{unique_id}_ratelimit',
+            content
+        )
+        
+        # Write the updated content back
+        with open(file_path, "w") as f:
+            f.write(content)
+            print("Direct cache path fix applied to configuration")
             
+        # Verify the fix
+        with open(file_path, "r") as f:
+            for line in f:
+                if 'proxy_cache_path' in line or 'keys_zone=' in line or 'zone=' in line:
+                    print(f"FIXED - Line: {line.strip()}")
+        
         # copy command
         eq_display_message = (
             "Copy " + file_path + " " + server_path + "/" + domain + ".conf"
@@ -223,14 +272,14 @@ def execute_commands(
             print(eq_copy_command.rstrip("\n"))
             os.remove(file_path)
             
-            # Debug info: Verify the cache path in the final configuration file
+            # VERIFY final configuration
             final_config_path = server_path + "/" + domain + ".conf"
             if os.path.exists(final_config_path):
                 print(f"Verifying cache path in the final config: {final_config_path}")
                 with open(final_config_path, "r") as f:
                     for line in f:
                         if 'proxy_cache_path' in line:
-                            print(f"DEBUG - Cache path in final config: {line.strip()}")
+                            print(f"FINAL CONFIG - Cache path: {line.strip()}")
         else:
             print(f"[DRY RUN] Would execute: {eq_copy_command}")
     else:
