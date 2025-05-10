@@ -110,3 +110,11 @@ Qdrant:
   cert_name: www.
   grpcport: 6334
   #auth_file: authfile
+
+Flowise:
+  config_template: ngx_flowise
+  ip: 
+  domain: www.
+  port: 3000
+  cert_name: www.
+  #auth_file: authfile

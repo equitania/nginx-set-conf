@@ -34,6 +34,7 @@ Options:
                           We support:
                           - ngx_code_server (code-server with ssl)
                           - ngx_fast_report (FastReport with ssl)
+                          - ngx_flowise (Flowise with ssl/http2)
                           - ngx_kasm (Kasm Workspaces with ssl/http2)
                           - ngx_mailpit (Mailpit with ssl/http2)
                           - ngx_n8n (n8n with ssl/http2)
@@ -156,4 +157,14 @@ nginx-set-conf --config_template ngx_supabase --ip 1.2.3.4 --domain supabase.exa
 
 # Show supabase template configuration
 nginx-set-conf --config_template ngx_supabase --show_template
+```
+
+### Flowise AI Example
+
+```bash
+# Flowise AI server
+nginx-set-conf --config_template ngx_flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+
+# Show flowise template configuration
+nginx-set-conf --config_template ngx_flowise --show_template
 ```
