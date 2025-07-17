@@ -6,6 +6,8 @@ odoo-https:
   cert_name: www.
   pollport: 12000
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Odoo only http:
   config_template: ngx_odoo_http
@@ -14,6 +16,8 @@ Odoo only http:
   port: 11000
   pollport: 12000
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Fast Report:
   config_template: ngx_fast_report
@@ -22,6 +26,8 @@ Fast Report:
   port: 8899
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Code Server:
   config_template: ngx_code_server
@@ -30,6 +36,8 @@ Code Server:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 NextCloud:
   config_template: ngx_nextcloud
@@ -38,6 +46,8 @@ NextCloud:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Portainer:
   config_template: ngx_portainer
@@ -46,6 +56,8 @@ Portainer:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 pgAdmin:
   config_template: ngx_pgadmin
@@ -54,6 +66,8 @@ pgAdmin:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 PWA:
   config_template: ngx_pwa
@@ -62,6 +76,8 @@ PWA:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Redirect:
   config_template: ngx_redirect
@@ -77,6 +93,8 @@ Redirect_SSL:
   cert_name: www.
   redirect_domain: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 n8n:
   config_template: ngx_n8n
@@ -85,6 +103,8 @@ n8n:
   port: 5678
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Kasm:
   config_template: ngx_kasm
@@ -93,6 +113,8 @@ Kasm:
   port: 8443
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Mailpit:
   config_template: ngx_mailpit
@@ -101,6 +123,8 @@ Mailpit:
   port: 8025
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Qdrant:
   config_template: ngx_qdrant
@@ -110,6 +134,8 @@ Qdrant:
   cert_name: www.
   grpcport: 6334
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
 
 Flowise:
   config_template: ngx_flowise
@@ -118,3 +144,5 @@ Flowise:
   port: 3000
   cert_name: www.
   #auth_file: authfile
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
