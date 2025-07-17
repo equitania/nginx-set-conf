@@ -3,7 +3,7 @@ Template for qdrant NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for qdrant NGINX configuration with SSL/HTTP2 support
-# 01.04.2025
+# 17.07.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -24,10 +24,10 @@ server {
 
 server {
     listen server.domain.de:443 ssl;
-    http2 on;
     server_name server.domain.de;
 
-    add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+    # HTTP/2 is enabled globally in nginx.conf
+    # Security headers including HSTS are in nginxconfig.io/security.conf
 
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
     error_log /var/log/nginx/server.domain.de-error.log warn;
@@ -36,12 +36,12 @@ server {
     ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/zertifikat.key/privkey.pem;
 
-    # add ssl specific settings
+    # SSL settings are defined globally in /etc/nginx/nginx.conf
     keepalive_timeout    60;
-    ssl_protocols        TLSv1.3 TLSv1.2;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers          ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_session_timeout  30m;
+    
+    # OCSP stapling
+    include                 nginxconfig.io/ssl_stapling.conf;
+    
     # security
     include                 nginxconfig.io/security.conf;
 
@@ -62,9 +62,6 @@ server {
 
     #general proxy settings
     # force timeouts if the backend dies
-    proxy_connect_timeout 1200s;
-    proxy_send_timeout 1200s;
-    proxy_read_timeout 1200s;
     proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
 
     # Qdrant API endpoints
@@ -83,6 +80,21 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+
+        # CORS Headers
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, api-key' always;
+        add_header 'Access-Control-Max-Age' '86400' always;
+        
+        # OPTIONS preflight handler
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, api-key' always;
+            add_header 'Access-Control-Max-Age' '86400' always;
+            return 204;
+        }
     }
 
     # Health check endpoint
@@ -98,6 +110,11 @@ server {
         grpc_pass grpc://127.0.0.1:{{GRPC_PORT}};
         grpc_set_header Host $host;
         grpc_set_header X-Real-IP $remote_addr;
+        
+        # gRPC CORS headers
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-User-Agent, X-Grpc-Web' always;
     }
 }
 """ 
