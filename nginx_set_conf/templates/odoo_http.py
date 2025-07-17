@@ -3,7 +3,7 @@ Template for Odoo NGINX configuration (HTTP only version).
 """
 
 TEMPLATE = """# Template for Odoo configuration nginx
-# 01.04.2025
+# 17.07.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -64,7 +64,7 @@ server {
         proxy_redirect off;
         proxy_pass http://127.0.0.1:{{PORT}};
 
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+        # HSTS header is set in nginxconfig.io/security.conf
         proxy_cookie_flags session_id samesite=lax secure; 
         #authentication
     }
@@ -80,7 +80,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Real-IP $remote_addr;
 
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+        # HSTS header is set in nginxconfig.io/security.conf
         proxy_cookie_flags session_id samesite=lax secure;
     }
 
@@ -89,6 +89,25 @@ server {
         proxy_buffering    on;
         expires 864000;
         proxy_pass http://127.0.0.1:{{PORT}};
+    }
+
+    # PDF MIME-Type configuration for Odoo reports
+    location ~* \\.pdf$ {
+        add_header Content-Type application/pdf;
+        add_header Content-Disposition inline;
+        proxy_pass http://127.0.0.1:{{PORT}};
+    }
+
+    # Handle dynamic PDF URLs (e.g., /web/image/)
+    location ~* /web/image/ {
+        proxy_pass http://127.0.0.1:{{PORT}};
+        
+        # Set proper headers for PDF content
+        location ~ "type=pdf" {
+            add_header Content-Type application/pdf;
+            add_header Content-Disposition inline;
+            proxy_pass http://127.0.0.1:{{PORT}};
+        }
     }
 }
 """ 

@@ -22,6 +22,7 @@ from logging.handlers import RotatingFileHandler
 from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
 from . import __version__
 from .config_templates import get_config_template
+from .config_verification import ConfigVerification
 
 # Setup logging
 logger = logging.getLogger('nginx_set_conf')
@@ -75,6 +76,12 @@ We support:\f
 - ngx_redirect_ssl (Redirect Domain with ssl)
 - ngx_supabase (Supabase database server with ssl/http2)
 \b
+
+Configuration Management Options:
+- --verify_config: Check consistency between local and server config files
+- --sync_config: Interactive sync of configuration files 
+- --backup_config: Create backup of current server configuration
+\b
 """
 
 
@@ -104,6 +111,21 @@ We support:\f
     is_flag=True,
     help="Run configuration generation without applying changes or creating certificates",
 )
+@click.option(
+    "--verify_config",
+    is_flag=True,
+    help="Verify consistency between local and server configuration files",
+)
+@click.option(
+    "--sync_config",
+    is_flag=True,
+    help="Interactive sync of configuration files between local and server",
+)
+@click.option(
+    "--backup_config",
+    is_flag=True,
+    help="Create a backup of current server configuration",
+)
 def start_nginx_set_conf(
     config_template,
     show_template,
@@ -119,7 +141,40 @@ def start_nginx_set_conf(
     config_path,
     target_path,
     dry_run,
+    verify_config,
+    sync_config,
+    backup_config,
 ):
+    # Handle configuration verification and management
+    if verify_config or sync_config or backup_config:
+        welcome()
+        verifier = ConfigVerification()
+        
+        if backup_config:
+            logger.info("Creating backup of current server configuration...")
+            if verifier.backup_configuration():
+                logger.info("Backup completed successfully")
+            else:
+                logger.error("Backup failed")
+            return
+        
+        if verify_config or sync_config:
+            logger.info("Verifying configuration consistency...")
+            results = verifier.verify_configuration_consistency()
+            verifier.show_verification_results(results)
+            
+            if sync_config:
+                logger.info("Starting interactive sync process...")
+                if verifier.interactive_sync_prompt(results):
+                    logger.info("Configuration sync completed successfully")
+                    # Re-verify after sync
+                    logger.info("Re-verifying configuration after sync...")
+                    new_results = verifier.verify_configuration_consistency()
+                    verifier.show_verification_results(new_results)
+                else:
+                    logger.info("Configuration sync cancelled or failed")
+            return
+    
     # Add new template display logic
     if show_template and config_template:
         # For display purposes, we don't need domain-specific paths
