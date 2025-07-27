@@ -40,8 +40,6 @@ server {
     # SSL settings are defined globally in /etc/nginx/nginx.conf
     keepalive_timeout    60;
     
-    # OCSP stapling
-    include                 nginxconfig.io/ssl_stapling.conf;
 
     # security
     include                 nginxconfig.io/security.conf;

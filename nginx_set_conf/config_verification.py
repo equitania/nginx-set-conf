@@ -33,8 +33,7 @@ class ConfigVerification:
         self.required_files = {
             "nginx.conf": "/etc/nginx/nginx.conf",
             "nginxconfig.io/general.conf": "/etc/nginx/nginxconfig.io/general.conf",
-            "nginxconfig.io/security.conf": "/etc/nginx/nginxconfig.io/security.conf",
-            "nginxconfig.io/ssl_stapling.conf": "/etc/nginx/nginxconfig.io/ssl_stapling.conf"
+            "nginxconfig.io/security.conf": "/etc/nginx/nginxconfig.io/security.conf"
         }
         
         # Ensure local config directory exists
@@ -215,17 +214,8 @@ class ConfigVerification:
                     shutil.copy2(local_path, server_path)
                     logger.info(f"Installed {local_path} -> {server_path}")
                 else:
-                    # Create missing package file with defaults
-                    if file_path == "nginxconfig.io/ssl_stapling.conf":
-                        self._create_default_ssl_stapling_conf(local_path)
-                        # Now copy to server
-                        server_path.parent.mkdir(parents=True, exist_ok=True)
-                        import shutil
-                        shutil.copy2(local_path, server_path)
-                        logger.info(f"Created and installed {local_path} -> {server_path}")
-                    else:
-                        logger.warning(f"Cannot sync {file_path}: package file missing and no default available")
-                        success = False
+                    logger.warning(f"Cannot sync {file_path}: package file missing")
+                    success = False
             
             except Exception as e:
                 logger.error(f"Error syncing {file_path}: {e}")
@@ -233,40 +223,9 @@ class ConfigVerification:
         
         return success
     
-    def _create_default_ssl_stapling_conf(self, file_path: Path) -> None:
-        """Create a default ssl_stapling.conf file."""
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        default_content = """# OCSP Stapling Configuration
-# 
-# WARNING: Some Let's Encrypt certificates do not include OCSP responder URLs,
-# which causes nginx warnings: "ssl_stapling" ignored, no OCSP responder URL
-# 
-# To prevent these warnings, we disable OCSP stapling by default.
-# If you need OCSP stapling and your certificates support it,
-# uncomment the following lines:
-
-# ssl_stapling on;
-# ssl_stapling_verify on;
-# resolver 1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220 valid=60s;
-# resolver_timeout 2s;
-"""
-        
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(default_content)
-        
-        logger.info(f"Created default ssl_stapling.conf at {file_path}")
-
-    
     def _ensure_essential_files_exist(self) -> None:
-        """Ensure all essential configuration files exist with defaults."""
-        ssl_stapling_path = self.local_config_path / "nginxconfig.io/ssl_stapling.conf"
-        
-        if not ssl_stapling_path.exists():
-            self._create_default_ssl_stapling_conf(ssl_stapling_path)
-            logger.info(f"Created missing ssl_stapling.conf at {ssl_stapling_path}")
-        
-        # Check for other critical files and warn if missing
+        """Ensure all essential configuration files exist with defaults."""        
+        # Check for critical files and warn if missing
         nginx_conf_path = self.local_config_path / "nginx.conf"
         if not nginx_conf_path.exists():
             logger.warning(f"nginx.conf missing at {nginx_conf_path}. Please copy from repository.")

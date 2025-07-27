@@ -40,8 +40,6 @@ server {
     keepalive_timeout    60;
     ssl_prefer_server_ciphers on;
     
-    # OCSP stapling
-    include                 nginxconfig.io/ssl_stapling.conf;
 
     # increase proxy buffer to handle some Odoo web requests
     proxy_buffers 16 64k;

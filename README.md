@@ -120,7 +120,6 @@ nginx-set-conf --verify_config
 - `/etc/nginx/nginx.conf` ↔ `yaml_examples/nginx.conf`
 - `/etc/nginx/nginxconfig.io/general.conf` ↔ `yaml_examples/nginxconfig.io/general.conf`
 - `/etc/nginx/nginxconfig.io/security.conf` ↔ `yaml_examples/nginxconfig.io/security.conf`
-- `/etc/nginx/nginxconfig.io/ssl_stapling.conf` ↔ `yaml_examples/nginxconfig.io/ssl_stapling.conf`
 
 **Output:**
 - ✓ CONSISTENT: Files are identical
@@ -139,7 +138,7 @@ nginx-set-conf --sync_config
 
 **🔧 Install Correct nginx Configurations to Server**
 - **Purpose**: Install the optimized nginx configurations from this package to your server
-- **What it does**: Copies nginx.conf, security.conf, general.conf, and ssl_stapling.conf to `/etc/nginx/`
+- **What it does**: Copies nginx.conf, security.conf, and general.conf to `/etc/nginx/`
 - **Process**: Package configurations → `/etc/nginx/` on your server
 - **Result**: Your server gets the latest optimized nginx settings
 
@@ -408,7 +407,6 @@ nginx-set-conf --verify_config
 - `/etc/nginx/nginx.conf` ↔ `yaml_examples/nginx.conf`
 - `/etc/nginx/nginxconfig.io/general.conf` ↔ `yaml_examples/nginxconfig.io/general.conf`
 - `/etc/nginx/nginxconfig.io/security.conf` ↔ `yaml_examples/nginxconfig.io/security.conf`
-- `/etc/nginx/nginxconfig.io/ssl_stapling.conf` ↔ `yaml_examples/nginxconfig.io/ssl_stapling.conf`
 
 **Ausgabe:**
 - ✓ CONSISTENT: Dateien sind identisch
@@ -427,7 +425,7 @@ nginx-set-conf --sync_config
 
 **🔧 Korrekte nginx-Konfigurationen auf Server installieren**
 - **Zweck**: Die optimierten nginx-Konfigurationen aus diesem Package auf Ihren Server installieren
-- **Was es tut**: Kopiert nginx.conf, security.conf, general.conf und ssl_stapling.conf nach `/etc/nginx/`
+- **Was es tut**: Kopiert nginx.conf, security.conf und general.conf nach `/etc/nginx/`
 - **Prozess**: Package-Konfigurationen → `/etc/nginx/` auf Ihrem Server
 - **Ergebnis**: Ihr Server erhält die neuesten optimierten nginx-Einstellungen
 
