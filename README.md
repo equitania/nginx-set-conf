@@ -135,10 +135,15 @@ Enable interactive synchronization of configuration files:
 nginx-set-conf --sync_config
 ```
 
-**Synchronization Options:**
-1. **Local → Server**: Copy local files to server
-2. **Server → Local**: Copy server files to local
-3. **Cancel**: Abort operation
+**Configuration Update Process:**
+
+**🔧 Install Correct nginx Configurations to Server**
+- **Purpose**: Install the optimized nginx configurations from this package to your server
+- **What it does**: Copies nginx.conf, security.conf, general.conf, and ssl_stapling.conf to `/etc/nginx/`
+- **Process**: Package configurations → `/etc/nginx/` on your server
+- **Result**: Your server gets the latest optimized nginx settings
+
+**❌ Cancel**: Abort without making any changes
 
 **Security Features:**
 - Confirmation before overwriting files
@@ -418,10 +423,15 @@ Interaktive Synchronisation von Konfigurationsdateien ermöglichen:
 nginx-set-conf --sync_config
 ```
 
-**Synchronisationsoptionen:**
-1. **Local → Server**: Lokale Dateien auf Server kopieren
-2. **Server → Local**: Server-Dateien zu lokalen Dateien kopieren
-3. **Cancel**: Vorgang abbrechen
+**Konfigurationsaktualisierungs-Prozess:**
+
+**🔧 Korrekte nginx-Konfigurationen auf Server installieren**
+- **Zweck**: Die optimierten nginx-Konfigurationen aus diesem Package auf Ihren Server installieren
+- **Was es tut**: Kopiert nginx.conf, security.conf, general.conf und ssl_stapling.conf nach `/etc/nginx/`
+- **Prozess**: Package-Konfigurationen → `/etc/nginx/` auf Ihrem Server
+- **Ergebnis**: Ihr Server erhält die neuesten optimierten nginx-Einstellungen
+
+**❌ Abbrechen**: Ohne Änderungen abbrechen
 
 **Sicherheitsfeatures:**
 - Bestätigung vor Überschreibung von Dateien

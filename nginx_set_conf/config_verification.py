@@ -36,6 +36,13 @@ class ConfigVerification:
             "nginxconfig.io/security.conf": "/etc/nginx/nginxconfig.io/security.conf",
             "nginxconfig.io/ssl_stapling.conf": "/etc/nginx/nginxconfig.io/ssl_stapling.conf"
         }
+        
+        # Ensure local config directory exists
+        self.local_config_path.mkdir(parents=True, exist_ok=True)
+        (self.local_config_path / "nginxconfig.io").mkdir(parents=True, exist_ok=True)
+        
+        # Create missing essential files with defaults
+        self._ensure_essential_files_exist()
     
     def calculate_file_hash(self, file_path: Path) -> Optional[str]:
         """
@@ -176,17 +183,17 @@ class ConfigVerification:
     def sync_configuration_files(self, results: Dict[str, Dict], 
                                  direction: str = "local_to_server") -> bool:
         """
-        Synchronize configuration files between local and server.
+        Synchronize configuration files from package to server.
         
         Args:
             results: Results from verify_configuration_consistency()
-            direction: 'local_to_server' or 'server_to_local'
+            direction: Only 'local_to_server' is supported (install package configs)
             
         Returns:
             True if sync was successful, False otherwise
         """
-        if direction not in ["local_to_server", "server_to_local"]:
-            logger.error(f"Invalid sync direction: {direction}")
+        if direction != "local_to_server":
+            logger.error(f"Invalid sync direction: {direction}. Only 'local_to_server' is supported.")
             return False
         
         success = True
@@ -199,30 +206,25 @@ class ConfigVerification:
             server_path = Path(self.required_files[file_path])
             
             try:
-                if direction == "local_to_server":
-                    if result["local"]["exists"]:
-                        # Create server directory if it doesn't exist
+                if result["local"]["exists"]:
+                    # Create server directory if it doesn't exist
+                    server_path.parent.mkdir(parents=True, exist_ok=True)
+                    
+                    # Copy package file to server
+                    import shutil
+                    shutil.copy2(local_path, server_path)
+                    logger.info(f"Installed {local_path} -> {server_path}")
+                else:
+                    # Create missing package file with defaults
+                    if file_path == "nginxconfig.io/ssl_stapling.conf":
+                        self._create_default_ssl_stapling_conf(local_path)
+                        # Now copy to server
                         server_path.parent.mkdir(parents=True, exist_ok=True)
-                        
-                        # Copy local file to server
                         import shutil
                         shutil.copy2(local_path, server_path)
-                        logger.info(f"Copied {local_path} -> {server_path}")
+                        logger.info(f"Created and installed {local_path} -> {server_path}")
                     else:
-                        logger.warning(f"Cannot sync {file_path}: local file missing")
-                        success = False
-                
-                else:  # server_to_local
-                    if result["server"]["exists"]:
-                        # Create local directory if it doesn't exist
-                        local_path.parent.mkdir(parents=True, exist_ok=True)
-                        
-                        # Copy server file to local
-                        import shutil
-                        shutil.copy2(server_path, local_path)
-                        logger.info(f"Copied {server_path} -> {local_path}")
-                    else:
-                        logger.warning(f"Cannot sync {file_path}: server file missing")
+                        logger.warning(f"Cannot sync {file_path}: package file missing and no default available")
                         success = False
             
             except Exception as e:
@@ -230,6 +232,52 @@ class ConfigVerification:
                 success = False
         
         return success
+    
+    def _create_default_ssl_stapling_conf(self, file_path: Path) -> None:
+        """Create a default ssl_stapling.conf file."""
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        default_content = """# OCSP Stapling Configuration
+# 
+# WARNING: Some Let's Encrypt certificates do not include OCSP responder URLs,
+# which causes nginx warnings: "ssl_stapling" ignored, no OCSP responder URL
+# 
+# To prevent these warnings, we disable OCSP stapling by default.
+# If you need OCSP stapling and your certificates support it,
+# uncomment the following lines:
+
+# ssl_stapling on;
+# ssl_stapling_verify on;
+# resolver 1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220 valid=60s;
+# resolver_timeout 2s;
+"""
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(default_content)
+        
+        logger.info(f"Created default ssl_stapling.conf at {file_path}")
+
+    
+    def _ensure_essential_files_exist(self) -> None:
+        """Ensure all essential configuration files exist with defaults."""
+        ssl_stapling_path = self.local_config_path / "nginxconfig.io/ssl_stapling.conf"
+        
+        if not ssl_stapling_path.exists():
+            self._create_default_ssl_stapling_conf(ssl_stapling_path)
+            logger.info(f"Created missing ssl_stapling.conf at {ssl_stapling_path}")
+        
+        # Check for other critical files and warn if missing
+        nginx_conf_path = self.local_config_path / "nginx.conf"
+        if not nginx_conf_path.exists():
+            logger.warning(f"nginx.conf missing at {nginx_conf_path}. Please copy from repository.")
+        
+        general_conf_path = self.local_config_path / "nginxconfig.io/general.conf"
+        if not general_conf_path.exists():
+            logger.warning(f"general.conf missing at {general_conf_path}. Please copy from repository.")
+        
+        security_conf_path = self.local_config_path / "nginxconfig.io/security.conf"
+        if not security_conf_path.exists():
+            logger.warning(f"security.conf missing at {security_conf_path}. Please copy from repository.")
     
     def interactive_sync_prompt(self, results: Dict[str, Dict]) -> bool:
         """
@@ -254,19 +302,19 @@ class ConfigVerification:
         for file_path in inconsistent_files:
             click.echo(f"  - {file_path}")
         
-        click.echo("\nSync options:")
-        click.echo("1. Local -> Server (update server with local files)")
-        click.echo("2. Server -> Local (update local files with server files)")
-        click.echo("3. Cancel")
+        click.echo("\nConfiguration update options:")
+        click.echo("1. 🔧 Install correct nginx configurations to server [RECOMMENDED]")
+        click.echo("2. ❌ Cancel")
         
-        choice = click.prompt("Select sync direction", type=int, default=3)
+        choice = click.prompt("Select option", type=int, default=1)
         
         if choice == 1:
-            if click.confirm("This will overwrite server files. Continue?"):
+            click.echo("\nThis will:")
+            click.echo("  • Install optimized nginx configurations from package to server")
+            click.echo("  • Overwrite any existing server configurations")
+            click.echo("  • Create missing configuration files if needed")
+            if click.confirm("Proceed with installing package configurations to server?"):
                 return self.sync_configuration_files(results, "local_to_server")
-        elif choice == 2:
-            if click.confirm("This will overwrite local files. Continue?"):
-                return self.sync_configuration_files(results, "server_to_local")
         
         return False
     
