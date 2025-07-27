@@ -14,8 +14,8 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'click>=8.1.3',
-        'PyYAML>=5.4.1',
+        'click>=8.2.1',
+        'PyYAML>=6.0.2',
     ],
     entry_points={
         'console_scripts': [
@@ -25,10 +25,10 @@ setup(
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Operating System :: OS Independent",
         "Environment :: Console",
@@ -37,6 +37,6 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
         "Topic :: System :: Systems Administration",
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.10',
     keywords='nginx, configuration, docker, reverse-proxy',
 )

@@ -22,9 +22,9 @@ A simple Python library that helps you create nginx configurations for different
 
 #### Requirements
 
-- Python (>= 3.8)
-- click (>= 8.1.3)
-- PyYAML (>= 5.4.1)
+- Python (>= 3.10)
+- click (>= 8.2.1)
+- PyYAML (>= 6.0.2)
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install nginx-set-conf:
 
@@ -305,9 +305,9 @@ Eine einfache Python-Bibliothek, die bei der Erstellung von nginx-Konfiguratione
 
 #### Anforderungen
 
-- Python (>= 3.8)
-- click (>= 8.1.3)
-- PyYAML (>= 5.4.1)
+- Python (>= 3.10)
+- click (>= 8.2.1)
+- PyYAML (>= 6.0.2)
 
 Verwenden Sie den Paketmanager [pip](https://pip.pypa.io/en/stable/) zur Installation von nginx-set-conf:
 

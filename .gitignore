@@ -134,3 +134,7 @@ dmypy.json
 .vscode
 .vscode/settings.json
 
+# Serena cache files
+.serena/cache/
+.serena/*.pkl
+
