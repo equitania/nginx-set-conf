@@ -32,6 +32,15 @@ nginx-set-conf --config_template ngx_odoo_ssl --show_template
 
 # Dry run (test configuration without changes)
 nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain example.com --port 8069 --cert_name example.com --dry_run
+
+# Verify server configuration files against embedded templates
+nginx-set-conf --verify_config
+
+# Synchronize server files from embedded templates (with backup)
+nginx-set-conf --sync_config
+
+# Create backup of current nginx configuration
+nginx-set-conf --backup_config
 ```
 
 ## Architecture
@@ -40,8 +49,9 @@ nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain example.com 
 
 1. **CLI Entry Point** (`nginx_set_conf/nginx_set_conf.py`): Processes command-line arguments using Click framework
 2. **Template System** (`nginx_set_conf/templates/`): Each template is a Python module with a TEMPLATE string
-3. **Template Registry** (`nginx_set_conf/templates/all_templates.py`): Central registry of all available templates
+3. **Template Registry** (`nginx_set_conf/templates/all_templates.py`): Central registry of all available templates  
 4. **Configuration Engine** (`nginx_set_conf/utils.py`): Main logic for configuration generation and deployment
+5. **Configuration Verification** (`nginx_set_conf/config_verification.py`): Embedded templates and server sync functionality
 
 ### Key Design Principles
 
@@ -80,12 +90,22 @@ nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain example.com 
 - `{{AUTH_FILE}}` → htaccess authentication file
 - `{{REDIRECT_DOMAIN}}` → Target domain for redirects
 
-### Version 1.5.2 Changes
+### Version 1.5.4 Changes
 
-- Simplified configuration verification to only check if files exist on server
-- Removed confusing "local vs server" comparison logic
-- Changed `--sync_config` to `--create_dirs` for creating missing directories
-- Clearer error messages showing exact file paths and status
+- **MAJOR FIX**: Embedded nginx configuration templates directly in code
+- Removed dependency on yaml_examples directory when running on server
+- Fixed "Template file missing" errors by using self-contained templates
+- Proper content comparison between embedded templates and server files
+- Restored `--sync_config` functionality for automatic server file updates
+- Tool now works on any server without external template dependencies
+
+### Version 1.5.3 Changes (superseded)
+
+- Attempted to fix verification logic but still had template file dependencies
+
+### Version 1.5.2 Changes (superseded)
+
+- Simplified verification but removed sync functionality incorrectly
 
 ### Version 1.4.5 Changes
 
@@ -102,20 +122,33 @@ nginx-set-conf --config_path yaml_examples/server_config
 # Test specific template with direct parameters
 nginx-set-conf --config_template ngx_flowise --ip 127.0.0.1 --domain flowise.local --port 3000 --cert_name flowise.local --dry_run
 
-# Deploy to PyPI (requires credentials)
-uv build
-twine upload dist/*
+# Example usage (for documentation only - not to be executed by Claude):
 ```
 
 ## Important Files
 
 - `nginx_set_conf/__init__.py`: Contains version and `replace_cache_path()` utility
-- `yaml_examples/server_config/config.yaml`: Example configurations for all templates
-- `yaml_examples/nginxconfig.io/`: nginx include files (security headers, SSL config, etc.)
-- `yaml_examples/nginx.conf`: Base nginx configuration with OCSP stapling disabled by default
+- `nginx_set_conf/config_verification.py`: Contains embedded templates and verification logic
+- `yaml_examples/server_config/config.yaml`: Example configurations for all templates (development only)
+- `yaml_examples/nginxconfig.io/`: Source template files (development only - not needed for deployment)
+- `yaml_examples/nginx.conf`: Source nginx configuration (development only - embedded in code)
 
-## Recent Updates
+## Current Architecture (v1.5.4)
 
-- OCSP stapling disabled by default to avoid warnings with Let's Encrypt certificates
-- All SSL templates now include `nginxconfig.io/ssl_stapling.conf`
-- Templates support both self-signed and Let's Encrypt certificates
+### Embedded Templates
+The tool now contains three embedded nginx configuration templates:
+- **nginx.conf**: Main nginx configuration with optimized settings
+- **general.conf**: General nginx settings (gzip, favicon handling)  
+- **security.conf**: Security headers and protection settings
+
+### Template Features
+- **OCSP stapling disabled** by default to avoid Let's Encrypt warnings
+- **Self-contained**: No external file dependencies when deployed
+- **Version-tagged**: All templates include version and date headers
+- **Optimized settings**: High performance worker and connection limits
+
+### Verification Process
+1. Compare embedded template content with server files using SHA256 hashes
+2. Show detailed comparison results (template size vs server size)
+3. Offer automatic synchronization when differences are detected
+4. Create automatic backup before making any changes
