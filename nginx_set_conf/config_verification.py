@@ -2,7 +2,7 @@
 Configuration verification module for nginx-set-conf.
 
 This module provides functionality to verify and sync nginx configuration files
-between local templates and server installations.
+using embedded templates.
 """
 
 import hashlib
@@ -13,26 +13,130 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Embedded template files
+NGINX_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.24.1
+# Version 1.1 from 17.07.2025
+user  nginx;
+worker_processes  auto;
+worker_rlimit_nofile 65535;
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+# Load modules
+include              /etc/nginx/modules-enabled/*.conf;
+
+events {
+    # worker_connections  8192;
+    # CPU Kerne x 1024 > CPU Kerne = grep processor /proc/cpuinfo | wc -l
+    worker_connections 65535; #4096;
+    multi_accept on;
+}
+
+http {
+
+    ##
+    # Basic Settings
+    ##
+
+    charset                utf-8;
+    sendfile               on;
+    tcp_nopush             on;
+    tcp_nodelay            on;
+    server_tokens          off;
+    log_not_found          off;
+    types_hash_max_size    2048;
+    types_hash_bucket_size 64;
+    client_max_body_size   16M;
+
+    # MIME
+    include                mime.types;
+    default_type           application/octet-stream;
+
+    ##
+    # SSL Settings
+    ##
+
+    ssl_session_timeout    1d;
+    ssl_session_cache      shared:SSL:10m;
+    ssl_session_tickets    off;
+
+    # Mozilla Intermediate configuration
+    ssl_protocols          TLSv1.2 TLSv1.3;
+    ssl_ciphers            ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+
+    # OCSP Stapling - DISABLED by default due to Let's Encrypt issues
+    # ssl_stapling           on;
+    # ssl_stapling_verify    on;
+    # resolver               1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220 valid=60s;
+    # resolver_timeout       2s;
+
+    ##
+    # Logging Settings
+    ##
+
+    access_log             off;
+    error_log              /var/log/nginx/error.log warn;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+"""
+
+GENERAL_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.24.1
+# Version 1.1 from 17.07.2025
+
+# favicon.ico
+location = /favicon.ico {
+    log_not_found off;
+}
+
+# gzip
+gzip            on;
+gzip_vary       on;
+gzip_proxied    any;
+gzip_comp_level 6;
+gzip_types      text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+"""
+
+SECURITY_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.24.1
+# Version 1.2 from 17.07.2025
+
+# security headers
+add_header X-XSS-Protection          "1; mode=block" always;
+add_header X-Content-Type-Options    "nosniff" always;
+add_header Referrer-Policy           "no-referrer-when-downgrade" always;
+#add_header Content-Security-Policy   "default-src 'self' http: https: ws: wss: data: blob: 'unsafe-inline'; frame-ancestors 'self';" always;
+add_header Permissions-Policy        "interest-cohort=()" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+# . files
+location ~ /\.(?!well-known) {
+    deny all;
+}
+"""
+
 
 class ConfigVerification:
     """
-    Handles verification and synchronization of nginx configuration files.
+    Handles verification and synchronization of nginx configuration files using embedded templates.
     """
     
-    def __init__(self, local_config_path: str = "yaml_examples", server_config_path: str = "/etc/nginx"):
+    def __init__(self, server_config_path: str = "/etc/nginx"):
         """
         Initialize the configuration verification system.
         
         Args:
-            local_config_path: Path to local template files
             server_config_path: Path to server nginx configuration
         """
-        self.local_config_path = Path(local_config_path)
         self.server_config_path = Path(server_config_path)
         self.required_files = {
             "nginx.conf": "/etc/nginx/nginx.conf",
             "nginxconfig.io/general.conf": "/etc/nginx/nginxconfig.io/general.conf",
             "nginxconfig.io/security.conf": "/etc/nginx/nginxconfig.io/security.conf"
+        }
+        self.templates = {
+            "nginx.conf": NGINX_CONF_TEMPLATE,
+            "nginxconfig.io/general.conf": GENERAL_CONF_TEMPLATE,
+            "nginxconfig.io/security.conf": SECURITY_CONF_TEMPLATE
         }
     
     def calculate_file_hash(self, file_path: Path) -> Optional[str]:
@@ -85,9 +189,22 @@ class ConfigVerification:
         
         return info
     
+    def get_template_hash(self, file_name: str) -> str:
+        """
+        Calculate hash of embedded template content.
+        
+        Args:
+            file_name: Name of the template file
+            
+        Returns:
+            SHA256 hash of template content
+        """
+        template_content = self.templates.get(file_name, "")
+        return hashlib.sha256(template_content.encode('utf-8')).hexdigest()
+    
     def verify_configuration_consistency(self) -> Dict[str, Dict]:
         """
-        Compare content between local template files and server configuration files.
+        Compare content between embedded templates and server configuration files.
         
         Returns:
             Dictionary with verification results for each file
@@ -97,33 +214,35 @@ class ConfigVerification:
         logger.info("Starting nginx configuration verification...")
         
         for file_name, server_abs_path in self.required_files.items():
-            local_path = self.local_config_path / file_name
             server_path = Path(server_abs_path)
-            
-            local_info = self.get_file_info(local_path)
             server_info = self.get_file_info(server_path)
+            
+            # Get template hash
+            template_hash = self.get_template_hash(file_name)
+            template_size = len(self.templates[file_name].encode('utf-8'))
             
             # Determine consistency status
             consistent = False
             issues = []
             
-            if not local_info["exists"]:
-                issues.append("Template file missing")
             if not server_info["exists"]:
                 issues.append("Server file missing")
-            
-            if local_info["exists"] and server_info["exists"]:
-                if local_info["hash"] == server_info["hash"]:
+            else:
+                if server_info["hash"] == template_hash:
                     consistent = True
                 else:
                     issues.append("Content differs from template")
             
             results[file_name] = {
-                "local": local_info,
+                "template": {
+                    "hash": template_hash,
+                    "size": template_size,
+                    "exists": True
+                },
                 "server": server_info,
                 "consistent": consistent,
                 "issues": issues,
-                "needs_update": not consistent and local_info["exists"]
+                "needs_update": not consistent
             }
             
             status = "✓ consistent" if consistent else "✗ inconsistent"
@@ -160,8 +279,7 @@ class ConfigVerification:
             # Show file details
             if result["server"]["exists"]:
                 click.echo(f"  Server: {result['server']['path']} ({result['server']['size']} bytes)")
-            if result["local"]["exists"]:
-                click.echo(f"  Template: {result['local']['path']} ({result['local']['size']} bytes)")
+            click.echo(f"  Template: embedded ({result['template']['size']} bytes)")
             
             if result["consistent"]:
                 consistent_count += 1
@@ -211,9 +329,10 @@ class ConfigVerification:
         
         for file_name, result in results.items():
             if result["needs_update"]:
-                files_to_update.append(file_name)
-            elif not result["server"]["exists"] and result["local"]["exists"]:
-                missing_files.append(file_name)
+                if result["server"]["exists"]:
+                    files_to_update.append(file_name)
+                else:
+                    missing_files.append(file_name)
         
         if not files_to_update and not missing_files:
             click.echo("All configuration files are already up to date. Nothing to sync.")
@@ -268,24 +387,19 @@ class ConfigVerification:
         
         for file_name in files_to_sync:
             result = results[file_name]
-            local_path = Path(result["local"]["path"])
             server_path = Path(result["server"]["path"])
+            template_content = self.templates[file_name]
             
             try:
-                if not result["local"]["exists"]:
-                    logger.warning(f"Cannot sync {file_name}: template file missing")
-                    success = False
-                    continue
-                
                 # Create server directory if it doesn't exist
                 server_path.parent.mkdir(parents=True, exist_ok=True)
                 
-                # Copy template file to server
-                import shutil
-                shutil.copy2(local_path, server_path)
+                # Write template content to server file
+                with open(server_path, 'w', encoding='utf-8') as f:
+                    f.write(template_content)
                 
                 click.echo(f"✓ Updated {file_name}")
-                logger.info(f"Synced {local_path} -> {server_path}")
+                logger.info(f"Updated {server_path} with embedded template")
                 
             except Exception as e:
                 click.echo(f"❌ Failed to update {file_name}: {e}")
