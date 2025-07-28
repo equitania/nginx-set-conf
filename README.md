@@ -6,14 +6,14 @@
 
 ## 🇬🇧 English Version
 
-A simple Python library that helps you create nginx configurations for different Docker-based applications with nginx as reverse proxy, including advanced configuration verification and synchronization features.
+A simple Python library that helps you create nginx configurations for different Docker-based applications with nginx as reverse proxy, including configuration verification features.
 
 ### Features
 
 - **Template-based configuration**: Support for 15+ pre-built templates
 - **SSL/TLS support**: Automatic Let's Encrypt integration
 - **Configuration verification**: Check consistency between local and server files
-- **Interactive synchronization**: Sync configurations between local and server
+- **Configuration verification**: Check if required nginx files exist
 - **Backup functionality**: Automatic backup of server configurations
 - **Dry run mode**: Test configurations without applying changes
 - **PDF MIME-Type optimization**: Enhanced PDF handling for Odoo applications
@@ -62,7 +62,7 @@ $ nginx-set-conf --help
 #### Configuration Management Options
 
 - `--verify_config` - Check consistency between local and server config files
-- `--sync_config` - Interactive sync of configuration files
+- `--create_dirs` - Create missing nginx configuration directories
 - `--backup_config` - Create backup of current server configuration
 
 ### Examples
@@ -106,43 +106,39 @@ nginx-set-conf --config_template ngx_flowise --ip 1.2.3.4 --domain flowise.examp
 nginx-set-conf --config_template ngx_supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
 ```
 
-### Configuration Verification and Synchronization
+### Configuration Verification
 
-#### 1. Configuration Verification (`--verify_config`)
+#### 1. Configuration File Check (`--verify_config`)
 
-Check consistency between local template files and installed server configurations:
+Check if required nginx configuration files exist on the server:
 
 ```bash
 nginx-set-conf --verify_config
 ```
 
-**Verified Files:**
-- `/etc/nginx/nginx.conf` ↔ `yaml_examples/nginx.conf`
-- `/etc/nginx/nginxconfig.io/general.conf` ↔ `yaml_examples/nginxconfig.io/general.conf`
-- `/etc/nginx/nginxconfig.io/security.conf` ↔ `yaml_examples/nginxconfig.io/security.conf`
+**Checked Files:**
+- `/etc/nginx/nginx.conf`
+- `/etc/nginx/nginxconfig.io/general.conf`
+- `/etc/nginx/nginxconfig.io/security.conf`
+- `/etc/nginx/nginxconfig.io/ssl_stapling.conf`
 
 **Output:**
-- ✓ CONSISTENT: Files are identical
-- ✗ INCONSISTENT: Files differ or are missing
-- Detailed information about missing files or differences
+- ✓ EXISTS: File is present on the server
+- ✗ MISSING: File not found
+- Shows file path and size for existing files
 
-#### 2. Interactive Synchronization (`--sync_config`)
+#### 2. Create Missing Directories (`--create_dirs`)
 
-Enable interactive synchronization of configuration files:
+Create missing nginx configuration directories if needed:
 
 ```bash
-nginx-set-conf --sync_config
+nginx-set-conf --create_dirs
 ```
 
-**Configuration Update Process:**
-
-**🔧 Install Correct nginx Configurations to Server**
-- **Purpose**: Install the optimized nginx configurations from this package to your server
-- **What it does**: Copies nginx.conf, security.conf, and general.conf to `/etc/nginx/`
-- **Process**: Package configurations → `/etc/nginx/` on your server
-- **Result**: Your server gets the latest optimized nginx settings
-
-**❌ Cancel**: Abort without making any changes
+**What it does:**
+- Checks for missing files
+- Creates `/etc/nginx/nginxconfig.io/` directory if missing
+- Useful after fresh nginx installation
 
 **Security Features:**
 - Confirmation before overwriting files
@@ -174,8 +170,8 @@ nginx-set-conf --verify_config
 # If inconsistencies found: Create backup
 nginx-set-conf --backup_config
 
-# Then synchronize
-nginx-set-conf --sync_config
+# If directories missing, create them
+nginx-set-conf --create_dirs
 ```
 
 #### Scenario 2: Server Setup Adoption
@@ -184,23 +180,21 @@ nginx-set-conf --sync_config
 # Backup current server configuration
 nginx-set-conf --backup_config
 
-# Sync local templates to server
-nginx-set-conf --sync_config
-# Choose option 1: Local → Server
+# Create missing directories if needed
+nginx-set-conf --create_dirs
 
 # Verify result
 nginx-set-conf --verify_config
 ```
 
-#### Scenario 3: Update Local Development Environment
+#### Scenario 3: Fresh nginx Installation
 
 ```bash
-# Adopt server configuration to local environment
-nginx-set-conf --sync_config
-# Choose option 2: Server → Local
-
-# Confirm consistency
+# Check if all required files exist
 nginx-set-conf --verify_config
+
+# If directories are missing, create them
+nginx-set-conf --create_dirs
 ```
 
 ### SSL Certificate Management
@@ -255,8 +249,8 @@ Based on [https://www.digitalocean.com/community/tools/nginx](https://www.digita
 
 #### Combined Commands
 ```bash
-# Backup + Verification + Sync in one workflow
-nginx-set-conf --backup_config && nginx-set-conf --verify_config && nginx-set-conf --sync_config
+# Backup + Verification in one workflow
+nginx-set-conf --backup_config && nginx-set-conf --verify_config
 ```
 
 #### Combining with Other Options
@@ -281,7 +275,7 @@ All operations are logged to:
 ### Security Aspects
 
 - **No automatic changes**: All changes require explicit confirmation
-- **Backup-first approach**: Backup recommended before each synchronization
+- **Backup-first approach**: Backup recommended before configuration changes
 - **Granular control**: Individual files can be identified and handled
 - **Error handling**: Robust handling of permission and access problems
 
@@ -348,8 +342,8 @@ $ nginx-set-conf --help
 
 #### Konfigurationsverwaltungsoptionen
 
-- `--verify_config` - Konsistenz zwischen lokalen und Server-Konfigurationsdateien prüfen
-- `--sync_config` - Interaktive Synchronisation von Konfigurationsdateien
+- `--verify_config` - Prüfen ob benötigte nginx Konfigurationsdateien existieren
+- `--create_dirs` - Fehlende nginx Konfigurationsverzeichnisse erstellen
 - `--backup_config` - Backup der aktuellen Server-Konfiguration erstellen
 
 ### Beispiele
@@ -393,48 +387,39 @@ nginx-set-conf --config_template ngx_flowise --ip 1.2.3.4 --domain flowise.examp
 nginx-set-conf --config_template ngx_supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
 ```
 
-### Konfigurationsverifikation und Synchronisation
+### Konfigurationsverifikation
 
-#### 1. Konfigurationsverifikation (`--verify_config`)
+#### 1. Konfigurationsdatei-Prüfung (`--verify_config`)
 
-Konsistenz zwischen lokalen Template-Dateien und installierten Server-Konfigurationen prüfen:
+Prüfen ob benötigte nginx Konfigurationsdateien auf dem Server existieren:
 
 ```bash
 nginx-set-conf --verify_config
 ```
 
-**Überprüfte Dateien:**
-- `/etc/nginx/nginx.conf` ↔ `yaml_examples/nginx.conf`
-- `/etc/nginx/nginxconfig.io/general.conf` ↔ `yaml_examples/nginxconfig.io/general.conf`
-- `/etc/nginx/nginxconfig.io/security.conf` ↔ `yaml_examples/nginxconfig.io/security.conf`
+**Geprüfte Dateien:**
+- `/etc/nginx/nginx.conf`
+- `/etc/nginx/nginxconfig.io/general.conf`
+- `/etc/nginx/nginxconfig.io/security.conf`
+- `/etc/nginx/nginxconfig.io/ssl_stapling.conf`
 
 **Ausgabe:**
-- ✓ CONSISTENT: Dateien sind identisch
-- ✗ INCONSISTENT: Dateien unterscheiden sich oder fehlen
-- Detaillierte Informationen über fehlende Dateien oder Unterschiede
+- ✓ EXISTS: Datei ist auf dem Server vorhanden
+- ✗ MISSING: Datei nicht gefunden
+- Zeigt Dateipfad und Größe für existierende Dateien
 
-#### 2. Interaktive Synchronisation (`--sync_config`)
+#### 2. Fehlende Verzeichnisse erstellen (`--create_dirs`)
 
-Interaktive Synchronisation von Konfigurationsdateien ermöglichen:
+Fehlende nginx Konfigurationsverzeichnisse bei Bedarf erstellen:
 
 ```bash
-nginx-set-conf --sync_config
+nginx-set-conf --create_dirs
 ```
 
-**Konfigurationsaktualisierungs-Prozess:**
-
-**🔧 Korrekte nginx-Konfigurationen auf Server installieren**
-- **Zweck**: Die optimierten nginx-Konfigurationen aus diesem Package auf Ihren Server installieren
-- **Was es tut**: Kopiert nginx.conf, security.conf und general.conf nach `/etc/nginx/`
-- **Prozess**: Package-Konfigurationen → `/etc/nginx/` auf Ihrem Server
-- **Ergebnis**: Ihr Server erhält die neuesten optimierten nginx-Einstellungen
-
-**❌ Abbrechen**: Ohne Änderungen abbrechen
-
-**Sicherheitsfeatures:**
-- Bestätigung vor Überschreibung von Dateien
-- Automatische Verzeichniserstellung
-- Fehlerbehandlung bei Zugriffsproblemen
+**Was es tut:**
+- Prüft auf fehlende Dateien
+- Erstellt `/etc/nginx/nginxconfig.io/` Verzeichnis falls fehlend
+- Nützlich nach frischer nginx Installation
 
 #### 3. Konfigurationsbackup (`--backup_config`)
 
@@ -461,8 +446,8 @@ nginx-set-conf --verify_config
 # Bei Inconsistenzen: Backup erstellen
 nginx-set-conf --backup_config
 
-# Dann synchronisieren
-nginx-set-conf --sync_config
+# Bei fehlenden Verzeichnissen erstellen
+nginx-set-conf --create_dirs
 ```
 
 #### Szenario 2: Server-Setup übernehmen
@@ -471,23 +456,22 @@ nginx-set-conf --sync_config
 # Aktuelle Server-Konfiguration sichern
 nginx-set-conf --backup_config
 
-# Lokale Templates auf Server synchronisieren
-nginx-set-conf --sync_config
+# Fehlende Verzeichnisse erstellen falls nötig
+nginx-set-conf --create_dirs
 # Option 1 wählen: Local → Server
 
 # Ergebnis überprüfen
 nginx-set-conf --verify_config
 ```
 
-#### Szenario 3: Lokale Entwicklungsumgebung aktualisieren
+#### Szenario 3: Neue nginx Installation prüfen
 
 ```bash
-# Server-Konfiguration in lokale Umgebung übernehmen
-nginx-set-conf --sync_config
-# Option 2 wählen: Server → Local
-
-# Konsistenz bestätigen
+# Prüfen ob alle Dateien vorhanden sind
 nginx-set-conf --verify_config
+
+# Falls Verzeichnisse fehlen, diese erstellen
+nginx-set-conf --create_dirs
 ```
 
 ### SSL-Zertifikatsverwaltung
@@ -542,8 +526,8 @@ Basierend auf [https://www.digitalocean.com/community/tools/nginx](https://www.d
 
 #### Kombinierte Befehle
 ```bash
-# Backup + Verifikation + Sync in einem Workflow
-nginx-set-conf --backup_config && nginx-set-conf --verify_config && nginx-set-conf --sync_config
+# Backup + Verifikation in einem Workflow
+nginx-set-conf --backup_config && nginx-set-conf --verify_config
 ```
 
 #### Mit anderen Optionen kombinieren

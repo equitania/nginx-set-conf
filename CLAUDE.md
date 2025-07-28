@@ -22,12 +22,10 @@ uv pip install -e .
 
 ## Building and Testing
 
-```bash
-# Build package with UV
-uv build
+**IMPORTANT**: Claude cannot test anything locally. Building and deployment is handled by the user. If questions arise about what's available on the server, ask the user for information.
 
-# Run CLI directly after setup
-nginx-set-conf --help
+```bash
+# Example commands (for documentation only - not to be executed by Claude):
 
 # Show a template without applying
 nginx-set-conf --config_template ngx_odoo_ssl --show_template
@@ -81,6 +79,13 @@ nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain example.com 
 - `zertifikat.key` → SSL key name
 - `{{AUTH_FILE}}` → htaccess authentication file
 - `{{REDIRECT_DOMAIN}}` → Target domain for redirects
+
+### Version 1.5.2 Changes
+
+- Simplified configuration verification to only check if files exist on server
+- Removed confusing "local vs server" comparison logic
+- Changed `--sync_config` to `--create_dirs` for creating missing directories
+- Clearer error messages showing exact file paths and status
 
 ### Version 1.4.5 Changes
 
