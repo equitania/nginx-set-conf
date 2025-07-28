@@ -16,22 +16,23 @@ logger = logging.getLogger(__name__)
 
 class ConfigVerification:
     """
-    Handles verification of nginx configuration files.
+    Handles verification and synchronization of nginx configuration files.
     """
     
-    def __init__(self, server_config_path: str = "/etc/nginx"):
+    def __init__(self, local_config_path: str = "yaml_examples", server_config_path: str = "/etc/nginx"):
         """
         Initialize the configuration verification system.
         
         Args:
+            local_config_path: Path to local template files
             server_config_path: Path to server nginx configuration
         """
+        self.local_config_path = Path(local_config_path)
         self.server_config_path = Path(server_config_path)
         self.required_files = {
             "nginx.conf": "/etc/nginx/nginx.conf",
             "nginxconfig.io/general.conf": "/etc/nginx/nginxconfig.io/general.conf",
-            "nginxconfig.io/security.conf": "/etc/nginx/nginxconfig.io/security.conf",
-            "nginxconfig.io/ssl_stapling.conf": "/etc/nginx/nginxconfig.io/ssl_stapling.conf"
+            "nginxconfig.io/security.conf": "/etc/nginx/nginxconfig.io/security.conf"
         }
     
     def calculate_file_hash(self, file_path: Path) -> Optional[str]:
@@ -86,7 +87,7 @@ class ConfigVerification:
     
     def verify_configuration_consistency(self) -> Dict[str, Dict]:
         """
-        Verify that required nginx configuration files exist on the server.
+        Compare content between local template files and server configuration files.
         
         Returns:
             Dictionary with verification results for each file
@@ -96,21 +97,37 @@ class ConfigVerification:
         logger.info("Starting nginx configuration verification...")
         
         for file_name, server_abs_path in self.required_files.items():
+            local_path = self.local_config_path / file_name
             server_path = Path(server_abs_path)
             
-            file_info = self.get_file_info(server_path)
+            local_info = self.get_file_info(local_path)
+            server_info = self.get_file_info(server_path)
             
-            # Check if file exists
-            exists = file_info["exists"]
+            # Determine consistency status
+            consistent = False
+            issues = []
+            
+            if not local_info["exists"]:
+                issues.append("Template file missing")
+            if not server_info["exists"]:
+                issues.append("Server file missing")
+            
+            if local_info["exists"] and server_info["exists"]:
+                if local_info["hash"] == server_info["hash"]:
+                    consistent = True
+                else:
+                    issues.append("Content differs from template")
             
             results[file_name] = {
-                "path": server_abs_path,
-                "exists": exists,
-                "size": file_info["size"],
-                "info": file_info
+                "local": local_info,
+                "server": server_info,
+                "consistent": consistent,
+                "issues": issues,
+                "needs_update": not consistent and local_info["exists"]
             }
             
-            logger.info(f"Checked {file_name}: {'✓ exists' if exists else '✗ missing'}")
+            status = "✓ consistent" if consistent else "✗ inconsistent"
+            logger.info(f"Verified {file_name}: {status}")
         
         return results
     
@@ -122,33 +139,44 @@ class ConfigVerification:
             results: Results from verify_configuration_consistency()
         """
         click.echo("\n" + "="*60)
-        click.echo("NGINX CONFIGURATION FILE CHECK")
+        click.echo("NGINX CONFIGURATION VERIFICATION RESULTS")
         click.echo("="*60)
         
-        existing_count = 0
+        consistent_count = 0
         total_count = len(results)
+        files_needing_update = []
         
         for file_name, result in results.items():
-            status = "✓ EXISTS" if result["exists"] else "✗ MISSING"
-            color = "green" if result["exists"] else "red"
+            status = "✓ CONSISTENT" if result["consistent"] else "✗ INCONSISTENT"
+            color = "green" if result["consistent"] else "red"
             
             click.echo(f"\n{file_name}: ", nl=False)
             click.secho(status, fg=color)
-            click.echo(f"  Path: {result['path']}")
             
-            if result["exists"]:
-                click.echo(f"  Size: {result['size']} bytes")
-                existing_count += 1
-            else:
-                click.echo("  Status: File not found")
+            if result["issues"]:
+                for issue in result["issues"]:
+                    click.echo(f"  - {issue}")
+            
+            # Show file details
+            if result["server"]["exists"]:
+                click.echo(f"  Server: {result['server']['path']} ({result['server']['size']} bytes)")
+            if result["local"]["exists"]:
+                click.echo(f"  Template: {result['local']['path']} ({result['local']['size']} bytes)")
+            
+            if result["consistent"]:
+                consistent_count += 1
+            elif result["needs_update"]:
+                files_needing_update.append(file_name)
         
         click.echo(f"\n{'-'*60}")
-        click.echo(f"Summary: {existing_count}/{total_count} files found")
+        click.echo(f"Summary: {consistent_count}/{total_count} files consistent")
         
-        if existing_count == total_count:
-            click.secho("✓ All required nginx configuration files exist!", fg="green")
+        if consistent_count == total_count:
+            click.secho("✓ All configuration files are up to date!", fg="green")
         else:
-            click.secho("✗ Some nginx configuration files are missing!", fg="red")
+            click.secho("✗ Configuration inconsistencies detected!", fg="red")
+            if files_needing_update:
+                click.echo(f"\nFiles that can be updated: {', '.join(files_needing_update)}")
     
     def create_missing_directories(self) -> bool:
         """
@@ -168,48 +196,103 @@ class ConfigVerification:
             return False
     
     
-    def interactive_directory_creation(self, results: Dict[str, Dict]) -> bool:
+    def sync_configurations(self, results: Dict[str, Dict]) -> bool:
         """
-        Interactive prompt for creating missing directories.
+        Synchronize template files to server configuration.
         
         Args:
             results: Results from verify_configuration_consistency()
             
         Returns:
-            True if directories were created, False otherwise
+            True if sync was successful, False otherwise
         """
+        files_to_update = []
         missing_files = []
         
         for file_name, result in results.items():
-            if not result["exists"]:
-                missing_files.append((file_name, result["path"]))
+            if result["needs_update"]:
+                files_to_update.append(file_name)
+            elif not result["server"]["exists"] and result["local"]["exists"]:
+                missing_files.append(file_name)
         
-        if not missing_files:
-            click.echo("All required nginx configuration files exist. Nothing to do.")
+        if not files_to_update and not missing_files:
+            click.echo("All configuration files are already up to date. Nothing to sync.")
             return False
         
-        click.echo(f"\nFound {len(missing_files)} missing files:")
-        for file_name, path in missing_files:
-            click.echo(f"  - {file_name} at {path}")
+        click.echo(f"\nConfiguration sync required:")
         
-        # Check if it's just missing directories
-        nginxconfig_missing = any("nginxconfig.io" in path for _, path in missing_files)
+        if files_to_update:
+            click.echo("\n🔄 Files with content differences:")
+            for file_name in files_to_update:
+                click.echo(f"  - {file_name}")
         
-        if nginxconfig_missing:
-            click.echo("\n📁 Missing nginxconfig.io directory structure detected.")
-            click.echo("\nOptions:")
-            click.echo("1. 🔧 Create missing directories")
-            click.echo("2. ❌ Cancel")
+        if missing_files:
+            click.echo("\n📁 Missing server files:")
+            for file_name in missing_files:
+                click.echo(f"  - {file_name}")
+        
+        click.echo("\nSync options:")
+        click.echo("1. 🔧 Update server configurations from templates [RECOMMENDED]")
+        click.echo("2. ❌ Cancel")
+        
+        choice = click.prompt("Select option", type=int, default=1)
+        
+        if choice == 1:
+            click.echo("\nThis will:")
+            click.echo("  • Create backup of current configuration")
+            click.echo("  • Update server files with template content")
+            click.echo("  • Preserve file permissions")
             
-            choice = click.prompt("Select option", type=int, default=1)
-            
-            if choice == 1:
-                return self.create_missing_directories()
-        else:
-            click.echo("\n⚠️  Essential nginx configuration files are missing.")
-            click.echo("Please ensure nginx is properly installed.")
+            if click.confirm("Proceed with configuration sync?"):
+                # Create backup first
+                if not self.backup_configuration():
+                    click.echo("❌ Backup failed. Aborting sync.")
+                    return False
+                
+                return self._perform_sync(results, files_to_update + missing_files)
         
         return False
+    
+    def _perform_sync(self, results: Dict[str, Dict], files_to_sync: list) -> bool:
+        """
+        Perform the actual file synchronization.
+        
+        Args:
+            results: Verification results
+            files_to_sync: List of file names to sync
+            
+        Returns:
+            True if all files were synced successfully
+        """
+        success = True
+        
+        for file_name in files_to_sync:
+            result = results[file_name]
+            local_path = Path(result["local"]["path"])
+            server_path = Path(result["server"]["path"])
+            
+            try:
+                if not result["local"]["exists"]:
+                    logger.warning(f"Cannot sync {file_name}: template file missing")
+                    success = False
+                    continue
+                
+                # Create server directory if it doesn't exist
+                server_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Copy template file to server
+                import shutil
+                shutil.copy2(local_path, server_path)
+                
+                click.echo(f"✓ Updated {file_name}")
+                logger.info(f"Synced {local_path} -> {server_path}")
+                
+            except Exception as e:
+                click.echo(f"❌ Failed to update {file_name}: {e}")
+                logger.error(f"Error syncing {file_name}: {e}")
+                success = False
+        
+        return success
     
     def backup_configuration(self, backup_dir: str = "/tmp/nginx_backup") -> bool:
         """

@@ -114,12 +114,12 @@ Configuration Management Options:
 @click.option(
     "--verify_config",
     is_flag=True,
-    help="Check if required nginx configuration files exist on the server",
+    help="Compare nginx configuration files between templates and server",
 )
 @click.option(
-    "--create_dirs",
+    "--sync_config",
     is_flag=True,
-    help="Create missing nginx configuration directories if needed",
+    help="Synchronize template files to server configuration",
 )
 @click.option(
     "--backup_config",
@@ -142,11 +142,11 @@ def start_nginx_set_conf(
     target_path,
     dry_run,
     verify_config,
-    create_dirs,
+    sync_config,
     backup_config,
 ):
     # Handle configuration verification and management
-    if verify_config or create_dirs or backup_config:
+    if verify_config or sync_config or backup_config:
         welcome()
         verifier = ConfigVerification()
         
@@ -158,21 +158,21 @@ def start_nginx_set_conf(
                 logger.error("Backup failed")
             return
         
-        if verify_config or create_dirs:
-            logger.info("Checking nginx configuration files...")
+        if verify_config or sync_config:
+            logger.info("Verifying nginx configuration files...")
             results = verifier.verify_configuration_consistency()
             verifier.show_verification_results(results)
             
-            if create_dirs:
-                logger.info("Checking for missing directories...")
-                if verifier.interactive_directory_creation(results):
-                    logger.info("Directory creation completed")
-                    # Re-verify after directory creation
-                    logger.info("Re-checking configuration files...")
+            if sync_config:
+                logger.info("Starting configuration synchronization...")
+                if verifier.sync_configurations(results):
+                    logger.info("Configuration sync completed successfully")
+                    # Re-verify after sync
+                    logger.info("Re-verifying configuration after sync...")
                     new_results = verifier.verify_configuration_consistency()
                     verifier.show_verification_results(new_results)
                 else:
-                    logger.info("Directory creation cancelled or not needed")
+                    logger.info("Configuration sync cancelled or failed")
             return
     
     # Add new template display logic
