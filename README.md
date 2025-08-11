@@ -12,6 +12,7 @@ A simple Python library that helps you create nginx configurations for different
 
 - **Template-based configuration**: Support for 15+ pre-built templates
 - **SSL/TLS support**: Automatic Let's Encrypt integration
+- **IP access restrictions**: Optional IP whitelist/blacklist functionality
 - **Configuration verification**: Check consistency between local and server files
 - **Configuration verification**: Check if required nginx files exist
 - **Backup functionality**: Automatic backup of server configurations
@@ -81,6 +82,9 @@ nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.
 
 # Dry run mode
 nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --dry_run
+
+# With IP access restrictions
+nginx-set-conf --config_template ngx_flowise --ip 192.168.1.10 --domain secure-flowise.example.com --port 3000 --cert_name secure-flowise.example.com --allowed_ips "192.168.1.0/24,10.0.0.50,203.0.113.100"
 ```
 
 #### Template Preview
@@ -158,6 +162,84 @@ nginx-set-conf --backup_config
 - Complete backup of `/etc/nginx/nginx.conf`
 - Recursive backup of `nginxconfig.io/` directory
 - Logging of all backup operations
+
+### IP Access Restrictions
+
+nginx-set-conf supports optional IP-based access control to restrict access to your applications to specific IP addresses or CIDR blocks.
+
+#### CLI Usage
+
+```bash
+# Restrict access to specific IPs
+nginx-set-conf --config_template ngx_flowise \
+  --ip 192.168.1.10 --domain secure.example.com --port 3000 \
+  --cert_name secure.example.com \
+  --allowed_ips "192.168.1.0/24,10.0.0.50,203.0.113.100"
+
+# Multiple IP formats supported
+nginx-set-conf --config_template ngx_odoo_ssl \
+  --ip 10.0.0.5 --domain erp.company.com --port 8069 \
+  --cert_name erp.company.com --pollport 8072 \
+  --allowed_ips "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12"
+```
+
+#### YAML Configuration
+
+```yaml
+# Example with IP restrictions
+Secure Flowise:
+  config_template: ngx_flowise
+  ip: 192.168.1.10
+  domain: secure-flowise.example.com
+  port: 3000
+  cert_name: secure-flowise.example.com
+  allowed_ips: "192.168.1.0/24,10.0.0.50,203.0.113.100"
+
+# Mixed authentication (IP + htaccess)
+Odoo Production:
+  config_template: ngx_odoo_ssl
+  ip: 10.0.0.5
+  domain: erp.company.com
+  port: 8069
+  cert_name: erp.company.com
+  pollport: 8072
+  auth_file: /etc/nginx/.htpasswd
+  allowed_ips: "192.168.0.0/16,10.0.0.0/8"
+```
+
+#### Generated nginx Configuration
+
+When `allowed_ips` is specified, the following directives are automatically added to your nginx configuration:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name secure.example.com;
+    
+    # IP restrictions
+    allow 192.168.1.0/24;
+    allow 10.0.0.50;
+    allow 203.0.113.100;
+    deny all;
+    
+    # ... rest of configuration
+}
+```
+
+#### Supported IP Formats
+
+- **Single IP**: `192.168.1.100`
+- **CIDR notation**: `192.168.1.0/24`, `10.0.0.0/8`
+- **IPv6**: `2001:db8::/32` (if supported by nginx)
+- **Multiple entries**: Comma-separated list
+
+#### Security Notes
+
+- IP restrictions are applied at the server block level
+- Restrictions work with both SSL and non-SSL templates
+- Compatible with existing authentication (`auth_file`)
+- Applied before location-specific rules
+- Use `deny all` as final rule for security
 
 ### Practical Usage Scenarios
 

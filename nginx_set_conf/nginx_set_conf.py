@@ -98,6 +98,7 @@ Configuration Management Options:
 @click.option("--grpcport", help="Secondary Docker container port for qdrant grpc")
 @click.option("--redirect_domain", help="Redirect domain")
 @click.option("--auth_file", help="Use authfile for htAccess")
+@click.option("--allowed_ips", help="Comma-separated list of allowed IPs/CIDR blocks (e.g., '192.168.1.0/24,10.0.0.50')")
 @click.option(
     "--config_path",
     help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"',
@@ -138,6 +139,7 @@ def start_nginx_set_conf(
     grpcport,
     redirect_domain,
     auth_file,
+    allowed_ips,
     config_path,
     target_path,
     dry_run,
@@ -231,6 +233,10 @@ def start_nginx_set_conf(
                 except:
                     auth_file = ""
                 try:
+                    allowed_ips = str(yaml_config["allowed_ips"])
+                except:
+                    allowed_ips = ""
+                try:
                     yaml_target_path = str(yaml_config["target_path"])
                 except:
                     yaml_target_path = target_path
@@ -249,6 +255,7 @@ def start_nginx_set_conf(
                     pollport,
                     redirect_domain,
                     auth_file,
+                    allowed_ips,
                     yaml_target_path,
                     dry_run,
                     grpcport,
@@ -268,6 +275,7 @@ def start_nginx_set_conf(
             pollport,
             redirect_domain,
             auth_file,
+            allowed_ips,
             target_path,
             dry_run,
             grpcport,
@@ -286,6 +294,7 @@ def start_nginx_set_conf(
         )
         redirect_domain = retrieve_valid_input("Redirect domain" + "\n")
         auth_file = retrieve_valid_input("authfile" + "\n")
+        allowed_ips = retrieve_valid_input("Allowed IPs (comma-separated, optional)" + "\n")
         custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)" + "\n")
         target_path = custom_target_path if custom_target_path else target_path
         
@@ -299,6 +308,7 @@ def start_nginx_set_conf(
             pollport,
             redirect_domain,
             auth_file,
+            allowed_ips,
             target_path,
             dry_run,
             grpcport,

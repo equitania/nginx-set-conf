@@ -6,6 +6,7 @@ odoo-https:
   cert_name: www.
   pollport: 12000
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -144,5 +145,15 @@ Flowise:
   port: 3000
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
+
+# Example with IP restrictions enabled
+Flowise with IP restrictions:
+  config_template: ngx_flowise
+  ip: 192.168.1.10
+  domain: secure-flowise.example.com
+  port: 3000
+  cert_name: secure-flowise.example.com
+  allowed_ips: "192.168.1.0/24,10.0.0.50,203.0.113.100"

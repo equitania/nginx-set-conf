@@ -3,7 +3,7 @@ Template for Odoo NGINX configuration (HTTP only version).
 """
 
 TEMPLATE = """# Template for Odoo configuration nginx
-# 17.07.2025
+# 11.08.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -26,6 +26,8 @@ server {
     access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
     error_log /var/log/nginx/server.domain.de-error.log;
 
+    #ip_restrictions
+    
     # increase proxy buffer to handle some Odoo web requests
     proxy_buffers 16 64k;
     proxy_buffer_size 128k;

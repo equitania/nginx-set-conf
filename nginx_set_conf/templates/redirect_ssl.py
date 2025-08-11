@@ -3,7 +3,7 @@ Template for Domain Redirect NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for Redirect domain configuration nginx ssl/http2
-# 17.07.2025
+# 11.08.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -53,6 +53,8 @@ server {
 
     # add ssl specific settings
     keepalive_timeout    60;
+    
+    #ip_restrictions
     ssl_protocols        TLSv1.3 TLSv1.2;
     ssl_prefer_server_ciphers on;
     ssl_ciphers          ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;

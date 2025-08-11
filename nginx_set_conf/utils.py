@@ -126,7 +126,7 @@ def retrieve_valid_input(message: str) -> str:
 
 
 def execute_commands(
-    config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file,
+    config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file, allowed_ips,
     target_path=None, dry_run=False, grpcport=None
 ):
     """Generates and deploys Nginx config files based on input parameters.
@@ -141,6 +141,7 @@ def execute_commands(
         pollport: Polling port number for Nginx configuration (optional).
         redirect_domain: Redirect domain for Nginx configuration (optional).
         auth_file: Authentication file for Nginx configuration (optional).
+        allowed_ips: Comma-separated list of allowed IPs/CIDR blocks (optional).
         target_path: Custom target path for generated configs (optional, default is /etc/nginx/conf.d).
         dry_run: If True, display commands without executing them (optional, default is False).
         grpcport: gRPC port number for Nginx configuration (optional, used by Qdrant template).
@@ -467,6 +468,43 @@ def execute_commands(
         else:
             print(f"[DRY RUN] Would add authentication settings using: {auth_file}")
 
+    # IP restrictions processing - only if allowed_ips parameter is provided
+    if allowed_ips:
+        eq_display_message = f"Set IP restrictions to {allowed_ips}"
+        print(eq_display_message.rstrip("\n"))
+        _filename = server_path + "/" + domain + ".conf"
+        
+        if not dry_run:
+            with open(_filename, "r", encoding="utf-8") as _file:
+                _data = _file.readlines()
+        
+            # Find the index of the line containing #ip_restrictions and add 1 to insert after this line
+            insertion_index = None
+            for i, line in enumerate(_data):
+                if '#ip_restrictions' in line:  # Check if this is the line we're looking for
+                    insertion_index = i + 1
+                    break
+        
+            # If the marker was found, insert the IP restriction lines after it
+            if insertion_index is not None:
+                # Add comment and IP restrictions
+                _data.insert(insertion_index, '    # IP restrictions\n')
+                insertion_index += 1
+                
+                # Parse and insert each IP/CIDR block
+                for ip_entry in allowed_ips.split(','):
+                    ip_entry = ip_entry.strip()
+                    if ip_entry:  # Only add non-empty entries
+                        _data.insert(insertion_index, f'    allow {ip_entry};\n')
+                        insertion_index += 1
+                
+                # Add deny all at the end
+                _data.insert(insertion_index, '    deny all;\n')
+        
+            with open(_filename, "w", encoding="utf-8") as _file:
+                _file.writelines(_data)
+        else:
+            print(f"[DRY RUN] Would add IP restrictions: {allowed_ips}")
 
     if "redirect" in config_template and redirect_domain:
         # send command - redirect domain

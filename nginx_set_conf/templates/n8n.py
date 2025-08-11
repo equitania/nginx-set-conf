@@ -3,7 +3,7 @@ Template for n8n NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for n8n NGINX configuration with SSL/HTTP2 support
-# 17.07.2025
+# 11.08.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -39,6 +39,7 @@ server {
     # SSL settings are defined globally in /etc/nginx/nginx.conf
     keepalive_timeout    60;
     
+    #ip_restrictions
     
     # security
     include                 nginxconfig.io/security.conf;

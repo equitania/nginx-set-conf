@@ -3,7 +3,7 @@ Template for Odoo NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for Odoo configuration nginx incl. SSL/HTTP2 support
-# 17.07.2025
+# 11.08.2025
 # upstream server.domain.de {
 #     server ip.ip.ip.ip weight=1 fail_timeout=0;
 # }
@@ -40,7 +40,8 @@ server {
     keepalive_timeout    60;
     ssl_prefer_server_ciphers on;
     
-
+    #ip_restrictions
+    
     # increase proxy buffer to handle some Odoo web requests
     proxy_buffers 16 64k;
     proxy_buffer_size 128k;
