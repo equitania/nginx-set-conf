@@ -99,6 +99,7 @@ Configuration Management Options:
 @click.option("--redirect_domain", help="Redirect domain")
 @click.option("--auth_file", help="Use authfile for htAccess")
 @click.option("--allowed_ips", help="Comma-separated list of allowed IPs/CIDR blocks (e.g., '192.168.1.0/24,10.0.0.50')")
+@click.option("--disable_domain_listen", is_flag=True, help="Disable domain prefix in listen directives (for intranet systems)")
 @click.option(
     "--config_path",
     help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"',
@@ -140,6 +141,7 @@ def start_nginx_set_conf(
     redirect_domain,
     auth_file,
     allowed_ips,
+    disable_domain_listen,
     config_path,
     target_path,
     dry_run,
@@ -237,6 +239,10 @@ def start_nginx_set_conf(
                 except:
                     allowed_ips = ""
                 try:
+                    yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
+                except:
+                    yaml_disable_domain_listen = False
+                try:
                     yaml_target_path = str(yaml_config["target_path"])
                 except:
                     yaml_target_path = target_path
@@ -259,6 +265,7 @@ def start_nginx_set_conf(
                     yaml_target_path,
                     dry_run,
                     grpcport,
+                    yaml_disable_domain_listen,
                 )
     elif config_template and ip and domain and port and cert_name:
         # Debug log for domain-specific cache paths
@@ -279,6 +286,7 @@ def start_nginx_set_conf(
             target_path,
             dry_run,
             grpcport,
+            disable_domain_listen,
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
@@ -295,6 +303,8 @@ def start_nginx_set_conf(
         redirect_domain = retrieve_valid_input("Redirect domain" + "\n")
         auth_file = retrieve_valid_input("authfile" + "\n")
         allowed_ips = retrieve_valid_input("Allowed IPs (comma-separated, optional)" + "\n")
+        disable_domain_listen_input = retrieve_valid_input("Disable domain prefix in listen directives? (yes/no, optional)" + "\n")
+        disable_domain_listen = disable_domain_listen_input.lower() in ['yes', 'y', 'true', '1'] if disable_domain_listen_input else False
         custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)" + "\n")
         target_path = custom_target_path if custom_target_path else target_path
         
@@ -312,6 +322,7 @@ def start_nginx_set_conf(
             target_path,
             dry_run,
             grpcport,
+            disable_domain_listen,
         )
     
     if not dry_run:

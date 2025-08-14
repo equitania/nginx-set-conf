@@ -127,7 +127,7 @@ def retrieve_valid_input(message: str) -> str:
 
 def execute_commands(
     config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file, allowed_ips,
-    target_path=None, dry_run=False, grpcport=None
+    target_path=None, dry_run=False, grpcport=None, disable_domain_listen=False
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -306,6 +306,32 @@ def execute_commands(
         print(eq_set_domain_cmd.rstrip("\n"))
     else:
         print(f"[DRY RUN] Would execute: {eq_set_domain_cmd}")
+
+    # Handle disable_domain_listen parameter - remove domain from listen directives
+    if disable_domain_listen:
+        eq_display_message = "Removing domain prefix from listen directives (for intranet systems)"
+        print(eq_display_message.rstrip("\n"))
+        
+        # Remove domain prefix from HTTP listen directive (e.g., "listen domain.com:80" -> "listen 80")
+        eq_remove_domain_http_cmd = (
+            "sed -i 's|listen " + domain + ":80|listen 80|g' " 
+            + server_path + "/" + domain + ".conf"
+        )
+        
+        # Remove domain prefix from HTTPS listen directive (e.g., "listen domain.com:443" -> "listen 443")
+        eq_remove_domain_https_cmd = (
+            "sed -i 's|listen " + domain + ":443|listen 443|g' " 
+            + server_path + "/" + domain + ".conf"
+        )
+        
+        if not dry_run:
+            os.system(eq_remove_domain_http_cmd)
+            print(eq_remove_domain_http_cmd.rstrip("\n"))
+            os.system(eq_remove_domain_https_cmd)
+            print(eq_remove_domain_https_cmd.rstrip("\n"))
+        else:
+            print(f"[DRY RUN] Would execute: {eq_remove_domain_http_cmd}")
+            print(f"[DRY RUN] Would execute: {eq_remove_domain_https_cmd}")
 
     # send command - ip
     eq_display_message = "Set ip in conf to " + ip

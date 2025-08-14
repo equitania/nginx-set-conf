@@ -18,6 +18,7 @@ A simple Python library that helps you create nginx configurations for different
 - **Backup functionality**: Automatic backup of server configurations
 - **Dry run mode**: Test configurations without applying changes
 - **PDF MIME-Type optimization**: Enhanced PDF handling for Odoo applications
+- **Intranet support**: Optional disable domain prefix in listen directives for internal networks
 
 ### Installation
 
@@ -85,6 +86,9 @@ nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.
 
 # With IP access restrictions
 nginx-set-conf --config_template ngx_flowise --ip 192.168.1.10 --domain secure-flowise.example.com --port 3000 --cert_name secure-flowise.example.com --allowed_ips "192.168.1.0/24,10.0.0.50,203.0.113.100"
+
+# For intranet systems without domain prefix in listen directives
+nginx-set-conf --config_template ngx_odoo_ssl --ip 192.168.1.100 --domain dev01-a.intra.company.local --port 8069 --cert_name dev01-a.intra.company.local --disable_domain_listen
 ```
 
 #### Template Preview
@@ -162,6 +166,69 @@ nginx-set-conf --backup_config
 - Complete backup of `/etc/nginx/nginx.conf`
 - Recursive backup of `nginxconfig.io/` directory
 - Logging of all backup operations
+
+### Intranet Configuration (disable_domain_listen)
+
+For intranet systems where nginx requires listen directives without domain prefix:
+
+#### When to Use
+
+Some internal/intranet environments require nginx listen directives without the domain prefix:
+- **Standard**: `listen domain.com:443 ssl;`
+- **Intranet**: `listen 443 ssl;`
+
+#### Configuration Example
+
+```yaml
+intranet-odoo:
+  config_template: ngx_odoo_ssl
+  ip: 192.168.1.100
+  domain: dev01-a.intra.company.local
+  port: 8069
+  cert_name: dev01-a.intra.company.local
+  pollport: 8072
+  disable_domain_listen: true  # Remove domain prefix from listen directives
+```
+
+#### Command Line Usage
+
+```bash
+nginx-set-conf --config_template ngx_odoo_ssl \
+  --ip 192.168.1.100 \
+  --domain dev01-a.intra.company.local \
+  --port 8069 \
+  --cert_name dev01-a.intra.company.local \
+  --disable_domain_listen
+```
+
+#### Effect on Configuration
+
+**Without `disable_domain_listen`:**
+```nginx
+server {
+    listen dev01-a.intra.company.local:80;
+    server_name dev01-a.intra.company.local;
+}
+
+server {
+    listen dev01-a.intra.company.local:443 ssl;
+    server_name dev01-a.intra.company.local;
+}
+```
+
+**With `disable_domain_listen`:**
+```nginx
+server {
+    listen 80;
+    server_name dev01-a.intra.company.local;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name dev01-a.intra.company.local;
+}
+```
 
 ### IP Access Restrictions
 
@@ -375,11 +442,13 @@ Eine einfache Python-Bibliothek, die bei der Erstellung von nginx-Konfiguratione
 
 - **Template-basierte Konfiguration**: Unterstützung für 15+ vorgefertigte Templates
 - **SSL/TLS-Unterstützung**: Automatische Let's Encrypt Integration
+- **IP-Zugriffsbeschränkungen**: Optionale IP-Whitelist/Blacklist Funktionalität
 - **Konfigurationsverifikation**: Konsistenzprüfung zwischen lokalen und Server-Dateien
 - **Interaktive Synchronisation**: Synchronisation von Konfigurationen zwischen lokal und Server
 - **Backup-Funktionalität**: Automatische Sicherung von Server-Konfigurationen
 - **Dry-Run-Modus**: Konfigurationen testen ohne Änderungen anzuwenden
 - **PDF MIME-Type-Optimierung**: Verbesserte PDF-Behandlung für Odoo-Anwendungen
+- **Intranet-Unterstützung**: Optional Domain-Präfix in Listen-Direktiven für interne Netzwerke deaktivieren
 
 ### Installation
 

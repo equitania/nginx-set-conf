@@ -7,6 +7,7 @@ odoo-https:
   pollport: 12000
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -17,6 +18,7 @@ Odoo only http:
   port: 11000
   pollport: 12000
   #auth_file: authfile
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -27,6 +29,8 @@ Fast Report:
   port: 8899
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -37,6 +41,8 @@ Code Server:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -47,6 +53,8 @@ NextCloud:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -57,6 +65,8 @@ Portainer:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -67,6 +77,8 @@ pgAdmin:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -77,6 +89,8 @@ PWA:
   port: 
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -104,6 +118,8 @@ n8n:
   port: 5678
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -114,6 +130,8 @@ Kasm:
   port: 8443
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -124,6 +142,8 @@ Mailpit:
   port: 8025
   cert_name: www.
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -135,6 +155,8 @@ Qdrant:
   cert_name: www.
   grpcport: 6334
   #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -146,6 +168,7 @@ Flowise:
   cert_name: www.
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
@@ -156,4 +179,5 @@ Flowise with IP restrictions:
   domain: secure-flowise.example.com
   port: 3000
   cert_name: secure-flowise.example.com
-  allowed_ips: "192.168.1.0/24,10.0.0.50,203.0.113.100"
+  #allowed_ips: "192.168.1.0/24,10.0.0.50,203.0.113.100"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
