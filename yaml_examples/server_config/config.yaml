@@ -172,6 +172,18 @@ Flowise:
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
+Guacamole:
+  config_template: ngx_guacamole
+  ip: 
+  domain: www.
+  port: 8080
+  cert_name: www.
+  #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
+
 # Example with IP restrictions enabled
 Flowise with IP restrictions:
   config_template: ngx_flowise

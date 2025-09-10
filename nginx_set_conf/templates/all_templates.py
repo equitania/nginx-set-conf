@@ -21,6 +21,7 @@ from nginx_set_conf.templates.kasm import TEMPLATE as KASM_TEMPLATE
 from nginx_set_conf.templates.qdrant import TEMPLATE as QDRANT_TEMPLATE
 from nginx_set_conf.templates.supabase import TEMPLATE as SUPABASE_TEMPLATE
 from nginx_set_conf.templates.flowise import TEMPLATE as FLOWISE_TEMPLATE
+from nginx_set_conf.templates.guacamole import TEMPLATE as GUACAMOLE_TEMPLATE
 
 # Replace cache paths to avoid conflicts
 def replace_cache_path(template, service_name, domain=None):
@@ -106,6 +107,7 @@ TEMPLATES = {
     "ngx_qdrant": replace_cache_path(QDRANT_TEMPLATE, "qdrant"),
     "ngx_supabase": replace_cache_path(SUPABASE_TEMPLATE, "supabase"),
     "ngx_flowise": replace_cache_path(FLOWISE_TEMPLATE, "flowise"),
+    "ngx_guacamole": replace_cache_path(GUACAMOLE_TEMPLATE, "guacamole"),
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 }
 

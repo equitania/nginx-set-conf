@@ -47,6 +47,7 @@ $ nginx-set-conf --help
 - `ngx_code_server` - Code-server with SSL
 - `ngx_fast_report` - FastReport with SSL
 - `ngx_flowise` - Flowise AI with SSL/HTTP2
+- `ngx_guacamole` - Apache Guacamole with SSL/HTTP2 and WebSocket
 - `ngx_kasm` - Kasm Workspaces with SSL/HTTP2
 - `ngx_mailpit` - Mailpit with SSL/HTTP2
 - `ngx_n8n` - n8n with SSL/HTTP2
@@ -477,6 +478,7 @@ $ nginx-set-conf --help
 - `ngx_code_server` - Code-Server mit SSL
 - `ngx_fast_report` - FastReport mit SSL
 - `ngx_flowise` - Flowise AI mit SSL/HTTP2
+- `ngx_guacamole` - Apache Guacamole mit SSL/HTTP2 und WebSocket
 - `ngx_kasm` - Kasm Workspaces mit SSL/HTTP2
 - `ngx_mailpit` - Mailpit mit SSL/HTTP2
 - `ngx_n8n` - n8n mit SSL/HTTP2
