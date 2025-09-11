@@ -28,10 +28,10 @@ uv pip install -e .
 # Example commands (for documentation only - not to be executed by Claude):
 
 # Show a template without applying
-nginx-set-conf --config_template ngx_odoo_ssl --show_template
+nginx-set-conf --config_template odoo_ssl --show_template
 
 # Dry run (test configuration without changes)
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain example.com --port 8069 --cert_name example.com --dry_run
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain example.com --port 8069 --cert_name example.com --dry_run
 
 # Verify server configuration files against embedded templates
 nginx-set-conf --verify_config
@@ -120,7 +120,7 @@ nginx-set-conf --backup_config
 nginx-set-conf --config_path yaml_examples/server_config
 
 # Test specific template with direct parameters
-nginx-set-conf --config_template ngx_flowise --ip 127.0.0.1 --domain flowise.local --port 3000 --cert_name flowise.local --dry_run
+nginx-set-conf --config_template flowise --ip 127.0.0.1 --domain flowise.local --port 3000 --cert_name flowise.local --dry_run
 
 # Example usage (for documentation only - not to be executed by Claude):
 ```

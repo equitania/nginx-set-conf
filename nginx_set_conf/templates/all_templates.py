@@ -91,23 +91,23 @@ def replace_cache_path(template, service_name, domain=None):
 
 # Dictionary mit allen Templates für einfachen Zugriff
 TEMPLATES = {
-    "ngx_code_server": replace_cache_path(CODE_SERVER_TEMPLATE, "code_server"),
-    "ngx_fast_report": replace_cache_path(FAST_REPORT_TEMPLATE, "fast_report"),
-    "ngx_nextcloud": replace_cache_path(NEXTCLOUD_TEMPLATE, "nextcloud"),
-    "ngx_portainer": replace_cache_path(PORTAINER_TEMPLATE, "portainer"),
-    "ngx_odoo_http": replace_cache_path(ODOO_HTTP_TEMPLATE, "odoo_http"),
-    "ngx_odoo_ssl": replace_cache_path(ODOO_SSL_TEMPLATE, "odoo_ssl"),
-    "ngx_pgadmin": replace_cache_path(PGADMIN_TEMPLATE, "pgadmin"),
-    "ngx_pwa": replace_cache_path(PWA_TEMPLATE, "pwa"),
-    "ngx_mailpit": replace_cache_path(MAILPIT_TEMPLATE, "mailpit"),
-    "ngx_redirect": replace_cache_path(REDIRECT_TEMPLATE, "redirect"),
-    "ngx_redirect_ssl": replace_cache_path(REDIRECT_SSL_TEMPLATE, "redirect_ssl"),
-    "ngx_n8n": replace_cache_path(N8N_TEMPLATE, "n8n"),
-    "ngx_kasm": replace_cache_path(KASM_TEMPLATE, "kasm"),
-    "ngx_qdrant": replace_cache_path(QDRANT_TEMPLATE, "qdrant"),
-    "ngx_supabase": replace_cache_path(SUPABASE_TEMPLATE, "supabase"),
-    "ngx_flowise": replace_cache_path(FLOWISE_TEMPLATE, "flowise"),
-    "ngx_guacamole": replace_cache_path(GUACAMOLE_TEMPLATE, "guacamole"),
+    "code_server": replace_cache_path(CODE_SERVER_TEMPLATE, "code_server"),
+    "fast_report": replace_cache_path(FAST_REPORT_TEMPLATE, "fast_report"),
+    "nextcloud": replace_cache_path(NEXTCLOUD_TEMPLATE, "nextcloud"),
+    "portainer": replace_cache_path(PORTAINER_TEMPLATE, "portainer"),
+    "odoo_http": replace_cache_path(ODOO_HTTP_TEMPLATE, "odoo_http"),
+    "odoo_ssl": replace_cache_path(ODOO_SSL_TEMPLATE, "odoo_ssl"),
+    "pgadmin": replace_cache_path(PGADMIN_TEMPLATE, "pgadmin"),
+    "pwa": replace_cache_path(PWA_TEMPLATE, "pwa"),
+    "mailpit": replace_cache_path(MAILPIT_TEMPLATE, "mailpit"),
+    "redirect": replace_cache_path(REDIRECT_TEMPLATE, "redirect"),
+    "redirect_ssl": replace_cache_path(REDIRECT_SSL_TEMPLATE, "redirect_ssl"),
+    "n8n": replace_cache_path(N8N_TEMPLATE, "n8n"),
+    "kasm": replace_cache_path(KASM_TEMPLATE, "kasm"),
+    "qdrant": replace_cache_path(QDRANT_TEMPLATE, "qdrant"),
+    "supabase": replace_cache_path(SUPABASE_TEMPLATE, "supabase"),
+    "flowise": replace_cache_path(FLOWISE_TEMPLATE, "flowise"),
+    "guacamole": replace_cache_path(GUACAMOLE_TEMPLATE, "guacamole"),
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 }
 
@@ -128,8 +128,8 @@ def get_config_template(config_template_name, domain=None):
         
         # If domain is provided, create a domain-specific version
         if domain:
-            # Extract service name from the template name
-            service_name = config_template_name.replace('ngx_', '')
+            # Service name is already clean without ngx_ prefix
+            service_name = config_template_name
             return replace_cache_path(base_template, service_name, domain)
         
         return base_template

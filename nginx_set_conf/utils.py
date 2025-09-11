@@ -165,8 +165,8 @@ def execute_commands(
         os.makedirs(target_path, exist_ok=True)
         print(f"Created directory: {target_path}")
     
-    # Extract service name from template name
-    service_name = config_template.replace('ngx_', '')
+    # Service name is now directly the template name without prefix
+    service_name = config_template
     
     # Create unique cache directory if needed
     # Use domain in the cache path to ensure uniqueness

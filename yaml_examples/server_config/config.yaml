@@ -1,5 +1,5 @@
 odoo-https:
-  config_template: ngx_odoo_ssl
+  config_template: odoo_ssl
   ip: 
   domain: www.
   port: 11000
@@ -12,7 +12,7 @@ odoo-https:
   #cert_key: /etc/ssl/your-private-key.key
 
 Odoo only http:
-  config_template: ngx_odoo_http
+  config_template: odoo_http
   ip: 
   domain: www.
   port: 11000
@@ -23,7 +23,7 @@ Odoo only http:
   #cert_key: /etc/ssl/your-private-key.key
 
 Fast Report:
-  config_template: ngx_fast_report
+  config_template: fast_report
   ip: 
   domain: www.
   port: 8899
@@ -35,7 +35,7 @@ Fast Report:
   #cert_key: /etc/ssl/your-private-key.key
 
 Code Server:
-  config_template: ngx_code_server
+  config_template: code_server
   ip: 
   domain: www.
   port: 
@@ -47,7 +47,7 @@ Code Server:
   #cert_key: /etc/ssl/your-private-key.key
 
 NextCloud:
-  config_template: ngx_nextcloud
+  config_template: nextcloud
   ip: 
   domain: www.
   port: 
@@ -59,7 +59,7 @@ NextCloud:
   #cert_key: /etc/ssl/your-private-key.key
 
 Portainer:
-  config_template: ngx_portainer
+  config_template: portainer
   ip: 
   domain: www.
   port: 
@@ -71,7 +71,7 @@ Portainer:
   #cert_key: /etc/ssl/your-private-key.key
 
 pgAdmin:
-  config_template: ngx_pgadmin
+  config_template: pgadmin
   ip: 
   domain: www.
   port: 
@@ -83,7 +83,7 @@ pgAdmin:
   #cert_key: /etc/ssl/your-private-key.key
 
 PWA:
-  config_template: ngx_pwa
+  config_template: pwa
   ip: 
   domain: www.
   port: 
@@ -95,14 +95,14 @@ PWA:
   #cert_key: /etc/ssl/your-private-key.key
 
 Redirect:
-  config_template: ngx_redirect
+  config_template: redirect
   ip: 
   domain: www.
   redirect_domain: www.
   #auth_file: authfile
 
 Redirect_SSL:
-  config_template: ngx_redirect_ssl
+  config_template: redirect_ssl
   ip: 
   domain: www.
   cert_name: www.
@@ -112,7 +112,7 @@ Redirect_SSL:
   #cert_key: /etc/ssl/your-private-key.key
 
 n8n:
-  config_template: ngx_n8n
+  config_template: n8n
   ip: 
   domain: www.
   port: 5678
@@ -124,7 +124,7 @@ n8n:
   #cert_key: /etc/ssl/your-private-key.key
 
 Kasm:
-  config_template: ngx_kasm
+  config_template: kasm
   ip: 
   domain: www.
   port: 8443
@@ -136,7 +136,7 @@ Kasm:
   #cert_key: /etc/ssl/your-private-key.key
 
 Mailpit:
-  config_template: ngx_mailpit
+  config_template: mailpit
   ip: 
   domain: www.
   port: 8025
@@ -148,7 +148,7 @@ Mailpit:
   #cert_key: /etc/ssl/your-private-key.key
 
 Qdrant:
-  config_template: ngx_qdrant
+  config_template: qdrant
   ip: 
   domain: www.
   port: 6333
@@ -161,7 +161,7 @@ Qdrant:
   #cert_key: /etc/ssl/your-private-key.key
 
 Flowise:
-  config_template: ngx_flowise
+  config_template: flowise
   ip: 
   domain: www.
   port: 3000
@@ -173,7 +173,7 @@ Flowise:
   #cert_key: /etc/ssl/your-private-key.key
 
 Guacamole:
-  config_template: ngx_guacamole
+  config_template: guacamole
   ip: 
   domain: www.
   port: 8080
@@ -186,7 +186,7 @@ Guacamole:
 
 # Example with IP restrictions enabled
 Flowise with IP restrictions:
-  config_template: ngx_flowise
+  config_template: flowise
   ip: 192.168.1.10
   domain: secure-flowise.example.com
   port: 3000

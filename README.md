@@ -44,23 +44,23 @@ $ nginx-set-conf --help
 
 #### Supported Templates
 
-- `ngx_code_server` - Code-server with SSL
-- `ngx_fast_report` - FastReport with SSL
-- `ngx_flowise` - Flowise AI with SSL/HTTP2
-- `ngx_guacamole` - Apache Guacamole with SSL/HTTP2 and WebSocket
-- `ngx_kasm` - Kasm Workspaces with SSL/HTTP2
-- `ngx_mailpit` - Mailpit with SSL/HTTP2
-- `ngx_n8n` - n8n with SSL/HTTP2
-- `ngx_nextcloud` - NextCloud with SSL
-- `ngx_odoo_http` - Odoo HTTP only
-- `ngx_odoo_ssl` - Odoo with SSL
-- `ngx_pgadmin` - pgAdmin4 with SSL
-- `ngx_portainer` - Portainer with SSL
-- `ngx_pwa` - Progressive Web App with SSL
-- `ngx_qdrant` - Qdrant vector database with SSL/HTTP2 and gRPC
-- `ngx_redirect` - Domain redirect without SSL
-- `ngx_redirect_ssl` - Domain redirect with SSL
-- `ngx_supabase` - Supabase database server with SSL/HTTP2
+- `code_server` - Code-server with SSL
+- `fast_report` - FastReport with SSL
+- `flowise` - Flowise AI with SSL/HTTP2
+- `guacamole` - Apache Guacamole with SSL/HTTP2 and WebSocket
+- `kasm` - Kasm Workspaces with SSL/HTTP2
+- `mailpit` - Mailpit with SSL/HTTP2
+- `n8n` - n8n with SSL/HTTP2
+- `nextcloud` - NextCloud with SSL
+- `odoo_http` - Odoo HTTP only
+- `odoo_ssl` - Odoo with SSL
+- `pgadmin` - pgAdmin4 with SSL
+- `portainer` - Portainer with SSL
+- `pwa` - Progressive Web App with SSL
+- `qdrant` - Qdrant vector database with SSL/HTTP2 and gRPC
+- `redirect` - Domain redirect without SSL
+- `redirect_ssl` - Domain redirect with SSL
+- `supabase` - Supabase database server with SSL/HTTP2
 
 #### Configuration Management Options
 
@@ -77,42 +77,42 @@ $ nginx-set-conf --help
 nginx-set-conf --config_path server_config
 
 # Direct configuration
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --pollport 8072
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --pollport 8072
 
 # Custom target path
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --target_path /tmp/nginx-test
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --target_path /tmp/nginx-test
 
 # Dry run mode
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --dry_run
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --dry_run
 
 # With IP access restrictions
-nginx-set-conf --config_template ngx_flowise --ip 192.168.1.10 --domain secure-flowise.example.com --port 3000 --cert_name secure-flowise.example.com --allowed_ips "192.168.1.0/24,10.0.0.50,203.0.113.100"
+nginx-set-conf --config_template flowise --ip 192.168.1.10 --domain secure-flowise.example.com --port 3000 --cert_name secure-flowise.example.com --allowed_ips "192.168.1.0/24,10.0.0.50,203.0.113.100"
 
 # For intranet systems without domain prefix in listen directives
-nginx-set-conf --config_template ngx_odoo_ssl --ip 192.168.1.100 --domain dev01-a.intra.company.local --port 8069 --cert_name dev01-a.intra.company.local --disable_domain_listen
+nginx-set-conf --config_template odoo_ssl --ip 192.168.1.100 --domain dev01-a.intra.company.local --port 8069 --cert_name dev01-a.intra.company.local --disable_domain_listen
 ```
 
 #### Template Preview
 
 ```bash
 # Show template configuration
-nginx-set-conf --config_template ngx_odoo_ssl --show_template
+nginx-set-conf --config_template odoo_ssl --show_template
 
 # Show Qdrant template
-nginx-set-conf --config_template ngx_qdrant --show_template
+nginx-set-conf --config_template qdrant --show_template
 ```
 
 #### Advanced Examples
 
 ```bash
 # Qdrant with gRPC support
-nginx-set-conf --config_template ngx_qdrant --ip 1.2.3.4 --domain vector.example.com --port 6333 --grpcport 6334 --cert_name vector.example.com
+nginx-set-conf --config_template qdrant --ip 1.2.3.4 --domain vector.example.com --port 6333 --grpcport 6334 --cert_name vector.example.com
 
 # Flowise AI server
-nginx-set-conf --config_template ngx_flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
 
 # Supabase database server
-nginx-set-conf --config_template ngx_supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
+nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
 ```
 
 ### Configuration Verification
@@ -182,7 +182,7 @@ Some internal/intranet environments require nginx listen directives without the 
 
 ```yaml
 intranet-odoo:
-  config_template: ngx_odoo_ssl
+  config_template: odoo_ssl
   ip: 192.168.1.100
   domain: dev01-a.intra.company.local
   port: 8069
@@ -194,7 +194,7 @@ intranet-odoo:
 #### Command Line Usage
 
 ```bash
-nginx-set-conf --config_template ngx_odoo_ssl \
+nginx-set-conf --config_template odoo_ssl \
   --ip 192.168.1.100 \
   --domain dev01-a.intra.company.local \
   --port 8069 \
@@ -239,13 +239,13 @@ nginx-set-conf supports optional IP-based access control to restrict access to y
 
 ```bash
 # Restrict access to specific IPs
-nginx-set-conf --config_template ngx_flowise \
+nginx-set-conf --config_template flowise \
   --ip 192.168.1.10 --domain secure.example.com --port 3000 \
   --cert_name secure.example.com \
   --allowed_ips "192.168.1.0/24,10.0.0.50,203.0.113.100"
 
 # Multiple IP formats supported
-nginx-set-conf --config_template ngx_odoo_ssl \
+nginx-set-conf --config_template odoo_ssl \
   --ip 10.0.0.5 --domain erp.company.com --port 8069 \
   --cert_name erp.company.com --pollport 8072 \
   --allowed_ips "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12"
@@ -256,7 +256,7 @@ nginx-set-conf --config_template ngx_odoo_ssl \
 ```yaml
 # Example with IP restrictions
 Secure Flowise:
-  config_template: ngx_flowise
+  config_template: flowise
   ip: 192.168.1.10
   domain: secure-flowise.example.com
   port: 3000
@@ -265,7 +265,7 @@ Secure Flowise:
 
 # Mixed authentication (IP + htaccess)
 Odoo Production:
-  config_template: ngx_odoo_ssl
+  config_template: odoo_ssl
   ip: 10.0.0.5
   domain: erp.company.com
   port: 8069
@@ -475,23 +475,23 @@ $ nginx-set-conf --help
 
 #### Unterstützte Templates
 
-- `ngx_code_server` - Code-Server mit SSL
-- `ngx_fast_report` - FastReport mit SSL
-- `ngx_flowise` - Flowise AI mit SSL/HTTP2
-- `ngx_guacamole` - Apache Guacamole mit SSL/HTTP2 und WebSocket
-- `ngx_kasm` - Kasm Workspaces mit SSL/HTTP2
-- `ngx_mailpit` - Mailpit mit SSL/HTTP2
-- `ngx_n8n` - n8n mit SSL/HTTP2
-- `ngx_nextcloud` - NextCloud mit SSL
-- `ngx_odoo_http` - Odoo nur HTTP
-- `ngx_odoo_ssl` - Odoo mit SSL
-- `ngx_pgadmin` - pgAdmin4 mit SSL
-- `ngx_portainer` - Portainer mit SSL
-- `ngx_pwa` - Progressive Web App mit SSL
-- `ngx_qdrant` - Qdrant Vektordatenbank mit SSL/HTTP2 und gRPC
-- `ngx_redirect` - Domain-Weiterleitung ohne SSL
-- `ngx_redirect_ssl` - Domain-Weiterleitung mit SSL
-- `ngx_supabase` - Supabase Datenbankserver mit SSL/HTTP2
+- `code_server` - Code-Server mit SSL
+- `fast_report` - FastReport mit SSL
+- `flowise` - Flowise AI mit SSL/HTTP2
+- `guacamole` - Apache Guacamole mit SSL/HTTP2 und WebSocket
+- `kasm` - Kasm Workspaces mit SSL/HTTP2
+- `mailpit` - Mailpit mit SSL/HTTP2
+- `n8n` - n8n mit SSL/HTTP2
+- `nextcloud` - NextCloud mit SSL
+- `odoo_http` - Odoo nur HTTP
+- `odoo_ssl` - Odoo mit SSL
+- `pgadmin` - pgAdmin4 mit SSL
+- `portainer` - Portainer mit SSL
+- `pwa` - Progressive Web App mit SSL
+- `qdrant` - Qdrant Vektordatenbank mit SSL/HTTP2 und gRPC
+- `redirect` - Domain-Weiterleitung ohne SSL
+- `redirect_ssl` - Domain-Weiterleitung mit SSL
+- `supabase` - Supabase Datenbankserver mit SSL/HTTP2
 
 #### Konfigurationsverwaltungsoptionen
 
@@ -508,36 +508,36 @@ $ nginx-set-conf --help
 nginx-set-conf --config_path server_config
 
 # Direkte Konfiguration
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --pollport 8072
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --pollport 8072
 
 # Benutzerdefinierter Zielpfad
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --target_path /tmp/nginx-test
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --target_path /tmp/nginx-test
 
 # Dry-Run-Modus
-nginx-set-conf --config_template ngx_odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --dry_run
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --dry_run
 ```
 
 #### Template-Vorschau
 
 ```bash
 # Template-Konfiguration anzeigen
-nginx-set-conf --config_template ngx_odoo_ssl --show_template
+nginx-set-conf --config_template odoo_ssl --show_template
 
 # Qdrant-Template anzeigen
-nginx-set-conf --config_template ngx_qdrant --show_template
+nginx-set-conf --config_template qdrant --show_template
 ```
 
 #### Erweiterte Beispiele
 
 ```bash
 # Qdrant mit gRPC-Unterstützung
-nginx-set-conf --config_template ngx_qdrant --ip 1.2.3.4 --domain vector.example.com --port 6333 --grpcport 6334 --cert_name vector.example.com
+nginx-set-conf --config_template qdrant --ip 1.2.3.4 --domain vector.example.com --port 6333 --grpcport 6334 --cert_name vector.example.com
 
 # Flowise AI Server
-nginx-set-conf --config_template ngx_flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
 
 # Supabase Datenbankserver
-nginx-set-conf --config_template ngx_supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
+nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
 ```
 
 ### Konfigurationsverifikation

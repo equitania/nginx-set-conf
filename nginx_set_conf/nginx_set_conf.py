@@ -7,8 +7,8 @@ pgAdmin4, Portainer, PWA, and domain redirects. It supports both HTTP and HTTPS
 configurations.
 
 Typical usage example:
-    nginx_set_conf --config_template="ngx_odoo_ssl" --domain="example.com" --ip="10.0.0.1"
-    nginx_set_conf --config_template="ngx_odoo_ssl" --domain="example.com" --target_path="/tmp/nginx/" --dry_run
+    nginx_set_conf --config_template="odoo_ssl" --domain="example.com" --ip="10.0.0.1"
+    nginx_set_conf --config_template="odoo_ssl" --domain="example.com" --target_path="/tmp/nginx/" --dry_run
 """
 
 # -*- coding: utf-8 -*-
@@ -60,21 +60,27 @@ Insert the conf-template.
 \f
 We support:\f
 \b
-- ngx_code_server (code-server with ssl)
-- ngx_fast_report (FastReport with ssl)
-- ngx_kasm (Kasm Workspaces with ssl/http2)
-- ngx_mailpit (Mailpit with ssl/http2)
-- ngx_n8n (n8n with ssl/http2)
-- ngx_nextcloud (NextCloud with ssl)
-- ngx_odoo_http (Odoo only http)
-- ngx_odoo_ssl (Odoo with ssl)
-- ngx_pgadmin (pgAdmin4 with ssl)
-- ngx_portainer (Portainer with ssl)
-- ngx_pwa (Progressive Web App with ssl)
-- ngx_qdrant (Qdrant vector database with ssl/http2 and gRPC support)
-- ngx_redirect (Redirect Domain without ssl)
-- ngx_redirect_ssl (Redirect Domain with ssl)
-- ngx_supabase (Supabase database server with ssl/http2)
+- code_server (code-server with ssl)
+- fast_report (FastReport with ssl)
+- flowise (Flowise AI with ssl/http2)
+- guacamole (Apache Guacamole with ssl/http2 and WebSocket)
+- kasm (Kasm Workspaces with ssl/http2)
+- mailpit (Mailpit with ssl/http2)
+- n8n (n8n with ssl/http2)
+- nextcloud (NextCloud with ssl)
+- odoo_http (Odoo only http)
+- odoo_ssl (Odoo with ssl)
+- pgadmin (pgAdmin4 with ssl)
+- portainer (Portainer with ssl)
+- pwa (Progressive Web App with ssl)
+- qdrant (Qdrant vector database with ssl/http2 and gRPC support)
+- redirect (Redirect Domain without ssl)
+- redirect_ssl (Redirect Domain with ssl)
+- supabase (Supabase database server with ssl/http2)
+\b
+
+Example usage:
+nginx-set-conf --config_path=/root/docker-builds/ngx-conf
 \b
 
 Configuration Management Options:

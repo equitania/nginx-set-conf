@@ -1,5 +1,18 @@
 # RELEASE NOTES
 
+## Version 1.8.0 (10.09.2025)
+
+### Breaking Changes
+- **[CHG]** Removed `ngx_` prefix from all template names for simpler usage
+  - Old: `nginx-set-conf --config_template ngx_odoo_ssl`
+  - New: `nginx-set-conf --config_template odoo_ssl`
+  - Backward compatibility maintained: old names still work
+
+### Improvements
+- **[CHG]** Simplified template naming convention
+- **[CHG]** Updated all documentation and examples
+- **[CHG]** Maintained backward compatibility for existing scripts
+
 ## Version 1.7.0 (10.09.2025)
 
 ### New Features
