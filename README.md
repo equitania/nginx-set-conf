@@ -12,7 +12,10 @@ A simple Python library that helps you create nginx configurations for different
 
 - **Template-based configuration**: Support for 15+ pre-built templates
 - **SSL/TLS support**: Automatic Let's Encrypt integration
+- **IPv6 support**: `--ip` parameter accepts both IPv4 and IPv6 addresses with automatic bracket formatting
 - **IP access restrictions**: Optional IP whitelist/blacklist functionality
+- **Input validation**: Comprehensive validation for IP, domain, port, certificate, and template parameters
+- **Security hardening**: Shell injection prevention, specific exception handling, structured logging
 - **Configuration verification**: Check consistency between local and server files
 - **Configuration verification**: Check if required nginx files exist
 - **Backup functionality**: Automatic backup of server configurations
@@ -32,6 +35,9 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install nginx-s
 
 ```bash
 pip install nginx-set-conf
+
+# Or using uv
+uv pip install nginx-set-conf
 ```
 
 ### Usage
@@ -113,6 +119,24 @@ nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.c
 
 # Supabase database server
 nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
+```
+
+#### IPv6 Support
+
+The `--ip` parameter accepts both IPv4 and IPv6 addresses. IPv6 addresses are automatically formatted with brackets in the generated nginx configuration:
+
+```bash
+# IPv6 loopback address
+nginx-set-conf --config_template odoo_ssl --ip ::1 --domain www.example.com --port 8069 --cert_name www.example.com
+
+# Full IPv6 address
+nginx-set-conf --config_template flowise --ip 2001:db8::1 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+```
+
+Generated nginx configuration with IPv6:
+
+```nginx
+proxy_pass http://[::1]:8069;
 ```
 
 ### Configuration Verification
@@ -422,12 +446,27 @@ All operations are logged to:
 - Console: INFO level
 - File: `nginx_set_conf.log` (with rotation)
 
+### Development & Testing
+
+```bash
+# Run tests
+pytest
+
+# Run with coverage
+pytest --cov=nginx_set_conf
+```
+
+The test suite includes 104 tests covering validators, utils, and templates.
+
 ### Security Aspects
 
 - **No automatic changes**: All changes require explicit confirmation
 - **Backup-first approach**: Backup recommended before configuration changes
 - **Granular control**: Individual files can be identified and handled
 - **Error handling**: Robust handling of permission and access problems
+- **Input validation**: All parameters (IP, domain, port, paths) are validated before use
+- **Shell injection prevention**: No `os.system` calls, safe subprocess handling
+- **Structured logging**: Consistent logging instead of debug prints
 
 ### License
 
@@ -443,7 +482,10 @@ Eine einfache Python-Bibliothek, die bei der Erstellung von nginx-Konfiguratione
 
 - **Template-basierte Konfiguration**: Unterstützung für 15+ vorgefertigte Templates
 - **SSL/TLS-Unterstützung**: Automatische Let's Encrypt Integration
+- **IPv6-Unterstützung**: `--ip` Parameter akzeptiert sowohl IPv4- als auch IPv6-Adressen mit automatischer Bracket-Formatierung
 - **IP-Zugriffsbeschränkungen**: Optionale IP-Whitelist/Blacklist Funktionalität
+- **Eingabevalidierung**: Umfassende Validierung für IP, Domain, Port, Zertifikat und Template-Parameter
+- **Sicherheitshärtung**: Shell-Injection-Prävention, spezifische Ausnahmebehandlung, strukturiertes Logging
 - **Konfigurationsverifikation**: Konsistenzprüfung zwischen lokalen und Server-Dateien
 - **Interaktive Synchronisation**: Synchronisation von Konfigurationen zwischen lokal und Server
 - **Backup-Funktionalität**: Automatische Sicherung von Server-Konfigurationen
@@ -463,6 +505,9 @@ Verwenden Sie den Paketmanager [pip](https://pip.pypa.io/en/stable/) zur Install
 
 ```bash
 pip install nginx-set-conf
+
+# Oder mit uv
+uv pip install nginx-set-conf
 ```
 
 ### Verwendung
@@ -538,6 +583,24 @@ nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.c
 
 # Supabase Datenbankserver
 nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
+```
+
+#### IPv6-Unterstützung
+
+Der `--ip` Parameter akzeptiert sowohl IPv4- als auch IPv6-Adressen. IPv6-Adressen werden automatisch mit Klammern in der generierten nginx-Konfiguration formatiert:
+
+```bash
+# IPv6 Loopback-Adresse
+nginx-set-conf --config_template odoo_ssl --ip ::1 --domain www.example.com --port 8069 --cert_name www.example.com
+
+# Vollständige IPv6-Adresse
+nginx-set-conf --config_template flowise --ip 2001:db8::1 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+```
+
+Generierte nginx-Konfiguration mit IPv6:
+
+```nginx
+proxy_pass http://[::1]:8069;
 ```
 
 ### Konfigurationsverifikation
@@ -702,12 +765,27 @@ Alle Operationen werden geloggt in:
 - Konsole: INFO-Level
 - Datei: `nginx_set_conf.log` (mit Rotation)
 
+### Entwicklung & Tests
+
+```bash
+# Tests ausführen
+pytest
+
+# Mit Coverage ausführen
+pytest --cov=nginx_set_conf
+```
+
+Die Test-Suite umfasst 104 Tests für Validatoren, Utils und Templates.
+
 ### Sicherheitsaspekte
 
 - **Keine automatischen Änderungen**: Alle Änderungen erfordern explizite Bestätigung
 - **Backup-First-Ansatz**: Backup vor jeder Synchronisation empfohlen
 - **Granulare Kontrolle**: Einzelne Dateien können identifiziert und behandelt werden
 - **Fehlerbehandlung**: Robuste Behandlung von Permissions- und Zugriffsproblemen
+- **Eingabevalidierung**: Alle Parameter (IP, Domain, Port, Pfade) werden vor Verwendung validiert
+- **Shell-Injection-Prävention**: Keine `os.system`-Aufrufe, sichere Subprocess-Behandlung
+- **Strukturiertes Logging**: Konsistentes Logging statt Debug-Prints
 
 ### Lizenz
 
