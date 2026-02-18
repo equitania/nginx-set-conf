@@ -65,7 +65,7 @@ server {
 
     # Qdrant API endpoints
     location / {
-        proxy_pass http://127.0.0.1:{{PORT}};
+        proxy_pass http://ip.ip.ip.ip:{{PORT}};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -99,14 +99,14 @@ server {
     # Health check endpoint
     location /health {
         access_log off;
-        proxy_pass http://127.0.0.1:{{PORT}}/healthz;
+        proxy_pass http://ip.ip.ip.ip:{{PORT}}/healthz;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
     }
     # gRPC API
     location /qdrant.v1.QdrantService/ {
-        grpc_pass grpc://127.0.0.1:{{GRPC_PORT}};
+        grpc_pass grpc://ip.ip.ip.ip:{{GRPC_PORT}};
         grpc_set_header Host $host;
         grpc_set_header X-Real-IP $remote_addr;
         

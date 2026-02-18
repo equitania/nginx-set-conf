@@ -3,6 +3,7 @@
 import os
 
 from nginx_set_conf.utils import (
+    _format_ip_for_nginx,
     _insert_after_marker,
     _replace_placeholder,
     execute_commands,
@@ -284,3 +285,115 @@ class TestExecuteCommands:
         config_file = os.path.join(target, "site1.example.com.conf")
         content = open(config_file).read()
         assert "odoo_ssl_site1_example_com" in content
+
+
+class TestFormatIpForNginx:
+    def test_ipv4_unchanged(self):
+        assert _format_ip_for_nginx("192.168.1.1") == "192.168.1.1"
+
+    def test_ipv4_localhost_unchanged(self):
+        assert _format_ip_for_nginx("127.0.0.1") == "127.0.0.1"
+
+    def test_ipv6_loopback_wrapped(self):
+        assert _format_ip_for_nginx("::1") == "[::1]"
+
+    def test_ipv6_full_wrapped(self):
+        assert _format_ip_for_nginx("2001:db8::1") == "[2001:db8::1]"
+
+    def test_ipv6_all_zeros_wrapped(self):
+        assert _format_ip_for_nginx("::") == "[::]"
+
+    def test_invalid_ip_passthrough(self):
+        assert _format_ip_for_nginx("not-an-ip") == "not-an-ip"
+
+
+class TestExecuteCommandsIPv6:
+    def test_ipv6_in_proxy_pass(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="odoo_ssl",
+            domain="test.example.com",
+            ip="::1",
+            cert_name="test.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="8069",
+            pollport="8072",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+        )
+        config_file = os.path.join(target, "test.example.com.conf")
+        content = open(config_file).read()
+        # IPv6 must be wrapped in brackets in proxy_pass URLs
+        assert "proxy_pass http://[::1]:8069" in content
+        assert "proxy_pass http://[::1]:8072" in content
+        # No unformatted IPv6 in URL contexts
+        assert "proxy_pass http://::1:" not in content
+
+    def test_ipv6_full_address_in_proxy_pass(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="flowise",
+            domain="flowise.example.com",
+            ip="2001:db8::1",
+            cert_name="flowise.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="3000",
+            pollport="",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+        )
+        config_file = os.path.join(target, "flowise.example.com.conf")
+        content = open(config_file).read()
+        assert "proxy_pass http://[2001:db8::1]:3000" in content
+
+    def test_ipv4_still_works(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="flowise",
+            domain="flowise.example.com",
+            ip="192.168.1.10",
+            cert_name="flowise.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="3000",
+            pollport="",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+        )
+        config_file = os.path.join(target, "flowise.example.com.conf")
+        content = open(config_file).read()
+        assert "proxy_pass http://192.168.1.10:3000" in content
+
+    def test_ipv6_grpc_pass(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="qdrant",
+            domain="qdrant.example.com",
+            ip="::1",
+            cert_name="qdrant.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="6333",
+            pollport="",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+            grpcport="6334",
+        )
+        config_file = os.path.join(target, "qdrant.example.com.conf")
+        content = open(config_file).read()
+        assert "proxy_pass http://[::1]:6333" in content
+        assert "grpc_pass grpc://[::1]:6334" in content

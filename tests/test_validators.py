@@ -144,6 +144,20 @@ class TestValidateAllowedIps:
         with pytest.raises(ValidationError, match="Invalid IP/CIDR"):
             validate_allowed_ips("192.168.1.1,all; deny")
 
+    def test_ipv6_cidr(self):
+        assert validate_allowed_ips("2001:db8::/32") == "2001:db8::/32"
+
+    def test_ipv6_single(self):
+        assert validate_allowed_ips("::1") == "::1"
+
+    def test_mixed_ipv4_ipv6(self):
+        result = validate_allowed_ips("192.168.1.0/24,2001:db8::/32")
+        assert result == "192.168.1.0/24,2001:db8::/32"
+
+    def test_mixed_ipv4_ipv6_with_single(self):
+        result = validate_allowed_ips("10.0.0.1,::1,192.168.1.0/24")
+        assert result == "10.0.0.1,::1,192.168.1.0/24"
+
 
 class TestValidateTargetPath:
     def test_empty_path(self):

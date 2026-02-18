@@ -76,7 +76,7 @@ server {
     # Main Guacamole location block
     location / {
         #authentication
-        proxy_pass http://127.0.0.1:{{PORT}}/guacamole/;
+        proxy_pass http://ip.ip.ip.ip:{{PORT}}/guacamole/;
         proxy_http_version 1.1;
 
         # Critical WebSocket headers for Guacamole
@@ -116,7 +116,7 @@ server {
     # Alternative path configuration (if serving from subpath)
     # Uncomment and modify if needed
     # location /remote/ {
-    #     proxy_pass http://127.0.0.1:{{PORT}}/guacamole/;
+    #     proxy_pass http://ip.ip.ip.ip:{{PORT}}/guacamole/;
     #     proxy_http_version 1.1;
     #     proxy_set_header Upgrade $http_upgrade;
     #     proxy_set_header Connection $connection_upgrade;

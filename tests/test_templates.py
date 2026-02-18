@@ -97,3 +97,38 @@ class TestGetConfigTemplate:
             assert "server.domain.de" in result or "ip.ip.ip.ip" in result, (
                 f"Template {name} missing expected placeholders"
             )
+
+
+class TestTemplateNoHardcodedIp:
+    """Regression test: no template should contain hardcoded 127.0.0.1 in proxy_pass/grpc_pass."""
+
+    def test_all_templates_use_ip_placeholder(self):
+        for name, content in TEMPLATES.items():
+            # Skip redirect templates (no proxy_pass)
+            if "redirect" in name:
+                continue
+            assert "127.0.0.1" not in content, (
+                f"Template '{name}' still contains hardcoded 127.0.0.1 - should use ip.ip.ip.ip placeholder instead"
+            )
+
+    def test_proxy_templates_have_ip_placeholder(self):
+        proxy_templates = [
+            "code_server",
+            "fast_report",
+            "flowise",
+            "guacamole",
+            "kasm",
+            "mailpit",
+            "n8n",
+            "nextcloud",
+            "odoo_http",
+            "odoo_ssl",
+            "pgadmin",
+            "portainer",
+            "pwa",
+            "qdrant",
+            "supabase",
+        ]
+        for name in proxy_templates:
+            content = TEMPLATES[name]
+            assert "ip.ip.ip.ip" in content, f"Template '{name}' missing ip.ip.ip.ip placeholder"

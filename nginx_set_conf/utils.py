@@ -14,6 +14,7 @@ Typical usage example:
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+import ipaddress
 import logging
 import os
 import re
@@ -162,6 +163,27 @@ def _run_command(args: list, dry_run: bool = False, check: bool = False) -> bool
     except FileNotFoundError:
         logger.error("Command not found: %s", args[0])
         return False
+
+
+def _format_ip_for_nginx(ip: str) -> str:
+    """Wrap IPv6 addresses in brackets for nginx URL contexts.
+
+    In nginx proxy_pass/grpc_pass directives, IPv6 addresses must be
+    enclosed in square brackets. IPv4 addresses are returned unchanged.
+
+    Args:
+        ip: IP address string (IPv4 or IPv6).
+
+    Returns:
+        Formatted IP string with brackets for IPv6.
+    """
+    try:
+        addr = ipaddress.ip_address(ip)
+        if addr.version == 6:
+            return f"[{ip}]"
+    except ValueError:
+        pass
+    return ip
 
 
 def _replace_placeholder(content: str, old: str, new: str) -> str:
@@ -368,9 +390,10 @@ def execute_commands(
         content = content.replace(f"listen {domain}:80", "listen 80")
         content = content.replace(f"listen {domain}:443", "listen 443")
 
-    # Replace IP placeholder
-    logger.info("Set ip in conf to %s", ip)
-    content = _replace_placeholder(content, default_vars["template_ip"], ip)
+    # Replace IP placeholder - with IPv6 bracket formatting for URL contexts
+    formatted_ip = _format_ip_for_nginx(ip)
+    logger.info("Set ip in conf to %s (formatted: %s)", ip, formatted_ip)
+    content = _replace_placeholder(content, default_vars["template_ip"], formatted_ip)
 
     # Handle certificate placeholders
     if cert_key:

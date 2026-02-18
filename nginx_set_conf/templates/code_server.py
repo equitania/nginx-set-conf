@@ -83,7 +83,7 @@ server {
     {
         # Connect to local port
         #authentication
-        proxy_pass http://127.0.0.1:{{PORT}};
+        proxy_pass http://ip.ip.ip.ip:{{PORT}};
     }
 }
 """

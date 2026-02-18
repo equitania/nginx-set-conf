@@ -75,7 +75,7 @@ server {
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Real-PORT $remote_port;
-        proxy_pass http://127.0.0.1:{{PORT}};
+        proxy_pass http://ip.ip.ip.ip:{{PORT}};
     }
 }
 """
