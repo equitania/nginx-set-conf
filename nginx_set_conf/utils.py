@@ -14,9 +14,17 @@ Typical usage example:
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+import logging
 import os
+import re
+import subprocess
+
 import yaml
+
 from .config_templates import get_config_template
+from .validators import ValidationError, validate_all_inputs
+
+logger = logging.getLogger("nginx_set_conf")
 
 
 def fire_all_functions(function_list: list) -> None:
@@ -57,11 +65,11 @@ def parse_yaml(yaml_file: str) -> dict:
     Raises:
         yaml.YAMLError: If the YAML file is malformed.
     """
-    with open(yaml_file, "r") as stream:
+    with open(yaml_file) as stream:
         try:
             return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
-            print(exc)
+            logger.error("YAML parse error: %s", exc)
             return False
 
 
@@ -125,11 +133,130 @@ def retrieve_valid_input(message: str) -> str:
         return retrieve_valid_input(message)
 
 
+def _run_command(args: list, dry_run: bool = False, check: bool = False) -> bool:
+    """Run a system command safely using subprocess.
+
+    Args:
+        args: Command and arguments as a list.
+        dry_run: If True, only print command without executing.
+        check: If True, raise on non-zero exit code.
+
+    Returns:
+        True if command succeeded, False otherwise.
+    """
+    cmd_str = " ".join(args)
+    if dry_run:
+        logger.info("[DRY RUN] Would execute: %s", cmd_str)
+        return True
+    try:
+        logger.info("Executing: %s", cmd_str)
+        result = subprocess.run(args, capture_output=True, text=True, check=check)
+        if result.stdout:
+            logger.debug("stdout: %s", result.stdout.strip())
+        if result.stderr:
+            logger.debug("stderr: %s", result.stderr.strip())
+        return result.returncode == 0
+    except subprocess.CalledProcessError as e:
+        logger.error("Command failed: %s (exit code %d)", cmd_str, e.returncode)
+        return False
+    except FileNotFoundError:
+        logger.error("Command not found: %s", args[0])
+        return False
+
+
+def _replace_placeholder(content: str, old: str, new: str) -> str:
+    """Replace a placeholder in template content.
+
+    Args:
+        content: Template content string.
+        old: Placeholder to replace.
+        new: Replacement value.
+
+    Returns:
+        Content with placeholder replaced.
+    """
+    return content.replace(old, new)
+
+
+def _insert_after_marker(content: str, marker: str, insert_lines: list, first_only: bool = True) -> str:
+    """Insert lines after a marker in the content.
+
+    Args:
+        content: Full content string.
+        marker: Marker string to search for.
+        insert_lines: Lines to insert after marker.
+        first_only: If True, only insert after first occurrence.
+
+    Returns:
+        Content with lines inserted after marker.
+    """
+    lines = content.split("\n")
+    new_lines = []
+    found = False
+
+    for line in lines:
+        new_lines.append(line)
+        if marker in line and (not found or not first_only):
+            new_lines.extend(insert_lines)
+            found = True
+
+    return "\n".join(new_lines)
+
+
+def _create_cert_if_needed(cert_name: str, dry_run: bool = False) -> None:
+    """Check for Let's Encrypt certificate and create if missing.
+
+    Args:
+        cert_name: Certificate/domain name.
+        dry_run: If True, only print what would be done.
+    """
+    if dry_run:
+        logger.info(
+            "[DRY RUN] Would check for and possibly create certificate for: %s",
+            cert_name,
+        )
+        return
+
+    fullchain = f"/etc/letsencrypt/live/{cert_name}/fullchain.pem"
+    privkey = f"/etc/letsencrypt/live/{cert_name}/privkey.pem"
+    cert_exists = os.path.isfile(fullchain) and os.path.isfile(privkey)
+
+    if not cert_exists:
+        _run_command(["systemctl", "stop", "nginx.service"])
+        _run_command(
+            [
+                "certbot",
+                "certonly",
+                "--standalone",
+                "--agree-tos",
+                "--register-unsafely-without-email",
+                "-d",
+                cert_name,
+            ]
+        )
+        logger.info("Certificate created for: %s", cert_name)
+
+
 def execute_commands(
-    config_template, domain, ip, cert_name, cert_key, port, pollport, redirect_domain, auth_file, allowed_ips,
-    target_path=None, dry_run=False, grpcport=None, disable_domain_listen=False
+    config_template,
+    domain,
+    ip,
+    cert_name,
+    cert_key,
+    port,
+    pollport,
+    redirect_domain,
+    auth_file,
+    allowed_ips,
+    target_path=None,
+    dry_run=False,
+    grpcport=None,
+    disable_domain_listen=False,
 ):
     """Generates and deploys Nginx config files based on input parameters.
+
+    All placeholder replacements are performed in-memory using Python string
+    operations. No shell commands (sed) are used for text manipulation.
 
     Args:
         config_template: Template name for Nginx configuration.
@@ -142,431 +269,175 @@ def execute_commands(
         redirect_domain: Redirect domain for Nginx configuration (optional).
         auth_file: Authentication file for Nginx configuration (optional).
         allowed_ips: Comma-separated list of allowed IPs/CIDR blocks (optional).
-        target_path: Custom target path for generated configs (optional, default is /etc/nginx/conf.d).
-        dry_run: If True, display commands without executing them (optional, default is False).
-        grpcport: gRPC port number for Nginx configuration (optional, used by Qdrant template).
+        target_path: Custom target path for generated configs (optional).
+        dry_run: If True, display commands without executing them.
+        grpcport: gRPC port number for Nginx configuration (optional).
+        disable_domain_listen: If True, remove domain prefix from listen directives.
     """
+    # Validate all inputs
+    try:
+        validate_all_inputs(
+            config_template=config_template,
+            domain=domain,
+            ip=ip,
+            port=port or "",
+            cert_name=cert_name or "",
+            cert_key=cert_key or "",
+            pollport=pollport or "",
+            grpcport=grpcport or "",
+            redirect_domain=redirect_domain or "",
+            auth_file=auth_file or "",
+            allowed_ips=allowed_ips or "",
+            target_path=target_path or "",
+        )
+    except ValidationError as e:
+        logger.error("Input validation failed: %s", e)
+        print(f"ERROR: {e}")
+        return
+
     # Get default vars
     default_vars = get_default_vars()
     server_path = target_path if target_path else default_vars["server_path"]
-    template_domain = default_vars["template_domain"]
-    template_ip = default_vars["template_ip"]
-    template_crt = default_vars["template_crt"]
-    template_key = default_vars["template_key"]
-    template_self_crt = default_vars["template_self_crt"]
-    template_self_key = default_vars["template_self_key"]
-    template_port = default_vars["template_port"]
-    template_poll_port = default_vars["template_poll_port"]
-    template_grpc_port = default_vars["template_grpc_port"]
-    template_redirect_domain = default_vars["template_redirect_domain"]
-    
+
     # Create target directory if it doesn't exist
     if not dry_run and target_path and not os.path.exists(target_path):
         os.makedirs(target_path, exist_ok=True)
-        print(f"Created directory: {target_path}")
-    
-    # Service name is now directly the template name without prefix
+        logger.info("Created directory: %s", target_path)
+
+    # Service name is directly the template name
     service_name = config_template
-    
-    # Create unique cache directory if needed
-    # Use domain in the cache path to ensure uniqueness
+
+    # Create unique cache directory based on domain
     if domain:
-        domain_id = domain.replace('.', '_')
+        domain_id = domain.replace(".", "_")
         unique_id = f"{service_name}_{domain_id}"
     else:
         unique_id = service_name
-    
+
     cache_dir = f"/var/cache/nginx/{unique_id}"
-    print(f"Using domain-specific cache path: {cache_dir}")
-    
+    logger.info("Using domain-specific cache path: %s", cache_dir)
+
     if not dry_run and not os.path.exists(cache_dir):
         try:
             os.makedirs(cache_dir, exist_ok=True)
-            print(f"Created cache directory: {cache_dir}")
-            # Set proper permissions for nginx
-            os.system(f"chown -R nginx:nginx {cache_dir}")
-            os.system(f"chmod -R 755 {cache_dir}")
-            print(f"Set permissions for: {cache_dir}")
+            logger.info("Created cache directory: %s", cache_dir)
+            _run_command(["chown", "-R", "nginx:nginx", cache_dir])
+            _run_command(["chmod", "-R", "755", cache_dir])
         except Exception as e:
-            print(f"Warning: Could not create cache directory: {e}")
+            logger.warning("Could not create cache directory: %s", e)
     elif dry_run:
-        print(f"[DRY RUN] Would create cache directory: {cache_dir}")
-    
-    # Get config templates with domain-specific cache paths
-    print(f"Generating domain-specific template for {domain} using {config_template}")
-    config_template_content = get_config_template(config_template, domain)
-    
-    # Debug info: Print the proxy_cache_path line from the template
-    for line in config_template_content.split('\n'):
-        if 'proxy_cache_path' in line:
-            print(f"DEBUG - Cache path in template: {line}")
-    
-    if config_template_content:
-        current_path = os.path.dirname(os.path.realpath(__file__))
-        file_path = current_path + "/" + config_template + ".conf"
-        with open(file_path, "w") as f:
-            f.write(config_template_content)
-            
-        # Debug info: Verify cache path in written file
-        with open(file_path, "r") as f:
-            for line in f:
-                if 'proxy_cache_path' in line:
-                    print(f"DEBUG - Cache path in written file: {line.strip()}")
-        
-        # DIRECT FIX: Ensure the cache path is correctly set in the file
-        # This is a very direct approach to ensure the path is correct
-        import re
-        with open(file_path, "r") as f:
-            content = f.read()
-        
-        # Create a more robust replacement for cache paths
-        domain_safe = domain.replace('.', '_')
-        unique_id = f"{service_name}_{domain_safe}"
-        
-        # Directly replace any proxy_cache_path that matches the pattern, regardless of content
-        content = re.sub(
-            r'proxy_cache_path\s+/var/cache/nginx/[^\s]+', 
-            f'proxy_cache_path /var/cache/nginx/{unique_id}',
-            content
-        )
-        
-        # Specifically fix the keys_zone= parameter in proxy_cache_path lines only
-        content = re.sub(
-            r'(proxy_cache_path\s+[^\s]+\s+[^;]*keys_zone=)[^\s:]+:', 
-            f'\\1{unique_id}_cache:',
-            content
-        )
-        
-        # Specifically fix the zone= parameter in limit_req_zone lines only
-        content = re.sub(
-            r'(limit_req_zone\s+[^\s]+\s+zone=)[^\s:]+:', 
-            f'\\1{unique_id}_ratelimit:',
-            content
-        )
-        
-        # Fix any limit_req directives referencing the zone
-        content = re.sub(
-            r'(limit_req\s+zone=)[^\s;]+', 
-            f'\\1{unique_id}_ratelimit',
-            content
-        )
-        
-        # Write the updated content back
-        with open(file_path, "w") as f:
-            f.write(content)
-            print("Direct cache path fix applied to configuration")
-            
-        # Verify the fix
-        with open(file_path, "r") as f:
-            for line in f:
-                if 'proxy_cache_path' in line or 'keys_zone=' in line or 'zone=' in line:
-                    print(f"FIXED - Line: {line.strip()}")
-        
-        # copy command
-        eq_display_message = (
-            "Copy " + file_path + " " + server_path + "/" + domain + ".conf"
-        )
-        eq_copy_command = "cp " + file_path + " " + server_path + "/" + domain + ".conf"
-        print(eq_display_message.rstrip("\n"))
-        if not dry_run:
-            os.system(eq_copy_command)
-            print(eq_copy_command.rstrip("\n"))
-            os.remove(file_path)
-            
-            # VERIFY final configuration
-            final_config_path = server_path + "/" + domain + ".conf"
-            if os.path.exists(final_config_path):
-                print(f"Verifying cache path in the final config: {final_config_path}")
-                with open(final_config_path, "r") as f:
-                    for line in f:
-                        if 'proxy_cache_path' in line:
-                            print(f"FINAL CONFIG - Cache path: {line.strip()}")
-        else:
-            print(f"[DRY RUN] Would execute: {eq_copy_command}")
-    else:
+        logger.info("[DRY RUN] Would create cache directory: %s", cache_dir)
+
+    # Get template content with domain-specific cache paths
+    logger.info("Generating domain-specific template for %s using %s", domain, config_template)
+    content = get_config_template(config_template, domain)
+    if not content:
+        logger.error("No valid config template found for: %s", config_template)
         print("No valid config template")
         return
 
-    # send command - domain
-    eq_display_message = "Set domain name in conf to " + domain
-    eq_set_domain_cmd = (
-        "sed -i 's|"
-        + template_domain
-        + "|"
-        + domain
-        + "|g' "
-        + server_path
-        + "/"
-        + domain
-        + ".conf"
+    # Apply cache path fix with regex (domain-specific unique IDs)
+    content = re.sub(
+        r"proxy_cache_path\s+/var/cache/nginx/[^\s]+",
+        f"proxy_cache_path /var/cache/nginx/{unique_id}",
+        content,
     )
-    print(eq_display_message.rstrip("\n"))
-    if not dry_run:
-        os.system(eq_set_domain_cmd)
-        print(eq_set_domain_cmd.rstrip("\n"))
-    else:
-        print(f"[DRY RUN] Would execute: {eq_set_domain_cmd}")
+    content = re.sub(
+        r"(proxy_cache_path\s+[^\s]+\s+[^;]*keys_zone=)[^\s:]+:",
+        f"\\1{unique_id}_cache:",
+        content,
+    )
+    content = re.sub(
+        r"(limit_req_zone\s+[^\s]+\s+zone=)[^\s:]+:",
+        f"\\1{unique_id}_ratelimit:",
+        content,
+    )
+    content = re.sub(
+        r"(limit_req\s+zone=)[^\s;]+",
+        f"\\1{unique_id}_ratelimit",
+        content,
+    )
 
-    # Handle disable_domain_listen parameter - remove domain from listen directives
+    # Replace domain placeholder
+    logger.info("Set domain name in conf to %s", domain)
+    content = _replace_placeholder(content, default_vars["template_domain"], domain)
+
+    # Handle disable_domain_listen (must be AFTER domain replacement)
     if disable_domain_listen:
-        eq_display_message = "Removing domain prefix from listen directives (for intranet systems)"
-        print(eq_display_message.rstrip("\n"))
-        
-        # Remove domain prefix from HTTP listen directive (e.g., "listen domain.com:80" -> "listen 80")
-        eq_remove_domain_http_cmd = (
-            "sed -i 's|listen " + domain + ":80|listen 80|g' " 
-            + server_path + "/" + domain + ".conf"
-        )
-        
-        # Remove domain prefix from HTTPS listen directive (e.g., "listen domain.com:443" -> "listen 443")
-        eq_remove_domain_https_cmd = (
-            "sed -i 's|listen " + domain + ":443|listen 443|g' " 
-            + server_path + "/" + domain + ".conf"
-        )
-        
-        if not dry_run:
-            os.system(eq_remove_domain_http_cmd)
-            print(eq_remove_domain_http_cmd.rstrip("\n"))
-            os.system(eq_remove_domain_https_cmd)
-            print(eq_remove_domain_https_cmd.rstrip("\n"))
-        else:
-            print(f"[DRY RUN] Would execute: {eq_remove_domain_http_cmd}")
-            print(f"[DRY RUN] Would execute: {eq_remove_domain_https_cmd}")
+        logger.info("Removing domain prefix from listen directives (for intranet systems)")
+        content = content.replace(f"listen {domain}:80", "listen 80")
+        content = content.replace(f"listen {domain}:443", "listen 443")
 
-    # send command - ip
-    eq_display_message = "Set ip in conf to " + ip
-    eq_set_ip_cmd = (
-        "sed -i 's|" + template_ip + "|" + ip + "|g' " + server_path + "/" + domain + ".conf"
-    )
-    print(eq_display_message.rstrip("\n"))
-    if not dry_run:
-        os.system(eq_set_ip_cmd)
-        print(eq_set_ip_cmd.rstrip("\n"))
-    else:
-        print(f"[DRY RUN] Would execute: {eq_set_ip_cmd}")
+    # Replace IP placeholder
+    logger.info("Set ip in conf to %s", ip)
+    content = _replace_placeholder(content, default_vars["template_ip"], ip)
 
-    if cert_key != "":
-        template_crt = template_self_crt
-        template_key = template_self_key
+    # Handle certificate placeholders
+    if cert_key:
+        # Self-signed or purchased certificate
+        logger.info("Set cert name in conf to %s", cert_name)
+        content = _replace_placeholder(content, default_vars["template_self_crt"], cert_name)
+        content = _replace_placeholder(content, default_vars["template_self_key"], cert_key)
     else:
+        # Let's Encrypt certificate
         cert_key = cert_name
+        logger.info("Set cert name in conf to %s", cert_name)
+        content = _replace_placeholder(content, default_vars["template_crt"], cert_name)
+        content = _replace_placeholder(content, default_vars["template_key"], cert_key)
 
-    # send command - cert, key
-    eq_display_message = "Set cert name in conf to " + cert_name
-    eq_set_cert_cmd = (
-        "sed -i 's|"
-        + template_crt
-        + "|"
-        + cert_name
-        + "|g' "
-        + server_path
-        + "/"
-        + domain
-        + ".conf"
-    )
-    eq_set_key_cmd = (
-        "sed -i 's|"
-        + template_key
-        + "|"
-        + cert_key
-        + "|g' "
-        + server_path
-        + "/"
-        + domain
-        + ".conf"
-    )
-    print(eq_display_message.rstrip("\n"))
-    if not dry_run:
-        os.system(eq_set_cert_cmd)
-        print(eq_set_cert_cmd.rstrip("\n"))
-        os.system(eq_set_key_cmd)
-        print(eq_set_key_cmd.rstrip("\n"))
-    else:
-        print(f"[DRY RUN] Would execute: {eq_set_cert_cmd}")
-        print(f"[DRY RUN] Would execute: {eq_set_key_cmd}")
-
-    # Letsencrypt - skip certificate creation during dry run
-    if cert_key == cert_name and not dry_run:
-        # Search for certificate and create it when it does not exist
-        cert_exists = os.path.isfile(
-            "/etc/letsencrypt/live/" + cert_name + "/fullchain.pem"
-        ) and os.path.isfile("/etc/letsencrypt/live/" + cert_name + "/privkey.pem")
-        if not cert_exists:
-            os.system("systemctl stop nginx.service")
-            eq_create_cert = (
-                "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d "
-                + cert_name
-            )
-            os.system(eq_create_cert)
-            print(eq_create_cert.rstrip("\n"))
-    elif cert_key == cert_name and dry_run:
-        print(f"[DRY RUN] Would check for and possibly create certificate for: {cert_name}")
-
-    # send command - port
+    # Replace port placeholder
     if port:
-        eq_display_message = "Set port in conf to " + port
-        eq_set_port_cmd = (
-            "sed -i 's|"
-            + template_port
-            + "|"
-            + port
-            + "|g' "
-            + server_path
-            + "/"
-            + domain
-            + ".conf"
-        )
-        print(eq_display_message.rstrip("\n"))
-        if not dry_run:
-            os.system(eq_set_port_cmd)
-            print(eq_set_port_cmd.rstrip("\n"))
-        else:
-            print(f"[DRY RUN] Would execute: {eq_set_port_cmd}")
+        logger.info("Set port in conf to %s", port)
+        content = _replace_placeholder(content, default_vars["template_port"], port)
 
-    # send command - poll port
+    # Replace poll port placeholder
     if pollport:
-        eq_display_message = "Set poll port in conf to " + pollport
-        eq_set_poll_port_cmd = (
-            "sed -i 's|"
-            + template_poll_port
-            + "|"
-            + pollport
-            + "|g' "
-            + server_path
-            + "/"
-            + domain
-            + ".conf"
-        )
-        print(eq_display_message.rstrip("\n"))
-        if not dry_run:
-            os.system(eq_set_poll_port_cmd)
-            print(eq_set_poll_port_cmd.rstrip("\n"))
-        else:
-            print(f"[DRY RUN] Would execute: {eq_set_poll_port_cmd}")
-            
-    # send command - grpc port
+        logger.info("Set poll port in conf to %s", pollport)
+        content = _replace_placeholder(content, default_vars["template_poll_port"], pollport)
+
+    # Replace gRPC port placeholder
     if grpcport:
-        eq_display_message = "Set gRPC port in conf to " + grpcport
-        eq_set_grpc_port_cmd = (
-            "sed -i 's|"
-            + template_grpc_port
-            + "|"
-            + grpcport
-            + "|g' "
-            + server_path
-            + "/"
-            + domain
-            + ".conf"
-        )
-        print(eq_display_message.rstrip("\n"))
-        if not dry_run:
-            os.system(eq_set_grpc_port_cmd)
-            print(eq_set_grpc_port_cmd.rstrip("\n"))
-        else:
-            print(f"[DRY RUN] Would execute: {eq_set_grpc_port_cmd}")
+        logger.info("Set gRPC port in conf to %s", grpcport)
+        content = _replace_placeholder(content, default_vars["template_grpc_port"], grpcport)
 
-    # authentication
-    eq_display_message = "Try set auth file to " + auth_file
-    print(eq_display_message.rstrip("\n"))
+    # Handle authentication
     if auth_file:
-        eq_display_message = "Set auth file to " + auth_file
-        print(eq_display_message.rstrip("\n"))
-        _filename = server_path + "/" + domain + ".conf"
-        
-        if not dry_run:
-            with open(_filename, "r", encoding="utf-8") as _file:
-                _data = _file.readlines()
-        
-            # Find the index of the line containing #authentication and add 1 to insert after this line
-            insertion_index = None
-            for i, line in enumerate(_data):
-                if '#authentication' in line:  # Check if this is the line we're looking for
-                    insertion_index = i + 1
-                    break
-        
-            # If the marker was found, insert the authentication lines after it
-            if insertion_index is not None:
-                _data.insert(insertion_index, '        auth_basic       "Restricted Area";' + "\n")
-                _data.insert(insertion_index + 1, "        auth_basic_user_file  " + auth_file + ";" + "\n")
-        
-            with open(_filename, "w", encoding="utf-8") as _file:
-                _file.writelines(_data)
-        else:
-            print(f"[DRY RUN] Would add authentication settings using: {auth_file}")
+        logger.info("Set auth file to %s", auth_file)
+        auth_lines = [
+            '        auth_basic       "Restricted Area";',
+            f"        auth_basic_user_file  {auth_file};",
+        ]
+        content = _insert_after_marker(content, "#authentication", auth_lines)
 
-    # IP restrictions processing - only if allowed_ips parameter is provided
+    # Handle IP restrictions
     if allowed_ips:
-        eq_display_message = f"Set IP restrictions to {allowed_ips}"
-        print(eq_display_message.rstrip("\n"))
-        _filename = server_path + "/" + domain + ".conf"
-        
-        if not dry_run:
-            with open(_filename, "r", encoding="utf-8") as _file:
-                _data = _file.readlines()
-        
-            # Find the index of the line containing #ip_restrictions and add 1 to insert after this line
-            insertion_index = None
-            for i, line in enumerate(_data):
-                if '#ip_restrictions' in line:  # Check if this is the line we're looking for
-                    insertion_index = i + 1
-                    break
-        
-            # If the marker was found, insert the IP restriction lines after it
-            if insertion_index is not None:
-                # Add comment and IP restrictions
-                _data.insert(insertion_index, '    # IP restrictions\n')
-                insertion_index += 1
-                
-                # Parse and insert each IP/CIDR block
-                for ip_entry in allowed_ips.split(','):
-                    ip_entry = ip_entry.strip()
-                    if ip_entry:  # Only add non-empty entries
-                        _data.insert(insertion_index, f'    allow {ip_entry};\n')
-                        insertion_index += 1
-                
-                # Add deny all at the end
-                _data.insert(insertion_index, '    deny all;\n')
-        
-            with open(_filename, "w", encoding="utf-8") as _file:
-                _file.writelines(_data)
-        else:
-            print(f"[DRY RUN] Would add IP restrictions: {allowed_ips}")
+        logger.info("Set IP restrictions to %s", allowed_ips)
+        ip_lines = ["    # IP restrictions"]
+        for ip_entry in allowed_ips.split(","):
+            ip_entry = ip_entry.strip()
+            if ip_entry:
+                ip_lines.append(f"    allow {ip_entry};")
+        ip_lines.append("    deny all;")
+        content = _insert_after_marker(content, "#ip_restrictions", ip_lines)
 
+    # Handle redirect domain
     if "redirect" in config_template and redirect_domain:
-        # send command - redirect domain
-        eq_display_message = "Set redirect domain in conf to " + redirect_domain
-        eq_set_redirect_cmd = (
-            "sed -i 's|"
-            + template_redirect_domain
-            + "|"
-            + redirect_domain
-            + "|g' "
-            + server_path
-            + "/"
-            + domain
-            + ".conf"
-        )
-        print(eq_display_message.rstrip("\n"))
-        if not dry_run:
-            os.system(eq_set_redirect_cmd)
-            print(eq_set_redirect_cmd.rstrip("\n"))
-        else:
-            print(f"[DRY RUN] Would execute: {eq_set_redirect_cmd}")
+        logger.info("Set redirect domain in conf to %s", redirect_domain)
+        content = _replace_placeholder(content, default_vars["template_redirect_domain"], redirect_domain)
 
-    # Search for certificate and create it when it does not exist
-    if "redirect_ssl" in config_template and redirect_domain and not dry_run:
-        cert_exists = os.path.isfile(
-            "/etc/letsencrypt/live/" + redirect_domain + "/fullchain.pem"
-        ) and os.path.isfile(
-            "/etc/letsencrypt/live/" + redirect_domain + "/privkey.pem"
-        )
-        if not cert_exists:
-            os.system("systemctl stop nginx.service")
-            eq_create_cert = (
-                "certbot certonly --standalone --agree-tos --register-unsafely-without-email -d "
-                + redirect_domain
-            )
-            os.system(eq_create_cert)
-            print(eq_create_cert.rstrip("\n"))
-    elif "redirect_ssl" in config_template and redirect_domain and dry_run:
-        print(f"[DRY RUN] Would check for and possibly create certificate for redirect domain: {redirect_domain}")
+    # Write final configuration to target
+    target_file = os.path.join(server_path, f"{domain}.conf")
+    if not dry_run:
+        logger.info("Writing configuration to %s", target_file)
+        with open(target_file, "w", encoding="utf-8") as f:
+            f.write(content)
+    else:
+        logger.info("[DRY RUN] Would write configuration to %s", target_file)
+
+    # Handle Let's Encrypt certificate creation
+    if cert_key == cert_name:
+        _create_cert_if_needed(cert_name, dry_run)
+
+    # Handle redirect SSL certificate
+    if "redirect_ssl" in config_template and redirect_domain:
+        _create_cert_if_needed(redirect_domain, dry_run)

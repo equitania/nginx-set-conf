@@ -15,29 +15,49 @@ Typical usage example:
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-import os
-import click
 import logging
+import os
+import subprocess
 from logging.handlers import RotatingFileHandler
-from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
+
+import click
+
 from . import __version__
 from .config_templates import get_config_template
 from .config_verification import ConfigVerification
+from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
 
 # Setup logging
-logger = logging.getLogger('nginx_set_conf')
+logger = logging.getLogger("nginx_set_conf")
 logger.setLevel(logging.INFO)
 
 # Create handlers
 console_handler = logging.StreamHandler()
-file_handler = RotatingFileHandler(
-    'nginx_set_conf.log',
-    maxBytes=1024*1024,  # 1MB
-    backupCount=3
-)
+
+# Use /var/log path when running as root, otherwise current directory
+_log_dir = "/var/log/nginx_set_conf"
+if os.getuid() == 0:
+    os.makedirs(_log_dir, exist_ok=True)
+    _log_path = os.path.join(_log_dir, "nginx_set_conf.log")
+else:
+    _log_path = "nginx_set_conf.log"
+
+try:
+    file_handler = RotatingFileHandler(
+        _log_path,
+        maxBytes=1024 * 1024,  # 1MB
+        backupCount=3,
+    )
+except (PermissionError, OSError):
+    # Fallback to current directory if log dir is not writable
+    file_handler = RotatingFileHandler(
+        "nginx_set_conf.log",
+        maxBytes=1024 * 1024,
+        backupCount=3,
+    )
 
 # Create formatters and add it to handlers
-log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+log_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(log_format)
 file_handler.setFormatter(log_format)
 
@@ -47,13 +67,37 @@ logger.addHandler(file_handler)
 
 __version__ = __version__
 
+
 def welcome():
     logger.info("Welcome to the nginx_set_conf!")
-    logger.info(f"Version {__version__}")
+    logger.info("Version %s", __version__)
     logger.info("Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany")
     logger.info("License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).")
     logger.info('nginx_set_conf  --config_path="$HOME/docker-builds/ngx-conf/"')
-    
+
+
+def _run_service_command(args: list, dry_run: bool = False) -> None:
+    """Run a system service command safely using subprocess.
+
+    Args:
+        args: Command and arguments as a list.
+        dry_run: If True, only log what would be done.
+    """
+    cmd_str = " ".join(args)
+    if dry_run:
+        logger.info("[DRY RUN] Would execute: %s", cmd_str)
+        return
+    try:
+        logger.info("Executing: %s", cmd_str)
+        result = subprocess.run(args, capture_output=True, text=True)
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+    except FileNotFoundError:
+        logger.error("Command not found: %s", args[0])
+
+
 # Help text conf
 eq_config_support = """
 Insert the conf-template.
@@ -85,7 +129,7 @@ nginx-set-conf --config_path=/root/docker-builds/ngx-conf
 
 Configuration Management Options:
 - --verify_config: Check consistency between local and server config files
-- --sync_config: Interactive sync of configuration files 
+- --sync_config: Interactive sync of configuration files
 - --backup_config: Create backup of current server configuration
 \b
 """
@@ -94,18 +138,41 @@ Configuration Management Options:
 @click.command(help=f"nginx-set-conf {__version__} - Command-line interface for configuring Nginx servers")
 @click.version_option(version=__version__)
 @click.option("--config_template", help=eq_config_support)
-@click.option("--show_template", is_flag=True, help="Show the template configuration without applying it")
+@click.option(
+    "--show_template",
+    is_flag=True,
+    help="Show the template configuration without applying it",
+)
 @click.option("--ip", help="IP address of the server")
 @click.option("--domain", help="Name of the domain")
 @click.option("--port", help="Primary port for the Docker container")
-@click.option("--cert_name", help="Name of certificate if you want to use letsencrypt - complete path for self signed or purchased certificates")
-@click.option("--cert_key", help="Name and path of certificate key - for self signed or purchased certificates - leave empty for letsencrypt")
-@click.option("--pollport", help="Secondary Docker container port for odoo pollings")
-@click.option("--grpcport", help="Secondary Docker container port for qdrant grpc")
+@click.option(
+    "--cert_name",
+    help="Name of certificate if you want to use letsencrypt - complete path for self signed or purchased certificates",
+)
+@click.option(
+    "--cert_key",
+    help="Name and path of certificate key - for self signed or purchased certificates - leave empty for letsencrypt",
+)
+@click.option(
+    "--pollport",
+    help="Secondary Docker container port for odoo pollings",
+)
+@click.option(
+    "--grpcport",
+    help="Secondary Docker container port for qdrant grpc",
+)
 @click.option("--redirect_domain", help="Redirect domain")
 @click.option("--auth_file", help="Use authfile for htAccess")
-@click.option("--allowed_ips", help="Comma-separated list of allowed IPs/CIDR blocks (e.g., '192.168.1.0/24,10.0.0.50')")
-@click.option("--disable_domain_listen", is_flag=True, help="Disable domain prefix in listen directives (for intranet systems)")
+@click.option(
+    "--allowed_ips",
+    help="Comma-separated list of allowed IPs/CIDR blocks (e.g., '192.168.1.0/24,10.0.0.50')",
+)
+@click.option(
+    "--disable_domain_listen",
+    is_flag=True,
+    help="Disable domain prefix in listen directives (for intranet systems)",
+)
 @click.option(
     "--config_path",
     help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"',
@@ -159,7 +226,7 @@ def start_nginx_set_conf(
     if verify_config or sync_config or backup_config:
         welcome()
         verifier = ConfigVerification()
-        
+
         if backup_config:
             logger.info("Creating backup of current server configuration...")
             if verifier.backup_configuration():
@@ -167,12 +234,12 @@ def start_nginx_set_conf(
             else:
                 logger.error("Backup failed")
             return
-        
+
         if verify_config or sync_config:
             logger.info("Verifying nginx configuration files...")
             results = verifier.verify_configuration_consistency()
             verifier.show_verification_results(results)
-            
+
             if sync_config:
                 logger.info("Starting configuration synchronization...")
                 if verifier.sync_configurations(results):
@@ -184,17 +251,17 @@ def start_nginx_set_conf(
                 else:
                     logger.info("Configuration sync cancelled or failed")
             return
-    
+
     # Add new template display logic
     if show_template and config_template:
         # For display purposes, we don't need domain-specific paths
         template_content = get_config_template(config_template)
         if template_content:
-            logger.info(f"\nTemplate for {config_template}:\n")
+            logger.info("Template for %s:", config_template)
             print(template_content)
             return
         else:
-            logger.error(f"Template {config_template} not found!")
+            logger.error("Template %s not found!", config_template)
             return
 
     if dry_run:
@@ -203,8 +270,8 @@ def start_nginx_set_conf(
 
     if not dry_run:
         logger.info("Starting nginx service")
-        os.system("systemctl start nginx.service")
-        
+        _run_service_command(["systemctl", "start", "nginx.service"])
+
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
@@ -212,51 +279,25 @@ def start_nginx_set_conf(
                 config_template = yaml_config["config_template"]
                 ip = yaml_config["ip"]
                 domain = yaml_config["domain"]
-                try:
-                    port = str(yaml_config["port"])
-                except:
-                    port = ""
-                try:
-                    cert_name = yaml_config["cert_name"]
-                except:
-                    cert_name = ""
-                try:
-                    cert_key = yaml_config["cert_key"]
-                except:
-                    cert_key = ""
-                try:
-                    pollport = str(yaml_config["pollport"])
-                except:
-                    pollport = ""
-                try:
-                    grpcport = str(yaml_config["grpcport"])
-                except:
-                    grpcport = ""
-                try:
-                    redirect_domain = str(yaml_config["redirect_domain"])
-                except:
-                    redirect_domain = ""
-                try:
-                    auth_file = str(yaml_config["auth_file"])
-                except:
-                    auth_file = ""
-                try:
-                    allowed_ips = str(yaml_config["allowed_ips"])
-                except:
-                    allowed_ips = ""
-                try:
-                    yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
-                except:
-                    yaml_disable_domain_listen = False
-                try:
-                    yaml_target_path = str(yaml_config["target_path"])
-                except:
+                port = str(yaml_config.get("port", ""))
+                cert_name = yaml_config.get("cert_name", "")
+                cert_key = yaml_config.get("cert_key", "")
+                pollport = str(yaml_config.get("pollport", ""))
+                grpcport = str(yaml_config.get("grpcport", ""))
+                redirect_domain = str(yaml_config.get("redirect_domain", ""))
+                auth_file = str(yaml_config.get("auth_file", ""))
+                allowed_ips = str(yaml_config.get("allowed_ips", ""))
+                yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
+                yaml_target_path = str(yaml_config.get("target_path", ""))
+                if not yaml_target_path:
                     yaml_target_path = target_path
-                
-                # Debug log for domain-specific cache paths
-                logger.info(f"Generating configuration for {domain} using template {config_template}")
-                logger.info(f"This will use domain-specific cache paths to avoid conflicts")
-                    
+
+                logger.info(
+                    "Generating configuration for %s using template %s",
+                    domain,
+                    config_template,
+                )
+
                 execute_commands(
                     config_template,
                     domain,
@@ -274,10 +315,12 @@ def start_nginx_set_conf(
                     yaml_disable_domain_listen,
                 )
     elif config_template and ip and domain and port and cert_name:
-        # Debug log for domain-specific cache paths
-        logger.info(f"Generating configuration for {domain} using template {config_template}")
-        logger.info(f"This will use domain-specific cache paths to avoid conflicts")
-        
+        logger.info(
+            "Generating configuration for %s using template %s",
+            domain,
+            config_template,
+        )
+
         execute_commands(
             config_template,
             domain,
@@ -296,24 +339,24 @@ def start_nginx_set_conf(
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
-        ip = retrieve_valid_input("IP address of the server" + "\n")
-        domain = retrieve_valid_input("Name of the domain" + "\n")
-        port = retrieve_valid_input("Primary port for the Docker container" + "\n")
-        cert_name = retrieve_valid_input("Name of certificate" + "\n")
-        pollport = retrieve_valid_input(
-            "Secondary Docker container port for odoo pollings" + "\n"
+        ip = retrieve_valid_input("IP address of the server\n")
+        domain = retrieve_valid_input("Name of the domain\n")
+        port = retrieve_valid_input("Primary port for the Docker container\n")
+        cert_name = retrieve_valid_input("Name of certificate\n")
+        pollport = retrieve_valid_input("Secondary Docker container port for odoo pollings\n")
+        grpcport = retrieve_valid_input("Secondary Docker container port for qdrant gRPC\n")
+        redirect_domain = retrieve_valid_input("Redirect domain\n")
+        auth_file = retrieve_valid_input("authfile\n")
+        allowed_ips = retrieve_valid_input("Allowed IPs (comma-separated, optional)\n")
+        disable_domain_listen_input = retrieve_valid_input(
+            "Disable domain prefix in listen directives? (yes/no, optional)\n"
         )
-        grpcport = retrieve_valid_input(
-            "Secondary Docker container port for qdrant gRPC" + "\n"
+        disable_domain_listen = (
+            disable_domain_listen_input.lower() in ["yes", "y", "true", "1"] if disable_domain_listen_input else False
         )
-        redirect_domain = retrieve_valid_input("Redirect domain" + "\n")
-        auth_file = retrieve_valid_input("authfile" + "\n")
-        allowed_ips = retrieve_valid_input("Allowed IPs (comma-separated, optional)" + "\n")
-        disable_domain_listen_input = retrieve_valid_input("Disable domain prefix in listen directives? (yes/no, optional)" + "\n")
-        disable_domain_listen = disable_domain_listen_input.lower() in ['yes', 'y', 'true', '1'] if disable_domain_listen_input else False
-        custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)" + "\n")
+        custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)\n")
         target_path = custom_target_path if custom_target_path else target_path
-        
+
         execute_commands(
             config_template,
             domain,
@@ -330,17 +373,16 @@ def start_nginx_set_conf(
             grpcport,
             disable_domain_listen,
         )
-    
+
     if not dry_run:
-        # Restart and check the nginx service
         logger.info("Restarting nginx service")
-        os.system("systemctl restart nginx.service")
+        _run_service_command(["systemctl", "restart", "nginx.service"])
         logger.info("Checking nginx service status")
-        os.system("systemctl status nginx.service")
+        _run_service_command(["systemctl", "status", "nginx.service"])
         logger.info("Testing nginx configuration")
-        os.system("nginx -t")
+        _run_service_command(["nginx", "-t"])
         logger.info("Checking nginx version")
-        os.system("nginx -V")
+        _run_service_command(["nginx", "-V"])
     else:
         logger.info("DRY RUN COMPLETED: Configuration would have been generated but not applied")
         logger.info("To apply the configuration, run again without the --dry_run flag")

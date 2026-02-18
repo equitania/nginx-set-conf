@@ -73,15 +73,16 @@ config_template_dict = {
     "supabase": all_get_config_template("supabase"),
 }
 
+
 # Keeping the function for backward compatibility
 def get_config_template(config_template_name, domain=None):
     """
     Get template by name (legacy function for backward compatibility).
-    
+
     Args:
         config_template_name (str): Name of the template to retrieve
         domain (str, optional): Domain name to create unique cache paths
-        
+
     Returns:
         str: Template content or empty string if not found
     """

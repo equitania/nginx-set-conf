@@ -23,4 +23,4 @@ server {
     access_log /var/log/nginx/target.domain.de-access.log combined buffer=512k flush=1m;
     error_log /var/log/nginx/target.domain.de-error.log;
 }
-""" 
+"""

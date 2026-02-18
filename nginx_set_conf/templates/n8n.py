@@ -85,4 +85,4 @@ server {
         proxy_set_header Authorization $http_authorization;
     }
 }
-""" 
+"""

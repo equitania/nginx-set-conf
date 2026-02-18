@@ -64,4 +64,4 @@ server {
     # additional config
     include                 nginxconfig.io/general.conf;
 }
-""" 
+"""
