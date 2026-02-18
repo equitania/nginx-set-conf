@@ -1,0 +1,7 @@
+# nginx-set-conf | python/uv
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▸ Setup:   uv venv && venv+ && uvpip
+▸ Dev:     uv pip install -e .
+▸ Run:     nginx-set-conf --help
+▸ Build:   uv build
+▸ Test:    pytest
