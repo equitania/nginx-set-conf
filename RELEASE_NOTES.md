@@ -1,5 +1,32 @@
 # RELEASE NOTES
 
+## Version 1.9.0 (18.02.2026)
+
+### New Features
+- **[ADD]** IPv6 support for `--ip` parameter in all 15 templates
+  - Automatic bracket formatting for IPv6 addresses in `proxy_pass`/`grpc_pass` URLs
+  - `_format_ip_for_nginx()` helper for transparent IPv4/IPv6 handling
+  - Example: `--ip ::1` → `proxy_pass http://[::1]:8069`
+  - Full backward compatibility with IPv4 addresses
+
+### Security Hardening
+- **[CHG]** Eliminate all `os.system()` shell injection vectors in utils.py (15+ instances)
+- **[CHG]** Replace sed-based config manipulation with in-memory Python string operations
+- **[CHG]** Replace bare `except` clauses with specific exception handling
+- **[CHG]** Replace debug `print()` calls with proper logging
+- **[ADD]** Comprehensive input validation module (`validators.py`)
+
+### Build System
+- **[CHG]** Migrate from setuptools/setup.py to hatchling/pyproject.toml
+- **[CHG]** Remove redundant `requirements.txt` and `requirements-dev.txt` (single source: `pyproject.toml`)
+- **[CHG]** Consolidate flake8+black+isort into ruff for linting and formatting
+- **[CHG]** Update pre-commit hooks (ruff, bandit, mypy)
+
+### Tests
+- **[ADD]** 104 tests covering validators, utils, and templates
+  - 88 base tests for security hardening and validation
+  - 16 additional tests for IPv6 formatting, integration, and regression
+
 ## Version 1.8.0 (10.09.2025)
 
 ### Breaking Changes
