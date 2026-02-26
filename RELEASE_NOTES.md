@@ -1,5 +1,23 @@
 # RELEASE NOTES
 
+## Version 1.9.1 (26.02.2026)
+
+### Fixed
+- **[FIX]** Fix proxy_pass/grpc_pass directives: revert from public IP placeholder (`ip.ip.ip.ip`) back to loopback default (`127.0.0.1`)
+  - Previous IPv6 commit incorrectly routed proxy_pass to the server's public IP instead of localhost
+
+### Added
+- **[ADD]** New `--backend_ip` CLI option for configurable proxy_pass target (default: `127.0.0.1`)
+  - `{{BACKEND_IP}}` placeholder in all 16 templates
+  - Support via YAML configuration: `backend_ip: "::1"` for IPv6 loopback backends
+  - IPv6 addresses automatically formatted with brackets: `[::1]`
+  - Validation via `validators.py` when `backend_ip` is provided
+
+### Changed
+- **[CHG]** Remove incorrect Dual-Stack IPv4/IPv6 documentation sections from README
+- **[CHG]** Update IPv6 Support documentation to reference `--backend_ip` parameter
+- **[CHG]** `ip` parameter no longer replaces values in proxy_pass directives (only used for listen/upstream)
+
 ## Version 1.9.0 (18.02.2026)
 
 ### New Features

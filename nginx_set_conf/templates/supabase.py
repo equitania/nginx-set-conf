@@ -76,7 +76,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}}/realtime/v1;
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}}/realtime/v1;
     }
 
     # REST API endpoints
@@ -86,7 +86,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}}/rest/v1/;
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}}/rest/v1/;
     }
 
     # GraphQL endpoint
@@ -96,7 +96,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}}/graphql/v1;
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}}/graphql/v1;
     }
 
     # Auth endpoints
@@ -106,7 +106,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}}/auth/v1;
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}}/auth/v1;
     }
 
     # Storage endpoints
@@ -117,7 +117,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
         client_max_body_size 50M;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}}/storage/v1;
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}}/storage/v1;
     }
 
     # Default location for Studio and other frontend assets
@@ -127,7 +127,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
     }
 }
 """

@@ -290,6 +290,7 @@ def validate_all_inputs(
     auth_file: str = "",
     allowed_ips: str = "",
     target_path: str = "",
+    backend_ip: str = "",
 ) -> None:
     """Validate all input parameters at once.
 
@@ -317,3 +318,5 @@ def validate_all_inputs(
         validate_allowed_ips(allowed_ips)
     if target_path:
         validate_target_path(target_path)
+    if backend_ip:
+        validate_ip(backend_ip)

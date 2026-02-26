@@ -169,6 +169,10 @@ Configuration Management Options:
     help="Comma-separated list of allowed IPs/CIDR blocks (e.g., '192.168.1.0/24,10.0.0.50')",
 )
 @click.option(
+    "--backend_ip",
+    help="Backend IP for proxy_pass (default: 127.0.0.1)",
+)
+@click.option(
     "--disable_domain_listen",
     is_flag=True,
     help="Disable domain prefix in listen directives (for intranet systems)",
@@ -214,6 +218,7 @@ def start_nginx_set_conf(
     redirect_domain,
     auth_file,
     allowed_ips,
+    backend_ip,
     disable_domain_listen,
     config_path,
     target_path,
@@ -287,6 +292,7 @@ def start_nginx_set_conf(
                 redirect_domain = str(yaml_config.get("redirect_domain", ""))
                 auth_file = str(yaml_config.get("auth_file", ""))
                 allowed_ips = str(yaml_config.get("allowed_ips", ""))
+                yaml_backend_ip = str(yaml_config.get("backend_ip", ""))
                 yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
                 yaml_target_path = str(yaml_config.get("target_path", ""))
                 if not yaml_target_path:
@@ -313,6 +319,7 @@ def start_nginx_set_conf(
                     dry_run,
                     grpcport,
                     yaml_disable_domain_listen,
+                    backend_ip=yaml_backend_ip or None,
                 )
     elif config_template and ip and domain and port and cert_name:
         logger.info(
@@ -336,6 +343,7 @@ def start_nginx_set_conf(
             dry_run,
             grpcport,
             disable_domain_listen,
+            backend_ip=backend_ip,
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")

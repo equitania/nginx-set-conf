@@ -78,7 +78,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_redirect off;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
 
         # HSTS header is set in nginxconfig.io/security.conf
         proxy_cookie_flags session_id samesite=lax secure; 
@@ -87,7 +87,7 @@ server {
 
     # Chat Odoo
     location /websocket {
-        proxy_pass http://ip.ip.ip.ip:{{POLL_PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{POLL_PORT}};
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
@@ -104,25 +104,25 @@ server {
         proxy_cache_valid 200 60m;
         proxy_buffering    on;
         expires 864000;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
     }
 
     # PDF MIME-Type configuration for Odoo reports
     location ~* \\.pdf$ {
         add_header Content-Type application/pdf;
         add_header Content-Disposition inline;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
     }
 
     # Handle dynamic PDF URLs (e.g., /web/image/)
     location ~* /web/image/ {
-        proxy_pass http://ip.ip.ip.ip:{{PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
         
         # Set proper headers for PDF content
         location ~ "type=pdf" {
             add_header Content-Type application/pdf;
             add_header Content-Disposition inline;
-            proxy_pass http://ip.ip.ip.ip:{{PORT}};
+            proxy_pass http://{{BACKEND_IP}}:{{PORT}};
         }
     }
 

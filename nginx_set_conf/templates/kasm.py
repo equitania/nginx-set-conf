@@ -84,7 +84,7 @@ server {
         client_max_body_size    10M;
 
         # Connect to local port with SSL
-        proxy_pass             https://ip.ip.ip.ip:{{PORT}};
+        proxy_pass             https://{{BACKEND_IP}}:{{PORT}};
     }
 }
 """

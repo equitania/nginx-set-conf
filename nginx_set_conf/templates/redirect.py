@@ -5,7 +5,7 @@ Template for Domain Redirect NGINX configuration (HTTP only).
 TEMPLATE = """# Template for Redirect Domain configuration nginx
 # 01.04.2025
 upstream server.domain.de {
-    server ip.ip.ip.ip weight=1 fail_timeout=0;
+    server {{BACKEND_IP}} weight=1 fail_timeout=0;
 }
 
 map $http_upgrade $connection_upgrade {

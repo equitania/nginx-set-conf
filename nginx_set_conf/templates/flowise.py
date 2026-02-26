@@ -69,7 +69,7 @@ server {
     location / {
         #authentication
         proxy_http_version 1.1;
-        proxy_pass http://ip.ip.ip.ip:{{PORT}};
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
         proxy_set_header Host $host;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

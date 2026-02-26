@@ -1,11 +1,13 @@
 """Tests for utility functions."""
 
+import logging
 import os
 
 from nginx_set_conf.utils import (
     _format_ip_for_nginx,
     _insert_after_marker,
     _replace_placeholder,
+    _warn_public_backend_ip,
     execute_commands,
     get_default_vars,
     parse_yaml,
@@ -63,7 +65,9 @@ class TestGetDefaultVars:
         assert "template_domain" in defaults
         assert "template_ip" in defaults
         assert "template_port" in defaults
+        assert "template_backend_ip" in defaults
         assert defaults["server_path"] == "/etc/nginx/conf.d"
+        assert defaults["template_backend_ip"] == "{{BACKEND_IP}}"
 
 
 class TestReplacePlaceholder:
@@ -146,12 +150,12 @@ class TestExecuteCommands:
 
         content = open(config_file).read()
         assert "test.example.com" in content
-        assert "192.168.1.1" in content
+        assert "127.0.0.1" in content  # Default backend IP
         assert "8069" in content
         assert "8072" in content
         # Template placeholders should be replaced
         assert "server.domain.de" not in content
-        assert "ip.ip.ip.ip" not in content
+        assert "{{BACKEND_IP}}" not in content
         assert "{{PORT}}" not in content
         assert "{{POLL_PORT}}" not in content
 
@@ -307,6 +311,33 @@ class TestFormatIpForNginx:
         assert _format_ip_for_nginx("not-an-ip") == "not-an-ip"
 
 
+class TestWarnPublicBackendIp:
+    def test_public_ipv4_warns(self, caplog):
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            _warn_public_backend_ip("8.8.8.8")
+        assert "Public IP 8.8.8.8 used as backend address" in caplog.text
+
+    def test_public_ipv6_warns(self, caplog):
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            _warn_public_backend_ip("2606:4700:4700::1111")
+        assert "Public IP 2606:4700:4700::1111 used as backend address" in caplog.text
+
+    def test_loopback_no_warning(self, caplog):
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            _warn_public_backend_ip("127.0.0.1")
+        assert "Public IP" not in caplog.text
+
+    def test_private_no_warning(self, caplog):
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            _warn_public_backend_ip("192.168.1.10")
+        assert "Public IP" not in caplog.text
+
+    def test_ipv6_loopback_no_warning(self, caplog):
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            _warn_public_backend_ip("::1")
+        assert "Public IP" not in caplog.text
+
+
 class TestExecuteCommandsIPv6:
     def test_ipv6_in_proxy_pass(self, tmp_path):
         target = str(tmp_path / "nginx_conf")
@@ -314,7 +345,7 @@ class TestExecuteCommandsIPv6:
         execute_commands(
             config_template="odoo_ssl",
             domain="test.example.com",
-            ip="::1",
+            ip="1.2.3.4",
             cert_name="test.example.com",
             cert_key="/etc/ssl/test.key",
             port="8069",
@@ -324,6 +355,7 @@ class TestExecuteCommandsIPv6:
             allowed_ips="",
             target_path=target,
             dry_run=False,
+            backend_ip="::1",
         )
         config_file = os.path.join(target, "test.example.com.conf")
         content = open(config_file).read()
@@ -339,7 +371,7 @@ class TestExecuteCommandsIPv6:
         execute_commands(
             config_template="flowise",
             domain="flowise.example.com",
-            ip="2001:db8::1",
+            ip="1.2.3.4",
             cert_name="flowise.example.com",
             cert_key="/etc/ssl/test.key",
             port="3000",
@@ -349,6 +381,7 @@ class TestExecuteCommandsIPv6:
             allowed_ips="",
             target_path=target,
             dry_run=False,
+            backend_ip="2001:db8::1",
         )
         config_file = os.path.join(target, "flowise.example.com.conf")
         content = open(config_file).read()
@@ -360,7 +393,7 @@ class TestExecuteCommandsIPv6:
         execute_commands(
             config_template="flowise",
             domain="flowise.example.com",
-            ip="192.168.1.10",
+            ip="1.2.3.4",
             cert_name="flowise.example.com",
             cert_key="/etc/ssl/test.key",
             port="3000",
@@ -373,7 +406,8 @@ class TestExecuteCommandsIPv6:
         )
         config_file = os.path.join(target, "flowise.example.com.conf")
         content = open(config_file).read()
-        assert "proxy_pass http://192.168.1.10:3000" in content
+        # Without backend_ip, default 127.0.0.1 should be used
+        assert "proxy_pass http://127.0.0.1:3000" in content
 
     def test_ipv6_grpc_pass(self, tmp_path):
         target = str(tmp_path / "nginx_conf")
@@ -381,7 +415,7 @@ class TestExecuteCommandsIPv6:
         execute_commands(
             config_template="qdrant",
             domain="qdrant.example.com",
-            ip="::1",
+            ip="1.2.3.4",
             cert_name="qdrant.example.com",
             cert_key="/etc/ssl/test.key",
             port="6333",
@@ -392,8 +426,78 @@ class TestExecuteCommandsIPv6:
             target_path=target,
             dry_run=False,
             grpcport="6334",
+            backend_ip="::1",
         )
         config_file = os.path.join(target, "qdrant.example.com.conf")
         content = open(config_file).read()
         assert "proxy_pass http://[::1]:6333" in content
         assert "grpc_pass grpc://[::1]:6334" in content
+
+    def test_default_backend_ip(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="odoo_ssl",
+            domain="test.example.com",
+            ip="203.0.113.10",
+            cert_name="test.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="8069",
+            pollport="8072",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+        )
+        config_file = os.path.join(target, "test.example.com.conf")
+        content = open(config_file).read()
+        # Without backend_ip, default 127.0.0.1 should be used
+        assert "proxy_pass http://127.0.0.1:8069" in content
+        assert "proxy_pass http://127.0.0.1:8072" in content
+
+    def test_custom_backend_ip(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="flowise",
+            domain="flowise.example.com",
+            ip="1.2.3.4",
+            cert_name="flowise.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="3000",
+            pollport="",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+            backend_ip="192.168.1.50",
+        )
+        config_file = os.path.join(target, "flowise.example.com.conf")
+        content = open(config_file).read()
+        assert "proxy_pass http://192.168.1.50:3000" in content
+
+    def test_ip_not_in_proxy_pass(self, tmp_path):
+        target = str(tmp_path / "nginx_conf")
+        os.makedirs(target, exist_ok=True)
+        execute_commands(
+            config_template="flowise",
+            domain="flowise.example.com",
+            ip="203.0.113.10",
+            cert_name="flowise.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="3000",
+            pollport="",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+        )
+        config_file = os.path.join(target, "flowise.example.com.conf")
+        content = open(config_file).read()
+        # Public IP must NOT appear in proxy_pass
+        assert "proxy_pass http://203.0.113.10" not in content
+        # Default backend IP should be used instead
+        assert "proxy_pass http://127.0.0.1:3000" in content

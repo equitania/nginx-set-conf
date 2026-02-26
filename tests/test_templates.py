@@ -94,24 +94,15 @@ class TestGetConfigTemplate:
     def test_templates_contain_placeholders(self):
         for name in ["odoo_ssl", "flowise", "n8n", "qdrant"]:
             result = get_config_template(name)
-            assert "server.domain.de" in result or "ip.ip.ip.ip" in result, (
+            assert "server.domain.de" in result or "{{BACKEND_IP}}" in result, (
                 f"Template {name} missing expected placeholders"
             )
 
 
-class TestTemplateNoHardcodedIp:
-    """Regression test: no template should contain hardcoded 127.0.0.1 in proxy_pass/grpc_pass."""
+class TestTemplateBackendIpPlaceholder:
+    """Regression test: templates should use {{BACKEND_IP}} placeholder in proxy_pass/grpc_pass."""
 
-    def test_all_templates_use_ip_placeholder(self):
-        for name, content in TEMPLATES.items():
-            # Skip redirect templates (no proxy_pass)
-            if "redirect" in name:
-                continue
-            assert "127.0.0.1" not in content, (
-                f"Template '{name}' still contains hardcoded 127.0.0.1 - should use ip.ip.ip.ip placeholder instead"
-            )
-
-    def test_proxy_templates_have_ip_placeholder(self):
+    def test_all_proxy_templates_use_backend_ip_placeholder(self):
         proxy_templates = [
             "code_server",
             "fast_report",
@@ -131,4 +122,16 @@ class TestTemplateNoHardcodedIp:
         ]
         for name in proxy_templates:
             content = TEMPLATES[name]
-            assert "ip.ip.ip.ip" in content, f"Template '{name}' missing ip.ip.ip.ip placeholder"
+            assert "{{BACKEND_IP}}" in content, f"Template '{name}' missing {{{{BACKEND_IP}}}} placeholder"
+
+    def test_no_hardcoded_ip_in_proxy_pass(self):
+        for name, content in TEMPLATES.items():
+            # Check that proxy_pass/grpc_pass lines do not contain hardcoded IPs
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    continue
+                if "proxy_pass" in stripped or "grpc_pass" in stripped:
+                    assert "127.0.0.1" not in stripped, f"Template '{name}' has hardcoded 127.0.0.1 in: {stripped}"
+                    # ip.ip.ip.ip should not be in active proxy_pass
+                    assert "ip.ip.ip.ip" not in stripped, f"Template '{name}' has ip.ip.ip.ip in: {stripped}"

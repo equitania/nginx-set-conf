@@ -115,6 +115,7 @@ def get_default_vars() -> dict:
         "template_self_key": "/etc/letsencrypt/live/zertifikat.key/privkey.pem",
         "template_redirect_domain": "target.domain.de",
         "template_auth_file": "authfile",
+        "template_backend_ip": "{{BACKEND_IP}}",
     }
 
 
@@ -184,6 +185,26 @@ def _format_ip_for_nginx(ip: str) -> str:
     except ValueError:
         pass
     return ip
+
+
+def _warn_public_backend_ip(ip: str) -> None:
+    """Log a warning if a public IP is used as backend proxy address.
+
+    Docker containers typically bind to 127.0.0.1 (loopback) for security,
+    especially when using UFW or similar firewalls. Using a public IP as
+    the proxy_pass backend will fail if the container only listens on loopback.
+    """
+    try:
+        addr = ipaddress.ip_address(ip)
+        if not addr.is_loopback and not addr.is_private:
+            logger.warning(
+                "Public IP %s used as backend address (proxy_pass). "
+                "Docker containers typically bind to 127.0.0.1 for security (UFW compatibility). "
+                "Use 'ip: 127.0.0.1' if the container listens on loopback only.",
+                ip,
+            )
+    except ValueError:
+        pass
 
 
 def _replace_placeholder(content: str, old: str, new: str) -> str:
@@ -274,6 +295,7 @@ def execute_commands(
     dry_run=False,
     grpcport=None,
     disable_domain_listen=False,
+    backend_ip=None,
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -295,6 +317,7 @@ def execute_commands(
         dry_run: If True, display commands without executing them.
         grpcport: gRPC port number for Nginx configuration (optional).
         disable_domain_listen: If True, remove domain prefix from listen directives.
+        backend_ip: Backend IP for proxy_pass/grpc_pass (default: 127.0.0.1).
     """
     # Validate all inputs
     try:
@@ -311,6 +334,7 @@ def execute_commands(
             auth_file=auth_file or "",
             allowed_ips=allowed_ips or "",
             target_path=target_path or "",
+            backend_ip=backend_ip or "",
         )
     except ValidationError as e:
         logger.error("Input validation failed: %s", e)
@@ -390,10 +414,12 @@ def execute_commands(
         content = content.replace(f"listen {domain}:80", "listen 80")
         content = content.replace(f"listen {domain}:443", "listen 443")
 
-    # Replace IP placeholder - with IPv6 bracket formatting for URL contexts
-    formatted_ip = _format_ip_for_nginx(ip)
-    logger.info("Set ip in conf to %s (formatted: %s)", ip, formatted_ip)
-    content = _replace_placeholder(content, default_vars["template_ip"], formatted_ip)
+    # Backend IP handling (proxy_pass target)
+    effective_backend_ip = backend_ip if backend_ip else "127.0.0.1"
+    _warn_public_backend_ip(effective_backend_ip)
+    formatted_backend_ip = _format_ip_for_nginx(effective_backend_ip)
+    logger.info("Set backend IP in conf to %s (formatted: %s)", effective_backend_ip, formatted_backend_ip)
+    content = _replace_placeholder(content, default_vars["template_backend_ip"], formatted_backend_ip)
 
     # Handle certificate placeholders
     if cert_key:

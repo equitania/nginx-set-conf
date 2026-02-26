@@ -12,7 +12,8 @@ A simple Python library that helps you create nginx configurations for different
 
 - **Template-based configuration**: Support for 15+ pre-built templates
 - **SSL/TLS support**: Automatic Let's Encrypt integration
-- **IPv6 support**: `--ip` parameter accepts both IPv4 and IPv6 addresses with automatic bracket formatting
+- **IPv6 support**: `--ip` and `--backend_ip` parameters accept both IPv4 and IPv6 addresses with automatic bracket formatting
+- **Backend IP configuration**: Optional `--backend_ip` parameter for non-localhost backends (default: 127.0.0.1)
 - **IP access restrictions**: Optional IP whitelist/blacklist functionality
 - **Input validation**: Comprehensive validation for IP, domain, port, certificate, and template parameters
 - **Security hardening**: Shell injection prevention, specific exception handling, structured logging
@@ -123,14 +124,14 @@ nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example
 
 #### IPv6 Support
 
-The `--ip` parameter accepts both IPv4 and IPv6 addresses. IPv6 addresses are automatically formatted with brackets in the generated nginx configuration:
+The `--ip` and `--backend_ip` parameters accept both IPv4 and IPv6 addresses. IPv6 addresses are automatically formatted with brackets in the generated nginx configuration:
 
 ```bash
-# IPv6 loopback address
-nginx-set-conf --config_template odoo_ssl --ip ::1 --domain www.example.com --port 8069 --cert_name www.example.com
+# IPv6 loopback as backend
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --backend_ip ::1
 
-# Full IPv6 address
-nginx-set-conf --config_template flowise --ip 2001:db8::1 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+# Full IPv6 backend address
+nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com --backend_ip 2001:db8::1
 ```
 
 Generated nginx configuration with IPv6:
@@ -138,6 +139,44 @@ Generated nginx configuration with IPv6:
 ```nginx
 proxy_pass http://[::1]:8069;
 ```
+
+#### Backend IP Configuration
+
+The `backend_ip` parameter controls the IP address used in `proxy_pass` directives. By default, it is `127.0.0.1` (localhost), which is correct for Docker containers binding to loopback.
+
+```bash
+# Default: proxy_pass uses 127.0.0.1 (no --backend_ip needed)
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com
+
+# IPv6 loopback backend
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --backend_ip ::1
+
+# Remote backend
+nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com --backend_ip 192.168.1.50
+```
+
+YAML configuration:
+
+```yaml
+# Default: no backend_ip needed (uses 127.0.0.1)
+My Odoo Server:
+  config_template: odoo_ssl
+  ip: 1.2.3.4
+  domain: app.example.com
+  port: 11000
+  cert_name: app.example.com
+
+# IPv6 loopback backend
+My IPv6 Service:
+  config_template: flowise
+  ip: 1.2.3.4
+  domain: app.example.com
+  port: 3000
+  cert_name: app.example.com
+  backend_ip: "::1"
+```
+
+> **Note:** The `ip` parameter is the public server IP (used in commented upstream blocks). The `backend_ip` parameter is the address where the application actually listens (used in `proxy_pass`).
 
 ### Configuration Verification
 
@@ -482,7 +521,8 @@ Eine einfache Python-Bibliothek, die bei der Erstellung von nginx-Konfiguratione
 
 - **Template-basierte Konfiguration**: Unterstützung für 15+ vorgefertigte Templates
 - **SSL/TLS-Unterstützung**: Automatische Let's Encrypt Integration
-- **IPv6-Unterstützung**: `--ip` Parameter akzeptiert sowohl IPv4- als auch IPv6-Adressen mit automatischer Bracket-Formatierung
+- **IPv6-Unterstützung**: `--ip` und `--backend_ip` Parameter akzeptieren sowohl IPv4- als auch IPv6-Adressen mit automatischer Bracket-Formatierung
+- **Backend-IP-Konfiguration**: Optionaler `--backend_ip` Parameter für Nicht-Localhost-Backends (Standard: 127.0.0.1)
 - **IP-Zugriffsbeschränkungen**: Optionale IP-Whitelist/Blacklist Funktionalität
 - **Eingabevalidierung**: Umfassende Validierung für IP, Domain, Port, Zertifikat und Template-Parameter
 - **Sicherheitshärtung**: Shell-Injection-Prävention, spezifische Ausnahmebehandlung, strukturiertes Logging
@@ -587,14 +627,14 @@ nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example
 
 #### IPv6-Unterstützung
 
-Der `--ip` Parameter akzeptiert sowohl IPv4- als auch IPv6-Adressen. IPv6-Adressen werden automatisch mit Klammern in der generierten nginx-Konfiguration formatiert:
+Die Parameter `--ip` und `--backend_ip` akzeptieren sowohl IPv4- als auch IPv6-Adressen. IPv6-Adressen werden automatisch mit Klammern in der generierten nginx-Konfiguration formatiert:
 
 ```bash
-# IPv6 Loopback-Adresse
-nginx-set-conf --config_template odoo_ssl --ip ::1 --domain www.example.com --port 8069 --cert_name www.example.com
+# IPv6-Loopback als Backend
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --backend_ip ::1
 
-# Vollständige IPv6-Adresse
-nginx-set-conf --config_template flowise --ip 2001:db8::1 --domain flowise.example.com --port 3000 --cert_name flowise.example.com
+# Vollständige IPv6-Backend-Adresse
+nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com --backend_ip 2001:db8::1
 ```
 
 Generierte nginx-Konfiguration mit IPv6:
@@ -602,6 +642,44 @@ Generierte nginx-Konfiguration mit IPv6:
 ```nginx
 proxy_pass http://[::1]:8069;
 ```
+
+#### Backend-IP-Konfiguration
+
+Der `backend_ip` Parameter steuert die IP-Adresse in den `proxy_pass`-Direktiven. Standardmäßig ist er `127.0.0.1` (localhost), was für Docker-Container auf Loopback korrekt ist.
+
+```bash
+# Standard: proxy_pass nutzt 127.0.0.1 (kein --backend_ip nötig)
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com
+
+# IPv6-Loopback-Backend
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --backend_ip ::1
+
+# Remote-Backend
+nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.com --port 3000 --cert_name flowise.example.com --backend_ip 192.168.1.50
+```
+
+YAML-Konfiguration:
+
+```yaml
+# Standard: kein backend_ip nötig (nutzt 127.0.0.1)
+Mein Odoo Server:
+  config_template: odoo_ssl
+  ip: 1.2.3.4
+  domain: app.example.com
+  port: 11000
+  cert_name: app.example.com
+
+# IPv6-Loopback-Backend
+Mein IPv6 Service:
+  config_template: flowise
+  ip: 1.2.3.4
+  domain: app.example.com
+  port: 3000
+  cert_name: app.example.com
+  backend_ip: "::1"
+```
+
+> **Hinweis:** Der `ip`-Parameter ist die öffentliche Server-IP (in auskommentierten Upstream-Blöcken). Der `backend_ip`-Parameter ist die Adresse, auf der die Anwendung tatsächlich lauscht (in `proxy_pass`).
 
 ### Konfigurationsverifikation
 

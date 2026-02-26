@@ -1,10 +1,11 @@
 odoo-https:
   config_template: odoo_ssl
-  ip: 
+  ip:
   domain: www.
   port: 11000
   cert_name: www.
   pollport: 12000
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -13,10 +14,11 @@ odoo-https:
 
 Odoo only http:
   config_template: odoo_http
-  ip: 
+  ip:
   domain: www.
   port: 11000
   pollport: 12000
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
   #cert_name: /etc/ssl/your-certificate.crt
@@ -24,10 +26,11 @@ Odoo only http:
 
 Fast Report:
   config_template: fast_report
-  ip: 
+  ip:
   domain: www.
   port: 8899
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -36,10 +39,11 @@ Fast Report:
 
 Code Server:
   config_template: code_server
-  ip: 
+  ip:
   domain: www.
-  port: 
+  port:
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -48,10 +52,11 @@ Code Server:
 
 NextCloud:
   config_template: nextcloud
-  ip: 
+  ip:
   domain: www.
-  port: 
+  port:
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -60,10 +65,11 @@ NextCloud:
 
 Portainer:
   config_template: portainer
-  ip: 
+  ip:
   domain: www.
-  port: 
+  port:
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -72,10 +78,11 @@ Portainer:
 
 pgAdmin:
   config_template: pgadmin
-  ip: 
+  ip:
   domain: www.
-  port: 
+  port:
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -84,10 +91,11 @@ pgAdmin:
 
 PWA:
   config_template: pwa
-  ip: 
+  ip:
   domain: www.
-  port: 
+  port:
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -96,27 +104,30 @@ PWA:
 
 Redirect:
   config_template: redirect
-  ip: 
+  ip:
   domain: www.
   redirect_domain: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
 
 Redirect_SSL:
   config_template: redirect_ssl
-  ip: 
+  ip:
   domain: www.
   cert_name: www.
   redirect_domain: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
 n8n:
   config_template: n8n
-  ip: 
+  ip:
   domain: www.
   port: 5678
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -125,10 +136,11 @@ n8n:
 
 Kasm:
   config_template: kasm
-  ip: 
+  ip:
   domain: www.
   port: 8443
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -137,10 +149,11 @@ Kasm:
 
 Mailpit:
   config_template: mailpit
-  ip: 
+  ip:
   domain: www.
   port: 8025
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -149,11 +162,12 @@ Mailpit:
 
 Qdrant:
   config_template: qdrant
-  ip: 
+  ip:
   domain: www.
   port: 6333
   cert_name: www.
   grpcport: 6334
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -162,10 +176,11 @@ Qdrant:
 
 Flowise:
   config_template: flowise
-  ip: 
+  ip:
   domain: www.
   port: 3000
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -174,10 +189,24 @@ Flowise:
 
 Guacamole:
   config_template: guacamole
-  ip: 
+  ip:
   domain: www.
   port: 8080
   cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
+  #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
+
+Supabase:
+  config_template: supabase
+  ip:
+  domain: www.
+  port: 8000
+  cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
@@ -191,5 +220,6 @@ Flowise with IP restrictions:
   domain: secure-flowise.example.com
   port: 3000
   cert_name: secure-flowise.example.com
+  #backend_ip: "192.168.1.50"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #allowed_ips: "192.168.1.0/24,10.0.0.50,203.0.113.100"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
