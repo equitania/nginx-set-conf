@@ -3,10 +3,7 @@ Template for Odoo NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for Odoo configuration nginx incl. SSL/HTTP2 support
-# 11.08.2025
-# upstream server.domain.de {
-#     server ip.ip.ip.ip weight=1 fail_timeout=0;
-# }
+# 26.02.2026
 
 map $http_upgrade $connection_upgrade {
   default upgrade;

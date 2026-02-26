@@ -3,10 +3,7 @@ Template for Apache Guacamole NGINX configuration with SSL/HTTP2 and WebSocket s
 """
 
 TEMPLATE = """# Template for Apache Guacamole NGINX configuration with SSL/HTTP2 and WebSocket support
-# 10.09.2025
-# upstream server.domain.de {
-#     server ip.ip.ip.ip weight=1 fail_timeout=0;
-# }
+# 26.02.2026
 
 # WebSocket upgrade mapping - required for Guacamole
 map $http_upgrade $connection_upgrade {

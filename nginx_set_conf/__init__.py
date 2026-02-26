@@ -2,7 +2,7 @@
 nginx-set-conf - A tool for managing Nginx configurations
 """
 
-__version__ = "1.9.1"
+__version__ = "1.9.2"
 
 from . import config_templates as config_templates
 from . import utils as utils

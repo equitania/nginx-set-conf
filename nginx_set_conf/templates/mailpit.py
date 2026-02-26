@@ -3,10 +3,7 @@ Template for Mailpit NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for Mailpit https://github.com/axllent/mailpit configuration nginx incl. SSL/http2
-# 11.08.2025
-# upstream server.domain.de {
-#     server ip.ip.ip.ip weight=1 fail_timeout=0;
-# }
+# 26.02.2026
 
 map $http_upgrade $connection_upgrade {
   default upgrade;

@@ -135,3 +135,8 @@ class TestTemplateBackendIpPlaceholder:
                     assert "127.0.0.1" not in stripped, f"Template '{name}' has hardcoded 127.0.0.1 in: {stripped}"
                     # ip.ip.ip.ip should not be in active proxy_pass
                     assert "ip.ip.ip.ip" not in stripped, f"Template '{name}' has ip.ip.ip.ip in: {stripped}"
+
+    def test_no_ip_placeholder_anywhere(self):
+        """Ensure ip.ip.ip.ip is completely removed from all templates (including comments)."""
+        for name, content in TEMPLATES.items():
+            assert "ip.ip.ip.ip" not in content, f"Template '{name}' still contains 'ip.ip.ip.ip'"

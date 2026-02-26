@@ -1,5 +1,14 @@
 # RELEASE NOTES
 
+## Version 1.9.2 (26.02.2026)
+
+### Changed
+- **[CHG]** Remove dead commented-out upstream blocks from 16 templates (unused `ip.ip.ip.ip` placeholder)
+- **[CHG]** Update template date headers to 26.02.2026
+
+### Added
+- **[ADD]** Regression test `test_no_ip_placeholder_anywhere` ensuring `ip.ip.ip.ip` is fully removed
+
 ## Version 1.9.1 (26.02.2026)
 
 ### Fixed
