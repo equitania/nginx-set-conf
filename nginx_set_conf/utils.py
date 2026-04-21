@@ -128,11 +128,10 @@ def retrieve_valid_input(message: str) -> str:
     Returns:
         User's non-empty input string.
     """
-    user_input = input(message)
-    if user_input:
-        return user_input
-    else:
-        return retrieve_valid_input(message)
+    while True:
+        user_input = input(message)
+        if user_input:
+            return user_input
 
 
 def _run_command(args: list, dry_run: bool = False, check: bool = False) -> bool:
@@ -408,11 +407,16 @@ def execute_commands(
     logger.info("Set domain name in conf to %s", domain)
     content = _replace_placeholder(content, default_vars["template_domain"], domain)
 
-    # Handle disable_domain_listen (must be AFTER domain replacement)
+    # disable_domain_listen is a deprecated no-op since v1.10.0.
+    # Templates now emit `listen 80;` / `listen 443 ssl;` unconditionally
+    # (hostname-bound listen directives caused nginx to abort startup on
+    # transient DNS resolver failures). The CLI flag is kept for backward
+    # compatibility with existing YAML configs and wrapper scripts.
     if disable_domain_listen:
-        logger.info("Removing domain prefix from listen directives (for intranet systems)")
-        content = content.replace(f"listen {domain}:80", "listen 80")
-        content = content.replace(f"listen {domain}:443", "listen 443")
+        logger.warning(
+            "--disable_domain_listen is a no-op since v1.10.0 "
+            "(listen directives no longer contain hostnames)"
+        )
 
     # Backend IP handling (proxy_pass target)
     effective_backend_ip = backend_ip if backend_ip else "127.0.0.1"

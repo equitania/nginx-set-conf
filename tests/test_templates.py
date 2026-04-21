@@ -140,3 +140,35 @@ class TestTemplateBackendIpPlaceholder:
         """Ensure ip.ip.ip.ip is completely removed from all templates (including comments)."""
         for name, content in TEMPLATES.items():
             assert "ip.ip.ip.ip" not in content, f"Template '{name}' still contains 'ip.ip.ip.ip'"
+
+    def test_no_hostname_in_listen_directive(self):
+        """Regression test for v1.10.0: listen directives must not contain hostnames.
+
+        Hostname-bound listen directives (e.g. `listen example.com:80;`) force
+        nginx to resolve the hostname at config-parse time. Any transient DNS
+        glitch then aborts nginx startup with `[emerg] host not found in ... of
+        the listen directive`. This was the root cause of repeated production
+        outages before the v1.10.0 fix.
+
+        Valid forms:  `listen 80;`, `listen 443 ssl;`, `listen [::]:80;`
+        Invalid:      `listen server.domain.de:80;`, `listen example.com:443 ssl;`
+        """
+        for name, content in TEMPLATES.items():
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if not stripped.startswith("listen "):
+                    continue
+                if stripped.startswith("#"):
+                    continue
+                # Extract the token after `listen ` up to `;` or whitespace
+                token = stripped[len("listen "):].split(";")[0].strip().split()[0]
+                # Port-only (`80`, `443`) is numeric
+                # IPv4:port (`127.0.0.1:80`) starts with a digit
+                # IPv6 bracketed (`[::]:80`) starts with `[`
+                # Hostname token contains a letter and a dot
+                has_letter = any(c.isalpha() for c in token)
+                has_dot = "." in token
+                assert not (has_letter and has_dot), (
+                    f"Template '{name}' has a hostname in listen directive: {stripped!r}. "
+                    f"Must use port-only form (e.g. 'listen 80;') — see v1.10.0 release notes."
+                )
