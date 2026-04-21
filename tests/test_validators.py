@@ -7,6 +7,7 @@ from nginx_set_conf.validators import (
     validate_all_inputs,
     validate_allowed_ips,
     validate_auth_file,
+    validate_cert_key,
     validate_cert_name,
     validate_config_template,
     validate_domain,
@@ -192,6 +193,30 @@ class TestValidateCertName:
         with pytest.raises(ValidationError, match="Invalid certificate"):
             validate_cert_name("cert.pem; rm -rf /")
 
+    def test_path_traversal(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_cert_name("../../etc/shadow")
+
+    def test_path_traversal_absolute(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_cert_name("/etc/ssl/../../../etc/shadow")
+
+
+class TestValidateCertKey:
+    def test_valid_cert_key(self):
+        assert validate_cert_key("/etc/ssl/private/my-key.key") == "/etc/ssl/private/my-key.key"
+
+    def test_empty(self):
+        assert validate_cert_key("") == ""
+
+    def test_injection(self):
+        with pytest.raises(ValidationError, match="Invalid certificate key"):
+            validate_cert_key("key.pem; rm -rf /")
+
+    def test_path_traversal(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_cert_key("../../etc/shadow")
+
 
 class TestValidateAuthFile:
     def test_valid_auth_file(self):
@@ -203,6 +228,14 @@ class TestValidateAuthFile:
     def test_injection(self):
         with pytest.raises(ValidationError, match="Invalid auth file"):
             validate_auth_file("/etc/passwd; cat /etc/shadow")
+
+    def test_path_traversal(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_auth_file("../../etc/shadow")
+
+    def test_path_traversal_mixed(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_auth_file("/etc/nginx/../../etc/shadow")
 
 
 class TestValidateConfigTemplate:

@@ -169,6 +169,16 @@ def validate_target_path(target_path: str) -> str:
     return resolved
 
 
+def _reject_path_traversal(value: str, field: str) -> None:
+    """Raise ValidationError if value contains a path-traversal component.
+
+    The character-class regex used for cert/auth paths permits '.' and '/',
+    so '../' slips through. Reject any '..' component explicitly.
+    """
+    if ".." in os.path.normpath(value).split(os.sep):
+        raise ValidationError(f"Path traversal detected in {field}: '{value}'")
+
+
 def validate_cert_name(cert_name: str) -> str:
     """Validate certificate name/path.
 
@@ -188,6 +198,7 @@ def validate_cert_name(cert_name: str) -> str:
             f"Invalid certificate name: '{cert_name}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
         )
+    _reject_path_traversal(cert_name, "cert_name")
     return cert_name
 
 
@@ -210,6 +221,7 @@ def validate_cert_key(cert_key: str) -> str:
             f"Invalid certificate key path: '{cert_key}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
         )
+    _reject_path_traversal(cert_key, "cert_key")
     return cert_key
 
 
@@ -232,6 +244,7 @@ def validate_auth_file(auth_file: str) -> str:
             f"Invalid auth file path: '{auth_file}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
         )
+    _reject_path_traversal(auth_file, "auth_file")
     return auth_file
 
 

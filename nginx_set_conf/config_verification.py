@@ -397,12 +397,18 @@ class ConfigVerification:
 
         return success
 
-    def backup_configuration(self, backup_dir: str = "/tmp/nginx_backup") -> bool:
+    def backup_configuration(self, backup_dir: str = "/var/backups/nginx_set_conf") -> bool:
         """
         Create a backup of current server configuration.
 
+        Backups are written to a root-owned directory (mode 0700) to prevent
+        symlink attacks. The default location is FHS-compliant at
+        /var/backups/nginx_set_conf. A world-writable path such as /tmp must
+        not be used, since the tool typically runs as root.
+
         Args:
-            backup_dir: Directory to store backups
+            backup_dir: Directory to store backups. Must be a root-owned,
+                non-world-writable path.
 
         Returns:
             True if backup was successful, False otherwise
@@ -411,16 +417,26 @@ class ConfigVerification:
             import shutil
             from datetime import datetime
 
-            backup_path = Path(backup_dir)
+            backup_root = Path(backup_dir)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = backup_path / f"nginx_config_backup_{timestamp}"
+            backup_path = backup_root / f"nginx_config_backup_{timestamp}"
 
-            backup_path.mkdir(parents=True, exist_ok=True)
+            # Create root directory with restrictive permissions; refuse to
+            # follow symlinks for the backup destination itself.
+            backup_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+            if backup_path.exists() or backup_path.is_symlink():
+                logger.error(f"Backup target already exists or is a symlink: {backup_path}")
+                return False
+            backup_path.mkdir(mode=0o700, parents=False, exist_ok=False)
 
             # Backup main nginx.conf
             server_nginx_conf = Path("/etc/nginx/nginx.conf")
             if server_nginx_conf.exists():
-                shutil.copy2(server_nginx_conf, backup_path / "nginx.conf")
+                target = backup_path / "nginx.conf"
+                if target.is_symlink():
+                    logger.error(f"Refusing to follow symlink at backup target: {target}")
+                    return False
+                shutil.copy2(server_nginx_conf, target)
 
             # Backup nginxconfig.io directory
             server_nginxconfig_dir = Path("/etc/nginx/nginxconfig.io")
