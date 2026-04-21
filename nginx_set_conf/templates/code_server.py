@@ -3,7 +3,7 @@ Template for code-server NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for code-server configuration nginx incl. SSL/http2
-# 21.04.2026
+# 26.02.2026
 
 map $http_upgrade $connection_upgrade {
   default upgrade;
@@ -14,13 +14,13 @@ proxy_cache_path /tmp levels=1:2 keys_zone=my_cache:10m max_size=1g inactive=60m
 limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=iprl:16m rate=500r/m;
 
 server {
-    listen 80;
+    listen server.domain.de:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen 443 ssl;
+    listen server.domain.de:443 ssl;
     server_name server.domain.de;
 
     # HTTP/2 is enabled globally in nginx.conf
