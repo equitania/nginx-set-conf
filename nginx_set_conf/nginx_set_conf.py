@@ -25,7 +25,13 @@ import click
 from . import __version__
 from .config_templates import get_config_template
 from .config_verification import ConfigVerification
-from .utils import execute_commands, parse_yaml_folder, retrieve_valid_input
+from .utils import (
+    execute_commands,
+    migrate_configs_to_wildcard,
+    parse_yaml_folder,
+    retrieve_valid_input,
+    setup_default_server,
+)
 
 # Setup logging
 logger = logging.getLogger("nginx_set_conf")
@@ -131,6 +137,8 @@ Configuration Management Options:
 - --verify_config: Check consistency between local and server config files
 - --sync_config: Interactive sync of configuration files
 - --backup_config: Create backup of current server configuration
+- --migrate_to_wildcard: Atomically rewrite hostname-bound listen directives
+- --setup_default: Install default_server catch-all for unknown SNI
 \b
 """
 
@@ -175,7 +183,15 @@ Configuration Management Options:
 @click.option(
     "--disable_domain_listen",
     is_flag=True,
-    help="Disable domain prefix in listen directives (for intranet systems)",
+    help=(
+        "Generate `listen 80;` / `listen 443 ssl;` instead of "
+        "`listen <domain>:80;` / `listen <domain>:443 ssl;`. "
+        "Avoids DNS resolution at nginx config-parse time (useful if "
+        "upstream DNS is flaky) and intranet systems without public DNS. "
+        "WARNING: mixing both styles on the same server causes SNI "
+        "fallback to the first server block — migrate all configs in one "
+        "go via `--migrate_to_wildcard`."
+    ),
 )
 @click.option(
     "--config_path",
@@ -205,6 +221,29 @@ Configuration Management Options:
     is_flag=True,
     help="Create a backup of current server configuration",
 )
+@click.option(
+    "--setup_default",
+    is_flag=True,
+    help=(
+        "Install a default_server catch-all (00-default.conf) that closes "
+        "connections for unknown SNI/Host with HTTP 444. Generates a "
+        "self-signed sacrificial cert at /etc/nginx/ssl/default.{crt,key} "
+        "if not present. Only effective on wildcard listen sockets — "
+        "migrate first via --migrate_to_wildcard if still on hostname-bound "
+        "listen directives."
+    ),
+)
+@click.option(
+    "--migrate_to_wildcard",
+    is_flag=True,
+    help=(
+        "Atomically migrate all `listen <hostname>:<port>;` directives in "
+        "/etc/nginx/conf.d/*.conf to `listen <port>;`. Creates a backup and "
+        "rolls back on `nginx -t` failure. Use to unblock the DNS "
+        "parse-time hardening path without risking partial-migration SNI "
+        "fallback."
+    ),
+)
 def start_nginx_set_conf(
     config_template,
     show_template,
@@ -226,7 +265,34 @@ def start_nginx_set_conf(
     verify_config,
     sync_config,
     backup_config,
+    setup_default,
+    migrate_to_wildcard,
 ):
+    # Handle atomic migration to wildcard listen directives
+    if migrate_to_wildcard:
+        welcome()
+        target = target_path if target_path else "/etc/nginx/conf.d"
+        if migrate_configs_to_wildcard(conf_dir=target, dry_run=dry_run):
+            logger.info("Migration to wildcard listen directives succeeded")
+            if not dry_run:
+                _run_service_command(["systemctl", "reload", "nginx.service"])
+        else:
+            logger.error("Migration to wildcard listen directives failed")
+        return
+
+    # Handle default_server installation (SNI-mismatch hardening)
+    if setup_default:
+        welcome()
+        target = target_path if target_path else "/etc/nginx/conf.d"
+        if setup_default_server(target_path=target, dry_run=dry_run):
+            logger.info("Default server block installed successfully")
+            if not dry_run:
+                _run_service_command(["nginx", "-t"])
+                _run_service_command(["systemctl", "reload", "nginx.service"])
+        else:
+            logger.error("Failed to install default server block")
+        return
+
     # Handle configuration verification and management
     if verify_config or sync_config or backup_config:
         welcome()

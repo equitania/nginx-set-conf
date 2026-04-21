@@ -18,12 +18,28 @@ import ipaddress
 import logging
 import os
 import re
+import shutil
 import subprocess
+from datetime import datetime
+from pathlib import Path
 
 import yaml
 
 from .config_templates import get_config_template
 from .validators import ValidationError, validate_all_inputs
+
+# Matches `listen <hostname>:<port>[ ssl];` — i.e. hostname-bound listen
+# directives produced by templates before v1.10.0's aborted wildcard
+# migration. IP addresses (start with a digit) and IPv6 brackets (start with
+# `[`) are intentionally excluded so real IP-bound listens stay untouched.
+_HOSTNAME_LISTEN_PATTERN = re.compile(
+    r"^(\s*listen\s+)"
+    r"([a-zA-Z][a-zA-Z0-9.\-]*)"
+    r":(\d+)"
+    r"(\s+ssl)?"
+    r"\s*;",
+    re.MULTILINE,
+)
 
 logger = logging.getLogger("nginx_set_conf")
 
@@ -278,6 +294,225 @@ def _create_cert_if_needed(cert_name: str, dry_run: bool = False) -> None:
             ]
         )
         logger.info("Certificate created for: %s", cert_name)
+
+
+def _rewrite_listen_directives(content: str) -> tuple[str, int]:
+    """Rewrite `listen <hostname>:<port>[ ssl];` to `listen <port>[ ssl];`.
+
+    Returns:
+        Tuple of (new_content, number_of_substitutions).
+    """
+    count = 0
+
+    def _sub(match: re.Match) -> str:
+        nonlocal count
+        count += 1
+        prefix = match.group(1)
+        port = match.group(3)
+        ssl_part = match.group(4) or ""
+        return f"{prefix}{port}{ssl_part};"
+
+    new_content = _HOSTNAME_LISTEN_PATTERN.sub(_sub, content)
+    return new_content, count
+
+
+def migrate_configs_to_wildcard(
+    conf_dir: str = "/etc/nginx/conf.d",
+    backup_root: str = "/var/backups/nginx_set_conf",
+    dry_run: bool = False,
+) -> bool:
+    """Atomically migrate hostname-bound listen directives to wildcard form.
+
+    Scans `conf_dir` for `*.conf` files, finds every
+    `listen <hostname>:<port>[ ssl];` directive and rewrites it as
+    `listen <port>[ ssl];`. A timestamped backup of every file that would
+    change is written to `backup_root` before any modification. If the
+    subsequent `nginx -t` fails, all migrated files are restored from the
+    backup.
+
+    This is the recommended migration path for users who want the DNS
+    parse-time-independent listen behaviour introduced by v1.10.0. The
+    atomic all-or-nothing semantics prevent the partial-migration SNI
+    fallback that caused the v1.10.0 production incident.
+
+    Args:
+        conf_dir: Directory containing *.conf files to migrate.
+        backup_root: Root directory for timestamped backups.
+        dry_run: If True, report planned changes without writing.
+
+    Returns:
+        True if migration succeeded (or if dry_run), False on any error.
+    """
+    conf_path = Path(conf_dir)
+    if not conf_path.is_dir():
+        logger.error("Config directory not found: %s", conf_dir)
+        return False
+
+    conf_files = sorted(conf_path.glob("*.conf"))
+    if not conf_files:
+        logger.warning("No *.conf files found in %s", conf_dir)
+        return True
+
+    # Scan for affected files
+    affected: dict[Path, tuple[str, int]] = {}
+    for conf_file in conf_files:
+        try:
+            content = conf_file.read_text(encoding="utf-8")
+        except OSError as e:
+            logger.error("Cannot read %s: %s", conf_file, e)
+            return False
+        new_content, count = _rewrite_listen_directives(content)
+        if count > 0:
+            affected[conf_file] = (new_content, count)
+
+    if not affected:
+        logger.info("No hostname-bound listen directives found; nothing to migrate")
+        return True
+
+    logger.info("Migration preview (%d file(s) to change):", len(affected))
+    for conf_file, (_, count) in affected.items():
+        logger.info("  %s: %d directive(s)", conf_file, count)
+
+    if dry_run:
+        logger.info("[DRY RUN] No changes written")
+        return True
+
+    # Create backup
+    try:
+        backup_root_path = Path(backup_root)
+        backup_root_path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = backup_root_path / f"migrate_to_wildcard_{timestamp}"
+        if backup_path.exists() or backup_path.is_symlink():
+            logger.error("Backup target already exists: %s", backup_path)
+            return False
+        backup_path.mkdir(mode=0o700, exist_ok=False)
+        for conf_file in affected:
+            shutil.copy2(conf_file, backup_path / conf_file.name)
+        logger.info("Backup created at: %s", backup_path)
+    except OSError as e:
+        logger.error("Backup failed: %s", e)
+        return False
+
+    # Write migrated content
+    written: list[Path] = []
+    try:
+        for conf_file, (new_content, _) in affected.items():
+            conf_file.write_text(new_content, encoding="utf-8")
+            written.append(conf_file)
+        logger.info("Wrote %d migrated config file(s)", len(written))
+    except OSError as e:
+        logger.error("Write failed: %s — rolling back from %s", e, backup_path)
+        for wf in written:
+            try:
+                shutil.copy2(backup_path / wf.name, wf)
+            except OSError as rollback_err:
+                logger.error("Rollback failed for %s: %s", wf, rollback_err)
+        return False
+
+    # Validate via nginx -t
+    if not _run_command(["nginx", "-t"]):
+        logger.error("nginx -t failed after migration — rolling back from %s", backup_path)
+        for wf in written:
+            try:
+                shutil.copy2(backup_path / wf.name, wf)
+            except OSError as rollback_err:
+                logger.error("Rollback failed for %s: %s", wf, rollback_err)
+        return False
+
+    logger.info("Migration complete. Reload nginx to activate: systemctl reload nginx")
+    return True
+
+
+def setup_default_server(
+    target_path: str = "/etc/nginx/conf.d",
+    ssl_dir: str = "/etc/nginx/ssl",
+    cert_file: str = "default.crt",
+    key_file: str = "default.key",
+    dry_run: bool = False,
+) -> bool:
+    """Install the default_ssl_reject catch-all block.
+
+    Generates a self-signed sacrificial certificate (if missing) and writes
+    the default_ssl_reject template to `<target_path>/00-default.conf`. The
+    filename prefix `00-` ensures nginx loads it before any domain-specific
+    config, so it wins the `default_server` election for `listen 80` and
+    `listen 443 ssl` — but only for wildcard listen sockets. If the host
+    still has hostname-bound listen directives, migrate them first via
+    `migrate_configs_to_wildcard` or the `--migrate_to_wildcard` CLI flag.
+
+    Args:
+        target_path: Directory for 00-default.conf (default: /etc/nginx/conf.d).
+        ssl_dir: Directory for the self-signed cert/key (default: /etc/nginx/ssl).
+        cert_file: Cert filename (default: default.crt).
+        key_file: Key filename (default: default.key).
+        dry_run: If True, log intended actions without executing.
+
+    Returns:
+        True on success (or in dry-run), False on error.
+    """
+    cert_path = os.path.join(ssl_dir, cert_file)
+    key_path = os.path.join(ssl_dir, key_file)
+    conf_path = os.path.join(target_path, "00-default.conf")
+
+    if dry_run:
+        logger.info("[DRY RUN] Would create SSL dir: %s", ssl_dir)
+        logger.info("[DRY RUN] Would generate self-signed cert: %s / %s", cert_path, key_path)
+        logger.info("[DRY RUN] Would write default config: %s", conf_path)
+        return True
+
+    try:
+        os.makedirs(ssl_dir, exist_ok=True)
+    except OSError as e:
+        logger.error("Could not create SSL directory %s: %s", ssl_dir, e)
+        return False
+
+    # The cert is never presented to legitimate clients — the server
+    # `return 444`s the connection right after the TLS handshake. A
+    # throwaway CN is fine.
+    cert_exists = os.path.isfile(cert_path) and os.path.isfile(key_path)
+    if not cert_exists:
+        logger.info("Generating self-signed default cert at %s", cert_path)
+        ok = _run_command(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-nodes",
+                "-days",
+                "3650",
+                "-newkey",
+                "rsa:2048",
+                "-keyout",
+                key_path,
+                "-out",
+                cert_path,
+                "-subj",
+                "/CN=default-reject",
+            ]
+        )
+        if not ok:
+            logger.error("Failed to generate self-signed default cert")
+            return False
+        _run_command(["chmod", "600", key_path])
+    else:
+        logger.info("Self-signed default cert already exists, skipping generation")
+
+    content = get_config_template("default_ssl_reject")
+    if not content:
+        logger.error("default_ssl_reject template not found in registry")
+        return False
+
+    try:
+        os.makedirs(target_path, exist_ok=True)
+        with open(conf_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info("Wrote default config: %s", conf_path)
+    except OSError as e:
+        logger.error("Could not write %s: %s", conf_path, e)
+        return False
+
+    return True
 
 
 def execute_commands(

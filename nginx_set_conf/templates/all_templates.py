@@ -6,6 +6,7 @@ a single dictionary for accessing them.
 """
 
 from nginx_set_conf.templates.code_server import TEMPLATE as CODE_SERVER_TEMPLATE
+from nginx_set_conf.templates.default_ssl_reject import TEMPLATE as DEFAULT_SSL_REJECT_TEMPLATE
 from nginx_set_conf.templates.fast_report import TEMPLATE as FAST_REPORT_TEMPLATE
 from nginx_set_conf.templates.flowise import TEMPLATE as FLOWISE_TEMPLATE
 from nginx_set_conf.templates.guacamole import TEMPLATE as GUACAMOLE_TEMPLATE
@@ -86,6 +87,9 @@ def replace_cache_path(template, service_name, domain=None):
 # Dictionary mit allen Templates für einfachen Zugriff
 TEMPLATES = {
     "code_server": replace_cache_path(CODE_SERVER_TEMPLATE, "code_server"),
+    # default_ssl_reject has no proxy_cache_path / limit_req_zone, so it is
+    # registered verbatim without replace_cache_path().
+    "default_ssl_reject": DEFAULT_SSL_REJECT_TEMPLATE,
     "fast_report": replace_cache_path(FAST_REPORT_TEMPLATE, "fast_report"),
     "nextcloud": replace_cache_path(NEXTCLOUD_TEMPLATE, "nextcloud"),
     "portainer": replace_cache_path(PORTAINER_TEMPLATE, "portainer"),

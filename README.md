@@ -52,6 +52,7 @@ $ nginx-set-conf --help
 #### Supported Templates
 
 - `code_server` - Code-server with SSL
+- `default_ssl_reject` - Default `server_name _` catch-all that closes unknown SNI (installed via `--setup_default`)
 - `fast_report` - FastReport with SSL
 - `flowise` - Flowise AI with SSL/HTTP2
 - `guacamole` - Apache Guacamole with SSL/HTTP2 and WebSocket
@@ -74,6 +75,55 @@ $ nginx-set-conf --help
 - `--verify_config` - Check consistency between local and server config files
 - `--create_dirs` - Create missing nginx configuration directories
 - `--backup_config` - Create backup of current server configuration
+- `--migrate_to_wildcard` - Atomically rewrite hostname-bound listen directives (see below)
+- `--setup_default` - Install default_server catch-all for unknown SNI (see below)
+
+### Wildcard-Listen Migration & SNI Hardening (v1.10.2)
+
+**Default behaviour is unchanged**: templates keep generating
+`listen <domain>:80;` / `listen <domain>:443 ssl;`. This is the v1.9.2
+behaviour and works on every server where you have consistent configs.
+
+**Opt in only if you need it.** Two reasons to switch to wildcard listens:
+1. Your upstream DNS resolver occasionally fails, and nginx aborts
+   config-parse with `[emerg] host not found in "..." of the "listen"
+   directive`.
+2. You want an explicit `default_server` block that rejects unmatched SNI
+   with HTTP 444 — this only works on wildcard listen sockets.
+
+#### Safe migration procedure
+
+```bash
+# 1. Backup the whole /etc/nginx first (optional but recommended)
+sudo nginx-set-conf --backup_config
+
+# 2. Atomic rewrite of every hostname-bound listen directive in /etc/nginx/conf.d
+#    Creates a timestamped backup, runs `nginx -t`, rolls back on failure.
+sudo nginx-set-conf --migrate_to_wildcard
+
+# 3. Install the default_server catch-all (needs wildcard listens to be effective)
+sudo nginx-set-conf --setup_default
+
+# 4. Reload
+sudo systemctl reload nginx
+```
+
+**Never mix both styles.** A half-migrated host — some configs still on
+`listen <domain>:443 ssl;`, others on `listen 443 ssl;` — will cause
+nginx's SNI routing to serve the wrong TLS certificate for unmatched
+server names. This is exactly the production incident that motivated
+v1.10.2. Always migrate atomically, or stay on the default.
+
+#### Per-config opt-in via `--disable_domain_listen`
+
+If you generate a single new config and want it to use the wildcard form
+(without migrating existing configs), set the flag on that invocation:
+
+```bash
+nginx-set-conf --config_template odoo_ssl --domain ... --disable_domain_listen
+```
+
+Prefer `--migrate_to_wildcard` for an atomic all-or-nothing switch.
 
 ### Examples
 
@@ -561,6 +611,7 @@ $ nginx-set-conf --help
 #### Unterstützte Templates
 
 - `code_server` - Code-Server mit SSL
+- `default_ssl_reject` - Default-`server_name _` Catch-all, das unbekannte SNI schließt (Installation via `--setup_default`)
 - `fast_report` - FastReport mit SSL
 - `flowise` - Flowise AI mit SSL/HTTP2
 - `guacamole` - Apache Guacamole mit SSL/HTTP2 und WebSocket
@@ -583,6 +634,58 @@ $ nginx-set-conf --help
 - `--verify_config` - Prüfen ob benötigte nginx Konfigurationsdateien existieren
 - `--create_dirs` - Fehlende nginx Konfigurationsverzeichnisse erstellen
 - `--backup_config` - Backup der aktuellen Server-Konfiguration erstellen
+- `--migrate_to_wildcard` - Atomische Umschreibung hostname-gebundener listen-Direktiven (siehe unten)
+- `--setup_default` - Default_server-Catch-all für unbekannte SNI installieren (siehe unten)
+
+### Wildcard-Listen-Migration & SNI-Härtung (v1.10.2)
+
+**Default-Verhalten bleibt unverändert**: Templates erzeugen weiterhin
+`listen <domain>:80;` / `listen <domain>:443 ssl;`. Das ist das
+v1.9.2-Verhalten und läuft auf jedem Server mit konsistent erzeugten Configs
+sauber.
+
+**Opt-in nur wenn wirklich nötig.** Zwei Gründe für eine Migration auf
+Wildcard-Listens:
+1. Der Upstream-DNS-Resolver hat sporadische Aussetzer und nginx bricht beim
+   Config-Parse ab mit `[emerg] host not found in "..." of the "listen"
+   directive`.
+2. Sie wollen einen expliziten `default_server`-Block, der unbekannte SNI
+   mit HTTP 444 abbricht — das funktioniert nur auf Wildcard-Listen-Sockets.
+
+#### Sichere Migration
+
+```bash
+# 1. Backup von /etc/nginx (optional, aber empfohlen)
+sudo nginx-set-conf --backup_config
+
+# 2. Atomische Umschreibung aller hostname-gebundenen listen-Direktiven in
+#    /etc/nginx/conf.d — mit Zeitstempel-Backup, nginx -t und Rollback bei Fehler.
+sudo nginx-set-conf --migrate_to_wildcard
+
+# 3. Default_server-Catch-all installieren (funktioniert nur auf Wildcard-Listens)
+sudo nginx-set-conf --setup_default
+
+# 4. Reload
+sudo systemctl reload nginx
+```
+
+**Nicht mischen!** Ein halb-migrierter Host — einige Configs noch mit
+`listen <domain>:443 ssl;`, andere schon mit `listen 443 ssl;` — führt dazu,
+dass nginx beim SNI-Routing für unbekannte server_names das falsche
+TLS-Zertifikat ausliefert. Genau dieser Produktions-Incident war der Anlass
+für v1.10.2. Immer atomisch migrieren oder beim Default bleiben.
+
+#### Pro-Config-Opt-in via `--disable_domain_listen`
+
+Wer nur eine neue Config im Wildcard-Format erzeugen will (ohne bestehende
+Configs anzufassen), setzt den Flag pro Aufruf:
+
+```bash
+nginx-set-conf --config_template odoo_ssl --domain ... --disable_domain_listen
+```
+
+Für alle bestehenden Configs: bitte `--migrate_to_wildcard` nutzen (atomisch
+und mit Rollback).
 
 ### Beispiele
 

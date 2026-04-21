@@ -37,6 +37,7 @@ from nginx_set_conf.templates.all_templates import get_config_template as all_ge
 # Backward compatibility mapping for old template names with ngx_ prefix
 config_template_dict = {
     "ngx_code_server": all_get_config_template("code_server"),
+    "ngx_default_ssl_reject": all_get_config_template("default_ssl_reject"),
     "ngx_fast_report": all_get_config_template("fast_report"),
     "ngx_flowise": all_get_config_template("flowise"),
     "ngx_guacamole": all_get_config_template("guacamole"),
@@ -55,6 +56,7 @@ config_template_dict = {
     "ngx_supabase": all_get_config_template("supabase"),
     # New template names without prefix
     "code_server": all_get_config_template("code_server"),
+    "default_ssl_reject": all_get_config_template("default_ssl_reject"),
     "fast_report": all_get_config_template("fast_report"),
     "flowise": all_get_config_template("flowise"),
     "guacamole": all_get_config_template("guacamole"),

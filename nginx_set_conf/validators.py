@@ -173,9 +173,15 @@ def _reject_path_traversal(value: str, field: str) -> None:
     """Raise ValidationError if value contains a path-traversal component.
 
     The character-class regex used for cert/auth paths permits '.' and '/',
-    so '../' slips through. Reject any '..' component explicitly.
+    so '../' slips through. `..` components must be rejected on the raw
+    input — `os.path.normpath()` silently collapses `..` segments inside
+    absolute paths (e.g. `/etc/ssl/../../../etc/shadow` → `/etc/shadow`),
+    which would let a payload like `/etc/ssl/../../../etc/shadow` bypass
+    the check entirely. Split the original value on both Unix and Windows
+    separators and reject any literal `..` segment.
     """
-    if ".." in os.path.normpath(value).split(os.sep):
+    normalised_separators = value.replace("\\", "/")
+    if ".." in normalised_separators.split("/"):
         raise ValidationError(f"Path traversal detected in {field}: '{value}'")
 
 

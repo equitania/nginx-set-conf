@@ -14,6 +14,7 @@ class TestTemplateRegistry:
     def test_all_templates_loaded(self):
         expected = {
             "code_server",
+            "default_ssl_reject",
             "fast_report",
             "flowise",
             "guacamole",
@@ -140,3 +141,56 @@ class TestTemplateBackendIpPlaceholder:
         """Ensure ip.ip.ip.ip is completely removed from all templates (including comments)."""
         for name, content in TEMPLATES.items():
             assert "ip.ip.ip.ip" not in content, f"Template '{name}' still contains 'ip.ip.ip.ip'"
+
+    def test_default_ssl_reject_not_in_proxy_list(self):
+        """default_ssl_reject must NOT be treated as a proxy template.
+
+        It has no backend to proxy to — it exists specifically to close
+        connections with unknown SNI/Host. It therefore must not be in the
+        proxy_templates list used by test_all_proxy_templates_use_backend_ip_placeholder.
+        """
+        content = TEMPLATES["default_ssl_reject"]
+        assert "{{BACKEND_IP}}" not in content
+        assert "proxy_pass" not in content
+
+
+class TestDefaultSslReject:
+    """v1.10.2 tests for the default_ssl_reject catch-all block.
+
+    Background: without an explicit default_server on port 443, nginx falls
+    back to the first loaded server block for unmatched SNI. This caused the
+    wrong certificate to be presented in production on 2026-04-21
+    (equitania.de served the designer.odoo2fast.report cert). This template
+    closes such connections with HTTP 444 before any data is exchanged.
+    """
+
+    TEMPLATE_NAME = "default_ssl_reject"
+
+    def test_template_registered(self):
+        assert self.TEMPLATE_NAME in TEMPLATES
+        content = TEMPLATES[self.TEMPLATE_NAME]
+        assert content
+        assert len(content) > 100
+
+    def test_declares_default_server_on_80_and_443(self):
+        content = TEMPLATES[self.TEMPLATE_NAME]
+        assert "listen 80 default_server;" in content
+        assert "listen 443 ssl default_server;" in content
+
+    def test_ipv6_default_server_present(self):
+        content = TEMPLATES[self.TEMPLATE_NAME]
+        assert "listen [::]:80 default_server;" in content
+        assert "listen [::]:443 ssl default_server;" in content
+
+    def test_returns_444_to_close_connection(self):
+        content = TEMPLATES[self.TEMPLATE_NAME]
+        assert content.count("return 444;") >= 2
+
+    def test_uses_wildcard_server_name(self):
+        content = TEMPLATES[self.TEMPLATE_NAME]
+        assert "server_name _;" in content
+
+    def test_ssl_cert_paths_reference_default_pair(self):
+        content = TEMPLATES[self.TEMPLATE_NAME]
+        assert "/etc/nginx/ssl/default.crt" in content
+        assert "/etc/nginx/ssl/default.key" in content
