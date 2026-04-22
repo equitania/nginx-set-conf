@@ -639,15 +639,33 @@ def execute_commands(
         content,
     )
 
-    # Replace domain placeholder
+    # Replace listen-IP placeholder FIRST (before domain replacement), so that
+    # templates' `listen ip.ip.ip.ip:PORT;` becomes `listen <actual-ip>:PORT;`.
+    # IPv6 addresses are wrapped in brackets (`listen [2001:db8::1]:443 ssl;`).
+    # This binds the nginx listen socket to a specific interface and avoids both
+    # (a) DNS-parse-time failures of hostname-bound listens and (b) SNI fallback
+    # leakage of wildcard listens. See RELEASE_NOTES.md v1.11.0.
+    formatted_listen_ip = _format_ip_for_nginx(ip)
+    logger.info("Set listen IP in conf to %s", formatted_listen_ip)
+    content = _replace_placeholder(content, default_vars["template_ip"], formatted_listen_ip)
+
+    # Replace domain placeholder (server_name, cache paths, log file names)
     logger.info("Set domain name in conf to %s", domain)
     content = _replace_placeholder(content, default_vars["template_domain"], domain)
 
-    # Handle disable_domain_listen (must be AFTER domain replacement)
+    # Handle disable_domain_listen (must be AFTER IP replacement): strip the
+    # IP prefix so the listen socket becomes a wildcard (0.0.0.0:PORT). Flag
+    # name is kept for backward compatibility; the effective behaviour is
+    # "unbind listen from any interface". Only safe when default_ssl_reject
+    # is deployed as 00-default.conf — otherwise SNI fallback applies.
     if disable_domain_listen:
-        logger.info("Removing domain prefix from listen directives (for intranet systems)")
-        content = content.replace(f"listen {domain}:80", "listen 80")
-        content = content.replace(f"listen {domain}:443", "listen 443")
+        logger.warning(
+            "--disable_domain_listen is active: listen socket will be wildcard. "
+            "Make sure default_ssl_reject is deployed (--setup_default) to "
+            "prevent SNI fallback to the wrong certificate."
+        )
+        content = content.replace(f"listen {formatted_listen_ip}:80", "listen 80")
+        content = content.replace(f"listen {formatted_listen_ip}:443", "listen 443")
 
     # Backend IP handling (proxy_pass target)
     effective_backend_ip = backend_ip if backend_ip else "127.0.0.1"

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nginx-set-conf"
-version = "1.10.2"
+version = "1.11.0"
 description = "Python library for generating nginx reverse proxy configurations for Docker applications."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -80,7 +80,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]  # allow assert in tests
+"tests/*" = [
+    "S101",  # allow assert in tests
+    "S108",  # allow /tmp paths in tests (string assertions, no actual file writes)
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -109,7 +112,7 @@ module = ["yaml"]
 ignore_missing_imports = true
 
 [tool.bump-my-version]
-current_version = "1.10.2"
+current_version = "1.11.0"
 commit = true
 tag = true
 tag_name = "v{new_version}"

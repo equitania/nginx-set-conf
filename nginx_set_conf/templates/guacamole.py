@@ -3,7 +3,7 @@ Template for Apache Guacamole NGINX configuration with SSL/HTTP2 and WebSocket s
 """
 
 TEMPLATE = """# Template for Apache Guacamole NGINX configuration with SSL/HTTP2 and WebSocket support
-# 26.02.2026
+# 22.04.2026
 
 # WebSocket upgrade mapping - required for Guacamole
 map $http_upgrade $connection_upgrade {
@@ -21,13 +21,13 @@ proxy_cache_path /tmp levels=1:2 keys_zone=my_cache:10m max_size=1g inactive=60m
 limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=iprl:16m rate=500r/m;
 
 server {
-    listen server.domain.de:80;
+    listen ip.ip.ip.ip:80;
     server_name server.domain.de;
     rewrite ^/.*$ https://$host$request_uri? permanent;
 }
 
 server {
-    listen server.domain.de:443 ssl;
+    listen ip.ip.ip.ip:443 ssl;
     server_name server.domain.de;
 
     # HTTP/2 is enabled globally in nginx.conf

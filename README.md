@@ -22,7 +22,8 @@ A simple Python library that helps you create nginx configurations for different
 - **Backup functionality**: Automatic backup of server configurations
 - **Dry run mode**: Test configurations without applying changes
 - **PDF MIME-Type optimization**: Enhanced PDF handling for Odoo applications
-- **Intranet support**: Optional disable domain prefix in listen directives for internal networks
+- **IP-bound listen directives** (v1.11.0+): templates bind `listen` to the `--ip` value, which avoids both DNS-parse-time failures (hostname-bound listens) and SNI fallback leaks (wildcard listens)
+- **Intranet support**: Optional wildcard listen via `--disable_domain_listen` for internal networks without a stable public IP
 
 ### Installation
 
@@ -78,20 +79,43 @@ $ nginx-set-conf --help
 - `--migrate_to_wildcard` - Atomically rewrite hostname-bound listen directives (see below)
 - `--setup_default` - Install default_server catch-all for unknown SNI (see below)
 
-### Wildcard-Listen Migration & SNI Hardening (v1.10.2)
+### IP-bound Listen Directives (v1.11.0)
 
-**Default behaviour is unchanged**: templates keep generating
-`listen <domain>:80;` / `listen <domain>:443 ssl;`. This is the v1.9.2
-behaviour and works on every server where you have consistent configs.
+**Default behaviour** (since v1.11.0): templates generate
+`listen <ip>:80;` / `listen <ip>:443 ssl;` where `<ip>` is the value
+passed via `--ip`. IPv6 addresses are automatically wrapped in brackets
+(`listen [2001:db8::1]:443 ssl;`). `server_name` still uses the domain
+for SNI routing — only the listen socket binding changed.
 
-**Opt in only if you need it.** Two reasons to switch to wildcard listens:
-1. Your upstream DNS resolver occasionally fails, and nginx aborts
-   config-parse with `[emerg] host not found in "..." of the "listen"
-   directive`.
-2. You want an explicit `default_server` block that rejects unmatched SNI
-   with HTTP 444 — this only works on wildcard listen sockets.
+**Why this is the default**:
+1. **No DNS resolution at config-parse time** — nginx does not abort on
+   transient DNS failures of the `--domain` host. This was the root cause
+   of v1.9.x/v1.10.2 nightly outages.
+2. **No SNI fallback to the wrong certificate** — because the socket is
+   bound to a specific interface, nginx cannot silently pick the
+   first-loaded server block as a fallback for unmatched SNI. This was
+   the root cause of the SSL-Cert-Mismatch incident on 21.04.2026.
 
-#### Safe migration procedure
+#### Optional: wildcard listen via `--disable_domain_listen`
+
+For intranet systems without a stable public IP, or when you explicitly
+want a wildcard listen socket (`0.0.0.0:443`), set the flag on the
+affected invocation:
+
+```bash
+nginx-set-conf --config_template odoo_ssl --domain ... --disable_domain_listen
+```
+
+**Warning**: wildcard listens without an explicit `default_server` leak
+certificates via SNI fallback. Always deploy `default_ssl_reject` first
+via `--setup_default` when using wildcards.
+
+#### Optional: bulk migration from old hostname-bound installs
+
+Installations still running the v1.9.x / v1.10.2 hostname-bound default
+(`listen <domain>:443 ssl;`) can be migrated to wildcard form atomically
+(regenerating with v1.11.0 templates is the preferred path — this
+migration tool is for bulk server-side rewrites):
 
 ```bash
 # 1. Backup the whole /etc/nginx first (optional but recommended)
@@ -108,22 +132,11 @@ sudo nginx-set-conf --setup_default
 sudo systemctl reload nginx
 ```
 
-**Never mix both styles.** A half-migrated host — some configs still on
-`listen <domain>:443 ssl;`, others on `listen 443 ssl;` — will cause
+**Never mix styles.** A half-migrated host — some configs on
+`listen <domain>:443 ssl;`, others on `listen 443 ssl;` — causes
 nginx's SNI routing to serve the wrong TLS certificate for unmatched
-server names. This is exactly the production incident that motivated
-v1.10.2. Always migrate atomically, or stay on the default.
-
-#### Per-config opt-in via `--disable_domain_listen`
-
-If you generate a single new config and want it to use the wildcard form
-(without migrating existing configs), set the flag on that invocation:
-
-```bash
-nginx-set-conf --config_template odoo_ssl --domain ... --disable_domain_listen
-```
-
-Prefer `--migrate_to_wildcard` for an atomic all-or-nothing switch.
+names. This is exactly the production incident that motivated v1.10.2.
+Either migrate atomically, or stay on the v1.11.0 IP-bound default.
 
 ### Examples
 
@@ -283,13 +296,20 @@ nginx-set-conf --backup_config
 
 ### Intranet Configuration (disable_domain_listen)
 
-For intranet systems where nginx requires listen directives without domain prefix:
+For intranet systems that need a wildcard listen socket instead of the
+v1.11.0 default IP-bound form:
 
 #### When to Use
 
-Some internal/intranet environments require nginx listen directives without the domain prefix:
-- **Standard**: `listen domain.com:443 ssl;`
-- **Intranet**: `listen 443 ssl;`
+Switch to wildcard listens when:
+- The host does not have a stable public IP but must serve a specific
+  `server_name` (unusual — prefer IP-bound with the actual intranet IP)
+- You are explicitly deploying `default_ssl_reject` via `--setup_default`
+  and want every vhost on `0.0.0.0`
+
+Variants:
+- **Default (v1.11.0)**: `listen 192.168.1.100:443 ssl;` (IP-bound)
+- **Wildcard (opt-in)**: `listen 443 ssl;`
 
 #### Configuration Example
 
@@ -301,7 +321,7 @@ intranet-odoo:
   port: 8069
   cert_name: dev01-a.intra.company.local
   pollport: 8072
-  disable_domain_listen: true  # Remove domain prefix from listen directives
+  disable_domain_listen: true  # Strip the IP prefix (wildcard listen)
 ```
 
 #### Command Line Usage
@@ -317,20 +337,20 @@ nginx-set-conf --config_template odoo_ssl \
 
 #### Effect on Configuration
 
-**Without `disable_domain_listen`:**
+**Without `disable_domain_listen` (v1.11.0 default, IP-bound):**
 ```nginx
 server {
-    listen dev01-a.intra.company.local:80;
+    listen 192.168.1.100:80;
     server_name dev01-a.intra.company.local;
 }
 
 server {
-    listen dev01-a.intra.company.local:443 ssl;
+    listen 192.168.1.100:443 ssl;
     server_name dev01-a.intra.company.local;
 }
 ```
 
-**With `disable_domain_listen`:**
+**With `disable_domain_listen` (wildcard):**
 ```nginx
 server {
     listen 80;
@@ -339,10 +359,12 @@ server {
 
 server {
     listen 443 ssl;
-    http2 on;
     server_name dev01-a.intra.company.local;
 }
 ```
+
+**Warning**: wildcard listens without `default_ssl_reject` leak
+certificates via SNI fallback. Deploy `--setup_default` first.
 
 ### IP Access Restrictions
 
@@ -581,7 +603,8 @@ Eine einfache Python-Bibliothek, die bei der Erstellung von nginx-Konfiguratione
 - **Backup-Funktionalität**: Automatische Sicherung von Server-Konfigurationen
 - **Dry-Run-Modus**: Konfigurationen testen ohne Änderungen anzuwenden
 - **PDF MIME-Type-Optimierung**: Verbesserte PDF-Behandlung für Odoo-Anwendungen
-- **Intranet-Unterstützung**: Optional Domain-Präfix in Listen-Direktiven für interne Netzwerke deaktivieren
+- **IP-gebundene listen-Direktiven** (v1.11.0+): Templates binden `listen` an den `--ip`-Wert, was sowohl DNS-Parse-Fehler (Hostname-bound) als auch SNI-Fallback-Leaks (Wildcard) vermeidet
+- **Intranet-Unterstützung**: Optional Wildcard-Listen via `--disable_domain_listen` für interne Netzwerke ohne stabile öffentliche IP
 
 ### Installation
 
@@ -637,22 +660,43 @@ $ nginx-set-conf --help
 - `--migrate_to_wildcard` - Atomische Umschreibung hostname-gebundener listen-Direktiven (siehe unten)
 - `--setup_default` - Default_server-Catch-all für unbekannte SNI installieren (siehe unten)
 
-### Wildcard-Listen-Migration & SNI-Härtung (v1.10.2)
+### IP-gebundene listen-Direktiven (v1.11.0)
 
-**Default-Verhalten bleibt unverändert**: Templates erzeugen weiterhin
-`listen <domain>:80;` / `listen <domain>:443 ssl;`. Das ist das
-v1.9.2-Verhalten und läuft auf jedem Server mit konsistent erzeugten Configs
-sauber.
+**Default-Verhalten** (seit v1.11.0): Templates erzeugen
+`listen <ip>:80;` / `listen <ip>:443 ssl;`, wobei `<ip>` der über `--ip`
+übergebene Wert ist. IPv6-Adressen werden automatisch in eckige Klammern
+gesetzt (`listen [2001:db8::1]:443 ssl;`). Der `server_name` nutzt weiterhin
+die Domain für SNI-Routing — geändert wurde ausschließlich das Listen-Binding.
 
-**Opt-in nur wenn wirklich nötig.** Zwei Gründe für eine Migration auf
-Wildcard-Listens:
-1. Der Upstream-DNS-Resolver hat sporadische Aussetzer und nginx bricht beim
-   Config-Parse ab mit `[emerg] host not found in "..." of the "listen"
-   directive`.
-2. Sie wollen einen expliziten `default_server`-Block, der unbekannte SNI
-   mit HTTP 444 abbricht — das funktioniert nur auf Wildcard-Listen-Sockets.
+**Warum das der Default ist**:
+1. **Keine DNS-Auflösung beim Config-Parse** — nginx bricht nicht mehr bei
+   transienten DNS-Fehlern der `--domain` ab. Das war die Ursache der
+   nächtlichen Ausfälle in v1.9.x/v1.10.2.
+2. **Kein SNI-Fallback auf das falsche Zertifikat** — da der Socket an eine
+   spezifische Schnittstelle gebunden ist, kann nginx nicht mehr stillschweigend
+   den ersten geladenen server-Block als Fallback für unbekannte SNI wählen.
+   Das war die Ursache des SSL-Cert-Mismatch-Incidents am 21.04.2026.
 
-#### Sichere Migration
+#### Optional: Wildcard-Listen via `--disable_domain_listen`
+
+Für Intranet-Systeme ohne stabile öffentliche IP oder wenn explizit ein
+Wildcard-Listen-Socket (`0.0.0.0:443`) gewünscht ist, den Flag pro Aufruf
+setzen:
+
+```bash
+nginx-set-conf --config_template odoo_ssl --domain ... --disable_domain_listen
+```
+
+**Warnung**: Wildcard-Listens ohne expliziten `default_server` liefern
+falsche Zertifikate über SNI-Fallback aus. Immer zuerst `default_ssl_reject`
+via `--setup_default` deployen.
+
+#### Optional: Bulk-Migration alter hostname-gebundener Installationen
+
+Bestehende Systeme mit dem v1.9.x / v1.10.2 Default
+(`listen <domain>:443 ssl;`) lassen sich atomisch auf Wildcard umstellen
+(empfohlener Pfad: einfach mit v1.11.0-Templates neu generieren — dieses
+Tool ist für Massen-Rewrites serverseitig):
 
 ```bash
 # 1. Backup von /etc/nginx (optional, aber empfohlen)
@@ -669,23 +713,12 @@ sudo nginx-set-conf --setup_default
 sudo systemctl reload nginx
 ```
 
-**Nicht mischen!** Ein halb-migrierter Host — einige Configs noch mit
-`listen <domain>:443 ssl;`, andere schon mit `listen 443 ssl;` — führt dazu,
+**Nicht mischen!** Ein halb-migrierter Host — einige Configs auf
+`listen <domain>:443 ssl;`, andere auf `listen 443 ssl;` — führt dazu,
 dass nginx beim SNI-Routing für unbekannte server_names das falsche
 TLS-Zertifikat ausliefert. Genau dieser Produktions-Incident war der Anlass
-für v1.10.2. Immer atomisch migrieren oder beim Default bleiben.
-
-#### Pro-Config-Opt-in via `--disable_domain_listen`
-
-Wer nur eine neue Config im Wildcard-Format erzeugen will (ohne bestehende
-Configs anzufassen), setzt den Flag pro Aufruf:
-
-```bash
-nginx-set-conf --config_template odoo_ssl --domain ... --disable_domain_listen
-```
-
-Für alle bestehenden Configs: bitte `--migrate_to_wildcard` nutzen (atomisch
-und mit Rollback).
+für v1.10.2. Entweder atomisch migrieren oder auf dem v1.11.0-IP-bound-Default
+bleiben.
 
 ### Beispiele
 

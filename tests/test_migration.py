@@ -21,14 +21,7 @@ class TestRewriteListenDirectives:
         assert count == 1
 
     def test_rewrites_multiple_directives(self):
-        src = (
-            "server {\n"
-            "    listen server.domain.de:80;\n"
-            "}\n"
-            "server {\n"
-            "    listen server.domain.de:443 ssl;\n"
-            "}\n"
-        )
+        src = "server {\n    listen server.domain.de:80;\n}\nserver {\n    listen server.domain.de:443 ssl;\n}\n"
         new, count = _rewrite_listen_directives(src)
         assert count == 2
         assert "listen server.domain.de" not in new
@@ -99,6 +92,7 @@ class TestMigrateConfigsToWildcard:
 
         # Stub out `nginx -t` via _run_command so tests don't need nginx.
         from nginx_set_conf import utils as utils_module
+
         monkeypatch.setattr(utils_module, "_run_command", lambda *a, **kw: True)
 
         ok = migrate_configs_to_wildcard(
@@ -127,6 +121,7 @@ class TestMigrateConfigsToWildcard:
         backup_root = tmp_path / "backup"
 
         from nginx_set_conf import utils as utils_module
+
         monkeypatch.setattr(utils_module, "_run_command", lambda *a, **kw: False)
 
         ok = migrate_configs_to_wildcard(
@@ -174,6 +169,7 @@ class TestSetupDefaultServer:
             return True
 
         from nginx_set_conf import utils as utils_module
+
         monkeypatch.setattr(utils_module, "_run_command", fake_run_command)
 
         ok = setup_default_server(
@@ -201,6 +197,7 @@ class TestSetupDefaultServer:
         calls: list[list[str]] = []
 
         from nginx_set_conf import utils as utils_module
+
         monkeypatch.setattr(utils_module, "_run_command", lambda args, *a, **kw: calls.append(list(args)) or True)
 
         ok = setup_default_server(
@@ -214,6 +211,7 @@ class TestSetupDefaultServer:
 
     def test_openssl_failure_returns_false(self, tmp_path, monkeypatch):
         from nginx_set_conf import utils as utils_module
+
         monkeypatch.setattr(utils_module, "_run_command", lambda *a, **kw: False)
 
         ok = setup_default_server(
@@ -235,11 +233,13 @@ class TestMigrateRollbackPaths:
         conf.write_text(original)
 
         from nginx_set_conf import utils as utils_module
+
         monkeypatch.setattr(utils_module, "_run_command", lambda *a, **kw: True)
 
         # Force the write to fail by making the file read-only AFTER backup.
         # Easier: monkey-patch Path.write_text to raise on this path once.
         from pathlib import Path as _Path
+
         real_write = _Path.write_text
         calls = {"count": 0}
 
@@ -262,9 +262,15 @@ class TestMigrateRollbackPaths:
 
 
 class TestDisableDomainListenIntegration:
-    """End-to-end test: --disable_domain_listen flag rewrites listen directives."""
+    """End-to-end test: --disable_domain_listen flag rewrites listen directives.
 
-    def test_flag_strips_hostname_from_listen(self, tmp_path, monkeypatch):
+    Since v1.11.0, templates emit `listen ip.ip.ip.ip:PORT;` by default.
+    The --disable_domain_listen flag (name kept for backward compatibility)
+    strips the IP prefix, leaving a wildcard `listen PORT;`. This is only
+    safe when default_ssl_reject is deployed as 00-default.conf.
+    """
+
+    def test_flag_strips_ip_from_listen(self, tmp_path, monkeypatch):
         from nginx_set_conf import utils as utils_module
         from nginx_set_conf.utils import execute_commands
 
@@ -287,11 +293,15 @@ class TestDisableDomainListenIntegration:
             disable_domain_listen=True,
         )
         generated = (tmp_path / "example.com.conf").read_text()
+        # Hostname was never in listen (v1.11.0+), IP prefix must be gone
         assert "listen example.com:" not in generated
+        assert "listen 127.0.0.1:" not in generated
         assert "listen 80;" in generated
         assert "listen 443 ssl;" in generated
+        # server_name stays intact for SNI routing
+        assert "server_name example.com;" in generated
 
-    def test_default_keeps_hostname_in_listen(self, tmp_path, monkeypatch):
+    def test_default_uses_ip_bound_listen(self, tmp_path, monkeypatch):
         from nginx_set_conf import utils as utils_module
         from nginx_set_conf.utils import execute_commands
 
@@ -313,5 +323,39 @@ class TestDisableDomainListenIntegration:
             disable_domain_listen=False,
         )
         generated = (tmp_path / "example.com.conf").read_text()
-        assert "listen example.com:80;" in generated
-        assert "listen example.com:443 ssl;" in generated
+        # v1.11.0: listen binds to the --ip value, not the hostname
+        assert "listen 127.0.0.1:80;" in generated
+        assert "listen 127.0.0.1:443 ssl;" in generated
+        assert "listen example.com:" not in generated
+        # server_name still uses the domain for SNI-based routing
+        assert "server_name example.com;" in generated
+
+    def test_ipv6_listen_is_bracketed(self, tmp_path, monkeypatch):
+        """IPv6 addresses must be wrapped in square brackets in listen directives.
+
+        nginx syntax requires `listen [2001:db8::1]:443 ssl;` — the same
+        bracketing already applied to proxy_pass/grpc_pass by _format_ip_for_nginx.
+        """
+        from nginx_set_conf import utils as utils_module
+        from nginx_set_conf.utils import execute_commands
+
+        monkeypatch.setattr(utils_module, "_run_command", lambda *a, **kw: True)
+
+        execute_commands(
+            config_template="odoo_ssl",
+            domain="example.com",
+            ip="2001:db8::1",
+            cert_name="example.com",
+            cert_key=None,
+            port="8069",
+            pollport="8072",
+            redirect_domain=None,
+            auth_file=None,
+            allowed_ips=None,
+            target_path=str(tmp_path),
+            dry_run=False,
+            disable_domain_listen=False,
+        )
+        generated = (tmp_path / "example.com.conf").read_text()
+        assert "listen [2001:db8::1]:80;" in generated
+        assert "listen [2001:db8::1]:443 ssl;" in generated

@@ -1,5 +1,68 @@
 # RELEASE NOTES
 
+## Version 1.11.0 (22.04.2026)
+
+### Changed (default behaviour)
+- **[CHG]** All 17 service templates now emit **IP-bound** listen directives
+  by default: `listen ip.ip.ip.ip:PORT[ ssl];` where `ip.ip.ip.ip` is
+  substituted with the `--ip` value (IPv6 addresses are automatically
+  bracketed, e.g. `listen [2001:db8::1]:443 ssl;`). This replaces the
+  hostname-bound form (`listen <domain>:PORT;`) that was the default in
+  v1.9.x and v1.10.2.
+- **[CHG]** `server_name` continues to use the domain — only the listen
+  socket binding changed. Name-based virtual hosting and SNI routing work
+  exactly as before.
+
+### Why this matters
+IP-bound listens combine the two properties we wanted separately in v1.10:
+1. **No DNS resolution at config-parse time** — nginx no longer aborts on
+   transient DNS failures of the `--domain` host (root cause of the nightly
+   outages 10./11./15.04.2026).
+2. **No SNI fallback to the wrong certificate** — unlike the wildcard
+   listen that v1.10.0 tried (`listen 443 ssl;`), the socket is bound to a
+   specific interface, so nginx cannot silently pick the first-loaded
+   server block as a fallback for unmatched SNI (root cause of the
+   SSL-Cert-Mismatch incident 21.04.2026).
+
+### Migration
+- **New deployments**: run `nginx-set-conf` with the updated templates.
+  The `--ip` parameter is already mandatory, so no CLI change is needed.
+- **Existing deployments** with hostname-bound listens: simply regenerate
+  the affected `*.conf` files. A future minor release may add an atomic
+  `--migrate_to_ip_bound` companion to `--migrate_to_wildcard` for bulk
+  server-side rewrites.
+- **IPv6-only hosts**: supply the IPv6 address via `--ip`; bracketing is
+  automatic via `_format_ip_for_nginx`.
+
+### Flag semantics update
+- **[CHG]** `--disable_domain_listen` is **kept for backward compatibility**
+  but its semantic meaning shifted: it now strips the **IP** prefix from
+  listen directives (producing wildcard `listen PORT;`), because the IP
+  replaced the hostname in the default template. The flag still emits a
+  warning and should only be used when `default_ssl_reject` is deployed
+  via `--setup_default` — otherwise the SNI fallback from 21.04.2026
+  recurs.
+
+### Tests
+- **[ADD]** `TestIpBoundListen` in `tests/test_templates.py`: asserts all
+  17 service templates emit `listen ip.ip.ip.ip:80;` and (where applicable)
+  `listen ip.ip.ip.ip:443 ssl;`; forbids any `server.domain.de` prefix in
+  listen lines; verifies `server_name server.domain.de;` is retained.
+- **[CHG]** `TestTemplateBackendIpPlaceholder.test_ip_placeholder_restricted_to_listen`
+  replaces the old "no ip.ip.ip.ip anywhere" invariant with the stricter
+  "ip.ip.ip.ip only in listen directives" rule.
+- **[ADD]** `TestDisableDomainListenIntegration.test_ipv6_listen_is_bracketed`:
+  end-to-end regression for IPv6 listen-IP bracketing.
+- **[CHG]** `test_default_keeps_hostname_in_listen` → `test_default_uses_ip_bound_listen`
+  — reflects the new default.
+
+### Date headers
+- **[CHG]** Date header in all 17 template files bumped to `22.04.2026`.
+
+### Tests: 153 passed (v1.10.2: 151). Coverage gate at 60% (actual 64%).
+
+---
+
 ## Version 1.10.2 (21.04.2026)
 
 ### Reverted

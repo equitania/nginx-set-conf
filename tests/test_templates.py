@@ -134,13 +134,29 @@ class TestTemplateBackendIpPlaceholder:
                     continue
                 if "proxy_pass" in stripped or "grpc_pass" in stripped:
                     assert "127.0.0.1" not in stripped, f"Template '{name}' has hardcoded 127.0.0.1 in: {stripped}"
-                    # ip.ip.ip.ip should not be in active proxy_pass
+                    # ip.ip.ip.ip is reserved for listen directives only (v1.11.0+);
+                    # proxy_pass/grpc_pass must use {{BACKEND_IP}}.
                     assert "ip.ip.ip.ip" not in stripped, f"Template '{name}' has ip.ip.ip.ip in: {stripped}"
 
-    def test_no_ip_placeholder_anywhere(self):
-        """Ensure ip.ip.ip.ip is completely removed from all templates (including comments)."""
+    def test_ip_placeholder_restricted_to_listen(self):
+        """v1.11.0: ip.ip.ip.ip must only appear in `listen` directives.
+
+        Before v1.11.0, templates bound the listen socket to the hostname
+        (`listen server.domain.de:443 ssl;`), which forced nginx to resolve
+        the hostname at config-parse time and aborted startup on transient
+        DNS failures. v1.11.0 rewrites this to `listen ip.ip.ip.ip:443 ssl;`
+        — the placeholder is substituted with the --ip value (IPv6 wrapped
+        in brackets) by execute_commands. It must not leak into any other
+        directive, especially not proxy_pass (checked separately above).
+        """
         for name, content in TEMPLATES.items():
-            assert "ip.ip.ip.ip" not in content, f"Template '{name}' still contains 'ip.ip.ip.ip'"
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("#") or "ip.ip.ip.ip" not in stripped:
+                    continue
+                assert stripped.startswith("listen "), (
+                    f"Template '{name}' uses ip.ip.ip.ip outside a listen directive: {stripped}"
+                )
 
     def test_default_ssl_reject_not_in_proxy_list(self):
         """default_ssl_reject must NOT be treated as a proxy template.
@@ -152,6 +168,67 @@ class TestTemplateBackendIpPlaceholder:
         content = TEMPLATES["default_ssl_reject"]
         assert "{{BACKEND_IP}}" not in content
         assert "proxy_pass" not in content
+
+
+class TestIpBoundListen:
+    """v1.11.0 regression tests for IP-bound listen directives.
+
+    All service templates (everything except default_ssl_reject, which
+    intentionally uses wildcard listens with default_server) must emit
+    `listen ip.ip.ip.ip:PORT[ ssl];`. Hostname-bound listens (v1.9.x
+    default) are forbidden because they make nginx fail to start on
+    transient DNS issues; wildcard listens without default_server leak
+    certificates via SNI fallback (see v1.10.2 RELEASE_NOTES).
+    """
+
+    SERVICE_TEMPLATES = [
+        "code_server",
+        "fast_report",
+        "flowise",
+        "guacamole",
+        "kasm",
+        "mailpit",
+        "n8n",
+        "nextcloud",
+        "odoo_http",
+        "odoo_ssl",
+        "pgadmin",
+        "portainer",
+        "pwa",
+        "qdrant",
+        "redirect",
+        "redirect_ssl",
+        "supabase",
+    ]
+
+    def test_all_service_templates_use_ip_bound_listen_80(self):
+        for name in self.SERVICE_TEMPLATES:
+            content = TEMPLATES[name]
+            assert "listen ip.ip.ip.ip:80;" in content, f"Template '{name}' missing `listen ip.ip.ip.ip:80;`"
+
+    def test_ssl_templates_use_ip_bound_listen_443(self):
+        ssl_templates = [t for t in self.SERVICE_TEMPLATES if t not in ("odoo_http", "redirect")]
+        for name in ssl_templates:
+            content = TEMPLATES[name]
+            assert "listen ip.ip.ip.ip:443 ssl;" in content, f"Template '{name}' missing `listen ip.ip.ip.ip:443 ssl;`"
+
+    def test_no_hostname_bound_listen(self):
+        for name in self.SERVICE_TEMPLATES:
+            content = TEMPLATES[name]
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("listen "):
+                    assert "server.domain.de" not in stripped, (
+                        f"Template '{name}' still has hostname-bound listen: {stripped}"
+                    )
+
+    def test_server_name_still_uses_domain_placeholder(self):
+        """server_name must still reference server.domain.de (that's how SNI
+        matching works). Only the listen binding changed; name-based vhost
+        routing is unaffected."""
+        for name in self.SERVICE_TEMPLATES:
+            content = TEMPLATES[name]
+            assert "server_name server.domain.de;" in content, f"Template '{name}' lost its server_name placeholder"
 
 
 class TestDefaultSslReject:
