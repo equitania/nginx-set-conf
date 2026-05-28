@@ -100,6 +100,58 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       `nginx_set_conf/__init__.py`.
       *(CONCERNS.md §DOC-LOW-1.)*
 
+### PROTO — HTTP protocol modernization
+
+- [ ] **PROTO-01**: HTTP/2 is **actually** enabled across every SSL
+      template and in the embedded `NGINX_CONF_TEMPLATE`. The current
+      templates carry an `# incl. SSL/http2` banner but emit no
+      `http2` directive — a documentation/marketing gap that ships
+      HTTP/1.1 to operators expecting HTTP/2. Phase 2.5 closes this
+      gap with `http2 on;` (post-1.25 syntax). The behavioural change
+      is operator-invisible — browsers negotiate HTTP/2 via ALPN, no
+      firewall change required.
+      *(CONCERNS.md §DOC-DRIFT MEDIUM addition — every
+      `templates/*.py` SSL template + `config_verification.py:17,84,100`.)*
+- [ ] **PROTO-02**: A new `--enable_http3` opt-in CLI flag (and YAML
+      key `enable_http3: true`) is recognised by `execute_commands`
+      and validated. Default: **off**. When set, applicable SSL
+      templates emit the QUIC/HTTP/3 listen directives + Alt-Svc
+      header.
+- [ ] **PROTO-03**: HTTP/3 emission is applied **only** to the 11–12
+      SSL templates that serve browser/end-user traffic:
+      `odoo_ssl`, `flowise`, `n8n`, `nextcloud`, `guacamole`, `kasm`,
+      `pgadmin`, `portainer`, `pwa`, `code_server`, `supabase`,
+      `qdrant` (REST listen only). Explicitly **excluded**:
+      `fast_report` (server-to-server API), `mailpit` (dev tool),
+      `redirect`, `redirect_ssl`, `default_ssl_reject`, `odoo_http`,
+      `qdrant`'s gRPC port. The exclusion list is encoded as a
+      constant or per-template attribute; the validator rejects
+      `--enable_http3` for excluded templates with a clear message.
+- [ ] **PROTO-04**: When HTTP/3 is enabled, the generated SSL server
+      block emits:
+      - `listen ip.ip.ip.ip:443 quic reuseport;` (one `reuseport` per
+        IP/port pair across the host — handled by `setup_default`
+        or a new dedicated tracker)
+      - `add_header Alt-Svc 'h3=":443"; ma=86400';`
+      - `ssl_protocols TLSv1.3;` scoped to the HTTP/3 server block
+        (overrides the TLS 1.2+1.3 global default — HTTP/3 requires
+        TLS 1.3)
+      - `quic_retry on;` for amplification protection
+- [ ] **PROTO-05**: An nginx-version check (`nginx -v` ≥ 1.25.0)
+      runs BEFORE writing any HTTP/3-emitting config. If the host's
+      nginx is too old, the tool refuses with a clear remediation
+      message ("HTTP/3 requires nginx ≥ 1.25; upgrade nginx or omit
+      --enable_http3"). The pre-write check is mandatory because a
+      `quic` listen directive crashes nginx-1.24 with
+      `[emerg] unknown directive "quic"`.
+- [ ] **PROTO-06**: README.md and RELEASE_NOTES.md document the
+      operator prerequisites for HTTP/3 in a dedicated subsection:
+      (1) nginx ≥ 1.25.0, (2) **UDP/443 firewall opening in addition
+      to TCP/443**, (3) TLS 1.3 enforcement implication, (4) ECDSA
+      cert recommendation for best QUIC performance, (5) opt-in
+      design — never default-on. The UDP/443 firewall note is
+      prominent (a callout box or warning admonition).
+
 ### Q — Open questions to resolve (decisions, then implement or document)
 
 - [ ] **Q-01**: Decide on `--migrate_to_ip_bound` (RELEASE_NOTES v1.11.0
@@ -123,6 +175,16 @@ Deferred to a future release (no current roadmap slot).
 ### Coverage
 - **TEST-01**: Raise the coverage gate from 60% → 70% and add tests
   for `config_verification.py` (currently 11% covered).
+
+### Protocol modernization (deferred to v2 — not in scope for v1.12)
+- **PROTO-V2-01**: Atomic `--migrate_to_http3` server-side flag that
+  scans `/etc/nginx/conf.d/*.conf` for HTTP/3-eligible templates, adds
+  the `quic` listen + Alt-Svc directives, runs `nginx -t`, and rolls
+  back on failure. Analog to `--migrate_to_wildcard`. Postponed until
+  v1.12 PROTO-02..06 ship and we have real-world deployment data.
+- **PROTO-V2-02**: 0-RTT (`ssl_early_data on;`) support. Default off
+  because of replay-attack semantics. Document the tradeoff before
+  enabling for any operator.
 
 ## Out of Scope
 
@@ -158,10 +220,16 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | DOC-01 | Phase 4 | Pending |
 | Q-01 | Phase 4 | Pending |
 | Q-02 | Phase 4 | Pending |
+| PROTO-01 | Phase 2.5 | Pending |
+| PROTO-02 | Phase 5 | Pending |
+| PROTO-03 | Phase 5 | Pending |
+| PROTO-04 | Phase 5 | Pending |
+| PROTO-05 | Phase 5 | Pending |
+| PROTO-06 | Phase 5 | Pending |
 
 **Coverage:**
-- v1.12 requirements: 18 total
-- Mapped to phases: 18
+- v1.12 requirements: 24 total (18 hardening + 1 HTTP/2 fix + 5 HTTP/3 opt-in)
+- Mapped to phases: 24
 - Unmapped: 0
 
 ---

@@ -9,10 +9,10 @@ See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 ## Current Position
 
-Phase: 1 of 4 (Privileged write-surface hardening)
+Phase: 1 of 6 (Privileged write-surface hardening)
 Plan: 0 of TBD (planning not yet run)
 Status: Ready to plan
-Last activity: 2026-05-28 — GSD initialization (PROJECT, REQUIREMENTS, ROADMAP, codebase map)
+Last activity: 2026-05-28 — `/gsd:discuss-phase --all` added HTTP/2 fix (Phase 2.5) and HTTP/3 opt-in (Phase 5) to scope; 2 CONTEXT.md files written
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -29,8 +29,10 @@ Progress: [░░░░░░░░░░] 0%
 |-------|-------|-------|----------|
 | 1. Privileged write-surface hardening | 0 / TBD | — | — |
 | 2. Cache + template substitution consolidation | 0 / TBD | — | — |
+| 2.5. HTTP/2 actually enabled (INSERTED) | 0 / 1 | — | — |
 | 3. Tech debt + repository cleanup | 0 / TBD | — | — |
 | 4. Docs, open questions, release | 0 / TBD | — | — |
+| 5. HTTP/3 opt-in support | 0 / 4 | — | — |
 
 ## Recent Releases (out-of-GSD context)
 

@@ -246,6 +246,28 @@
 - Files: `CLAUDE.md`, `nginx_set_conf/__init__.py`, `nginx_set_conf/templates/all_templates.py:29`
 - What to investigate: Update CLAUDE.md to reflect the correct location.
 
+**[MEDIUM] Templates and embedded base configs claim "incl. SSL/http2" but never enable HTTP/2**
+- Every per-service template (`odoo_ssl.py`, `flowise.py`, `mailpit.py`,
+  `nextcloud.py`, `pgadmin.py`, `pwa.py`, `portainer.py`, `supabase.py`,
+  `code_server.py`, `fast_report.py`, `redirect_ssl.py`, etc.) starts with a
+  banner comment `# Template for ... configuration nginx incl. SSL/http2`.
+  Likewise the three embedded base configs in
+  `config_verification.py` (`NGINX_CONF_TEMPLATE`, `GENERAL_CONF_TEMPLATE`,
+  `SECURITY_CONF_TEMPLATE`) all carry the header `# nginx incl. SSL/http2 1.24.1`.
+- **None of them actually emit an `http2` directive.** The `listen` lines are
+  bare `listen ip.ip.ip.ip:443 ssl;` (no `http2` parameter, no `http2 on;`
+  inside the server block) and the embedded `NGINX_CONF_TEMPLATE` has no
+  `http2 on;` either. Every site shipped by this tool runs HTTP/1.1 over TLS.
+- The pre-nginx-1.25 syntax `listen 443 ssl http2;` and the post-1.25 syntax
+  `http2 on;` are both absent. Operators believing they have HTTP/2 do not.
+- Files: every `nginx_set_conf/templates/*.py` SSL template,
+  `nginx_set_conf/config_verification.py:17,84,100`.
+- What to investigate: Phase 2.5 of the v1.12 roadmap delivers
+  what the documentation already claims — add `http2 on;` (post-1.25 syntax)
+  AND keep `http2` parameter on `listen` lines for 1.24-compatible fallback,
+  or pin to the post-1.25 form and document the nginx version requirement.
+
 ---
 
 *Concerns audit: 2026-05-28*
+*HTTP/2 finding added: 2026-05-28 (discuss-phase HTTP/3 review)*

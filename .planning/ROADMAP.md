@@ -23,12 +23,20 @@ CONCERNS.md so the next minor can resume feature work.
 - [ ] **Phase 2: Cache + template substitution consolidation** — Reduce
       the dual cache-path pipeline to one source of truth and make
       sentinel values explicit.
+- [ ] **Phase 2.5: HTTP/2 actually enabled** (INSERTED) — Deliver what
+      the docs already claim: every SSL template + embedded base
+      configs emit a real HTTP/2 directive.
 - [ ] **Phase 3: Tech debt + repository cleanup** — Retire the
       deprecated `config_templates.py` shim, remove committed build
       artefacts, slim down the redirect templates.
 - [ ] **Phase 4: Docs, open questions, release** — Fix documentation
       drift, resolve the two open questions from the audit, ship
       v1.12.0.
+- [ ] **Phase 5: HTTP/3 opt-in support** — Add `--enable_http3` for
+      12 browser-facing SSL templates with nginx-version gate, Alt-Svc
+      header, dedicated TLS 1.3 path, and prominent UDP/443 firewall
+      documentation. v1.10.0-class risk surface — bounded blast radius
+      by opt-in design.
 
 ## Phase Details
 
@@ -93,6 +101,37 @@ Plans:
 - [ ] 02-02: COR-02 redirect_domain required for redirect templates
 - [ ] 02-03: COR-04 default_ssl_reject whitelist decision
 
+### Phase 2.5: HTTP/2 actually enabled (INSERTED)
+**Goal**: Every SSL template + the embedded `NGINX_CONF_TEMPLATE` emit a
+real HTTP/2 directive. The current `# incl. SSL/http2` banner becomes
+truthful: ALPN-negotiated HTTP/2 reaches the browser.
+**Depends on**: Phase 2 (lands after the substitution refactor so the
+new directive flows through the consolidated pass cleanly)
+**Requirements**: PROTO-01
+**Success Criteria** (what must be TRUE):
+  1. Every per-service SSL template emits `http2 on;` inside its
+     HTTPS server block (nginx ≥ 1.25 syntax — the deployment target
+     is current Debian/Ubuntu stable, which ships nginx ≥ 1.24
+     with the legacy `listen ... ssl http2;` form still supported;
+     we pick the post-1.25 form and document the minimum).
+  2. The embedded `NGINX_CONF_TEMPLATE` carries the same directive at
+     the `http {}` level OR every template emits it locally — one
+     consistent location, decided in CONTEXT.md (`02.5-CONTEXT.md`).
+  3. `nginx -t` on a v1.11.1-style generated config + the new
+     directive succeeds (verified by a unit-level test or by
+     server-side smoke).
+  4. A browser request against a v1.12-generated config negotiates
+     `h2` via ALPN (verified manually during the v1.12 release
+     candidate validation, since Claude cannot run nginx locally).
+  5. No new CLI flags. No firewall change. No operator action
+     required beyond running `--sync_config` to pick up the new
+     `NGINX_CONF_TEMPLATE` content.
+**Plans**: TBD (likely 1 plan — template touch + embedded base
+config touch + tests)
+
+Plans:
+- [ ] 02.5-01: PROTO-01 enable HTTP/2 across SSL templates + base config
+
 ### Phase 3: Tech debt + repository cleanup
 **Goal**: The repository checkout matches a clean build. The
 deprecated import path is gone. Stale committed artefacts are
@@ -153,19 +192,79 @@ Plans:
 - [ ] 04-01: DOC-01 + Q-01 + Q-02 decisions and documentation
 - [ ] 04-02: v1.12.0 release (bump, RELEASE_NOTES, tag, publish)
 
+### Phase 5: HTTP/3 opt-in support
+**Goal**: A new `--enable_http3` flag adds QUIC + HTTP/3 to 12 SSL
+templates that serve browser/end-user traffic. The remaining
+templates (gRPC, server-to-server API, redirects, dev tools,
+catch-alls) stay HTTP/2-only. Default is **off** so existing
+operators see no change.
+**Depends on**: Phase 2.5 (HTTP/2 must be real before HTTP/3 is
+added on top), and ideally lands AFTER v1.12.0 is shipped so the
+v1.10.0 risk class — mass template rewrite across `listen` lines —
+does not block the hardening release.
+**Requirements**: PROTO-02, PROTO-03, PROTO-04, PROTO-05, PROTO-06
+**Success Criteria** (what must be TRUE):
+  1. `nginx-set-conf --config_template odoo_ssl --enable_http3 ...`
+     produces a config with `listen <ip>:443 quic reuseport;`,
+     `add_header Alt-Svc 'h3=":443"; ma=86400';`, scoped
+     `ssl_protocols TLSv1.3;`, and `quic_retry on;`. The
+     non-HTTP/3 server block (TCP/443 with HTTP/2) remains
+     unchanged so HTTP/1.1 + HTTP/2 fallback still work.
+  2. The exclusion list is enforced by validator:
+     `--enable_http3` on `fast_report`, `mailpit`, `redirect`,
+     `redirect_ssl`, `default_ssl_reject`, `odoo_http`, or the
+     gRPC port of `qdrant` fails with a clear error citing the
+     exclusion rationale.
+  3. The pre-write nginx version check (`nginx -v` parsed for
+     `nginx/<major>.<minor>.<patch>` and compared to 1.25.0)
+     refuses to emit `quic` directives on too-old nginx.
+  4. README.md has a new "HTTP/3 / QUIC" section with the five
+     prerequisites from PROTO-06, **including a prominent callout
+     that UDP/443 must be opened in the firewall in addition to
+     TCP/443**. RELEASE_NOTES.md v1.12 (or a later patch — see
+     Depends-on note) carries the same callout.
+  5. A `--migrate_to_http3` flag is **not** implemented in this
+     phase — that is v2 (`PROTO-V2-01`). A manual procedure is
+     documented instead: regenerate each affected vhost with
+     `--enable_http3`.
+  6. v1.10.0 lessons applied: any `listen ... quic` line shipping
+     in a template comes with a corresponding `default_server`
+     QUIC catch-all (`default_ssl_reject` extended, OR a sibling
+     `default_quic_reject` template if `default_ssl_reject`
+     architecture does not extend cleanly).
+  7. Full test suite green; HTTP/3-emitting templates produce
+     stable output across runs (no nondeterministic
+     `reuseport`-ordering).
+**Plans**: TBD (likely 4 plans — flag plumbing, per-template HTTP/3
+emit, version + exclusion validators, docs)
+
+Plans:
+- [ ] 05-01: PROTO-02 `--enable_http3` flag plumbing (CLI, YAML, validator)
+- [ ] 05-02: PROTO-03 + PROTO-04 template-level QUIC + Alt-Svc emission for 12 templates
+- [ ] 05-03: PROTO-05 nginx version gate + `default_ssl_reject` HTTP/3 catch-all
+- [ ] 05-04: PROTO-06 README + RELEASE_NOTES UDP/443 callout
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5
+
+Phase 5 (HTTP/3) MAY ship as v1.12.x or be deferred to v1.13.0
+depending on Phase 4 release timing. The decision happens at
+Phase 4's end-of-phase review; nothing in Phases 1–4 depends on
+Phase 5.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Privileged write-surface hardening | 0/TBD | Pending | - |
 | 2. Cache + template substitution consolidation | 0/TBD | Pending | - |
+| 2.5. HTTP/2 actually enabled (INSERTED) | 0/1 | Pending | - |
 | 3. Tech debt + repository cleanup | 0/TBD | Pending | - |
 | 4. Docs, open questions, release | 0/TBD | Pending | - |
+| 5. HTTP/3 opt-in support | 0/4 | Pending | - |
 
 ---
 
 *Roadmap defined: 2026-05-28*
 *Source: `.planning/codebase/CONCERNS.md` MEDIUM/LOW/Question findings (HIGH already fixed in v1.11.1)*
+*Phase 2.5 + Phase 5 added: 2026-05-28 via `/gsd:discuss-phase` HTTP/3 review.*
