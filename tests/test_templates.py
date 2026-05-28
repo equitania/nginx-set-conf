@@ -1,6 +1,7 @@
 """Tests for template loading and cache path replacement."""
 
 from nginx_set_conf.config_templates import get_config_template
+from nginx_set_conf.config_verification import NGINX_CONF_TEMPLATE
 from nginx_set_conf.templates.all_templates import (
     TEMPLATES,
     replace_cache_path,
@@ -271,3 +272,31 @@ class TestDefaultSslReject:
         content = TEMPLATES[self.TEMPLATE_NAME]
         assert "/etc/nginx/ssl/default.crt" in content
         assert "/etc/nginx/ssl/default.key" in content
+
+
+class TestHttp2Enabled:
+    """Regression guard: NGINX_CONF_TEMPLATE must carry `http2 on;` inside the http{} block.
+
+    Option B (single source of truth at http{} scope) means the directive lives
+    in NGINX_CONF_TEMPLATE only. All SSL service templates inherit HTTP/2 via
+    the base config. Future changes that drop the directive will fail these tests
+    before reaching production.
+    """
+
+    def test_nginx_conf_template_has_http2_directive(self):
+        assert "http2" in NGINX_CONF_TEMPLATE and "on;" in NGINX_CONF_TEMPLATE, (
+            "NGINX_CONF_TEMPLATE missing http2 on; directive — run --sync_config to propagate to operator nginx.conf"
+        )
+        # Accept any whitespace between http2 and on; (alignment-padded variant)
+        import re
+        assert re.search(r'http2\s+on;', NGINX_CONF_TEMPLATE), (
+            "NGINX_CONF_TEMPLATE missing http2 on; directive — run --sync_config to propagate to operator nginx.conf"
+        )
+
+    def test_http2_directive_is_in_http_scope(self):
+        http_block_start = NGINX_CONF_TEMPLATE.index("http {")
+        http_block = NGINX_CONF_TEMPLATE[http_block_start : NGINX_CONF_TEMPLATE.rfind("}")]
+        import re
+        assert re.search(r'http2\s+on;', http_block), (
+            "http2 on; found in template but not inside the http {} block — check scope"
+        )
