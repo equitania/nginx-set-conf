@@ -177,6 +177,23 @@ class TestValidateTargetPath:
         result = validate_target_path("/tmp/nginx_test")
         assert "/tmp/nginx_test" in result
 
+    def test_leading_whitespace_path_traversal(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_target_path("  ../etc")
+
+    def test_tab_prefix_traversal(self):
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_target_path("\t../etc")
+
+    def test_leading_whitespace_absolute_accepted(self):
+        result = validate_target_path("  /tmp/nginx_test")
+        assert result.endswith("/tmp/nginx_test")
+
+    def test_nbsp_traversal(self):
+        # \xa0 is Unicode NBSP U+00A0 — must be stripped before traversal check
+        with pytest.raises(ValidationError, match="Path traversal"):
+            validate_target_path("\xa0../etc")
+
 
 class TestValidateCertName:
     def test_valid_cert_name(self):
