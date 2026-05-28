@@ -102,7 +102,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
 
 ### PROTO — HTTP protocol modernization
 
-- [ ] **PROTO-01**: HTTP/2 is **actually** enabled across every SSL
+- [x] **PROTO-01**: HTTP/2 is **actually** enabled across every SSL
       template and in the embedded `NGINX_CONF_TEMPLATE`. The current
       templates carry an `# incl. SSL/http2` banner but emit no
       `http2` directive — a documentation/marketing gap that ships
@@ -220,7 +220,7 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | DOC-01 | Phase 4 | Pending |
 | Q-01 | Phase 4 | Pending |
 | Q-02 | Phase 4 | Pending |
-| PROTO-01 | Phase 2.5 | Pending |
+| PROTO-01 | Phase 2.5 | Complete |
 | PROTO-02 | Phase 5 | Pending |
 | PROTO-03 | Phase 5 | Pending |
 | PROTO-04 | Phase 5 | Pending |

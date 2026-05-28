@@ -23,7 +23,7 @@ CONCERNS.md so the next minor can resume feature work.
 - [ ] **Phase 2: Cache + template substitution consolidation** — Reduce
       the dual cache-path pipeline to one source of truth and make
       sentinel values explicit.
-- [ ] **Phase 2.5: HTTP/2 actually enabled** (INSERTED) — Deliver what
+- [x] **Phase 2.5: HTTP/2 actually enabled** (INSERTED) — Deliver what (completed 2026-05-28)
       the docs already claim: every SSL template + embedded base
       configs emit a real HTTP/2 directive.
 - [ ] **Phase 3: Tech debt + repository cleanup** — Retire the
@@ -129,7 +129,7 @@ new directive flows through the consolidated pass cleanly)
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02.5-01: PROTO-01 enable HTTP/2 across SSL templates + base config
+- [x] 02.5-01: PROTO-01 enable HTTP/2 across SSL templates + base config
 
 ### Phase 3: Tech debt + repository cleanup
 **Goal**: The repository checkout matches a clean build. The
@@ -257,7 +257,7 @@ Phase 5.
 |-------|----------------|--------|-----------|
 | 1. Privileged write-surface hardening | 0/TBD | Pending | - |
 | 2. Cache + template substitution consolidation | 0/TBD | Pending | - |
-| 2.5. HTTP/2 actually enabled (INSERTED) | 0/1 | Pending | - |
+| 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 0/TBD | Pending | - |
 | 4. Docs, open questions, release | 0/TBD | Pending | - |
 | 5. HTTP/3 opt-in support | 0/4 | Pending | - |
