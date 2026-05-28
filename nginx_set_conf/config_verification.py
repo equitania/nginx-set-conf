@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Embedded template files
 NGINX_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.24.1
-# Version 1.1 from 17.07.2025
+# Version 1.2 from 28.05.2026
 user  nginx;
 worker_processes  auto;
 worker_rlimit_nofile 65535;
@@ -42,6 +42,7 @@ http {
     sendfile               on;
     tcp_nopush             on;
     tcp_nodelay            on;
+    http2                  on;
     server_tokens          off;
     log_not_found          off;
     types_hash_max_size    2048;
