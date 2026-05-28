@@ -14,6 +14,7 @@ Typical usage example:
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+import contextlib
 import ipaddress
 import logging
 import os
@@ -173,6 +174,16 @@ def retrieve_valid_input(message: str) -> str:
         return user_input
     else:
         return retrieve_valid_input(message)
+
+
+@contextlib.contextmanager
+def _restrictive_umask():
+    """Context manager: set umask 0o077, restore on exit."""
+    old_umask = os.umask(0o077)
+    try:
+        yield
+    finally:
+        os.umask(old_umask)
 
 
 def _run_command(args: list, dry_run: bool = False, check: bool = False) -> bool:
@@ -497,28 +508,28 @@ def setup_default_server(
     cert_exists = os.path.isfile(cert_path) and os.path.isfile(key_path)
     if not cert_exists:
         logger.info("Generating self-signed default cert at %s", cert_path)
-        ok = _run_command(
-            [
-                "openssl",
-                "req",
-                "-x509",
-                "-nodes",
-                "-days",
-                "3650",
-                "-newkey",
-                "rsa:2048",
-                "-keyout",
-                key_path,
-                "-out",
-                cert_path,
-                "-subj",
-                "/CN=default-reject",
-            ]
-        )
+        with _restrictive_umask():
+            ok = _run_command(
+                [
+                    "openssl",
+                    "req",
+                    "-x509",
+                    "-nodes",
+                    "-days",
+                    "3650",
+                    "-newkey",
+                    "rsa:2048",
+                    "-keyout",
+                    key_path,
+                    "-out",
+                    cert_path,
+                    "-subj",
+                    "/CN=default-reject",
+                ]
+            )
         if not ok:
             logger.error("Failed to generate self-signed default cert")
             return False
-        _run_command(["chmod", "600", key_path])
     else:
         logger.info("Self-signed default cert already exists, skipping generation")
 
