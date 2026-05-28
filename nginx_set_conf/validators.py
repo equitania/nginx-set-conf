@@ -169,9 +169,9 @@ def validate_target_path(target_path: str) -> str:
     """
     if not target_path:
         return target_path
+    target_path = target_path.strip()
+    _reject_path_traversal(target_path, "target_path")
     resolved = os.path.realpath(target_path)
-    if ".." in target_path:
-        raise ValidationError(f"Path traversal detected in target_path: '{target_path}'")
     if not os.path.isabs(resolved):
         raise ValidationError(f"Target path must be absolute: '{target_path}'")
     return resolved
