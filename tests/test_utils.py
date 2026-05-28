@@ -1,9 +1,13 @@
 """Tests for utility functions."""
 
+import builtins
 import logging
 import os
 
+import pytest
+
 from nginx_set_conf.utils import (
+    retrieve_valid_input,
     _format_ip_for_nginx,
     _insert_after_marker,
     _replace_placeholder,
@@ -527,3 +531,42 @@ class TestSafeConfFilename:
         # NOT silently rewrite it — the prefix-only rewrite is the
         # documented contract.
         assert _safe_conf_filename("a.b.example.com") == "a.b.example.com"
+
+
+class TestRetrieveValidInput:
+    def test_returns_nonempty_input_immediately(self, monkeypatch):
+        monkeypatch.setattr(builtins, "input", lambda _: "hello")
+        assert retrieve_valid_input("prompt: ") == "hello"
+
+    def test_loops_past_empty_input(self, monkeypatch):
+        responses = iter(["", "", "finally"])
+        monkeypatch.setattr(builtins, "input", lambda _: next(responses))
+        assert retrieve_valid_input("prompt: ") == "finally"
+
+    def test_truncates_oversized_input(self, monkeypatch):
+        big = "x" * 8000
+        monkeypatch.setattr(builtins, "input", lambda _: big)
+        result = retrieve_valid_input("prompt: ")
+        assert len(result) == 4096
+
+    def test_eof_raises_system_exit(self, monkeypatch):
+        monkeypatch.setattr(
+            builtins, "input",
+            lambda _: (_ for _ in ()).throw(EOFError())
+        )
+        with pytest.raises(SystemExit):
+            retrieve_valid_input("prompt: ")
+
+    def test_no_recursion_on_many_empty_enters(self, monkeypatch):
+        count = [0]
+
+        def fake_input(_):
+            count[0] += 1
+            if count[0] < 1001:
+                return ""
+            return "valid"
+
+        monkeypatch.setattr(builtins, "input", fake_input)
+        result = retrieve_valid_input("prompt: ")
+        assert result == "valid"
+        assert count[0] == 1001
