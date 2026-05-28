@@ -202,10 +202,10 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase 1 | Pending |
-| SEC-02 | Phase 1 | Pending |
-| SEC-03 | Phase 1 | Pending |
-| SEC-04 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Complete |
+| SEC-02 | Phase 1 | Complete |
+| SEC-03 | Phase 1 | Complete |
+| SEC-04 | Phase 1 | Complete |
 | COR-01 | Phase 2 | Pending |
 | COR-02 | Phase 2 | Pending |
 | COR-03 | Phase 2 | Pending |

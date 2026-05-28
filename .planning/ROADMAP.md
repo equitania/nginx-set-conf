@@ -17,7 +17,7 @@ CONCERNS.md so the next minor can resume feature work.
 - Integer phases (1, 2, 3, 4): Planned hardening work
 - Decimal phases reserved for urgent insertions during execution
 
-- [ ] **Phase 1: Privileged write-surface hardening** — Close the four
+- [x] **Phase 1: Privileged write-surface hardening** (completed 2026-05-28) — Closed the four
       MEDIUM/LOW security gaps that let a hostile YAML or stale
       filesystem state reach the host.
 - [ ] **Phase 2: Cache + template substitution consolidation** — Reduce
@@ -64,10 +64,10 @@ or a safer write pattern.
 **Plans**: 4 (one per SEC requirement, all Wave 1 — independently executable)
 
 Plans:
-- [ ] 01-01: SEC-01 target_path whitespace + traversal-segment check
-- [ ] 01-02: SEC-02 backup symlink safety (source-as-symlink + tree-walk)
-- [ ] 01-03: SEC-03 key file mode race (umask 0o077 + remove post-hoc chmod)
-- [ ] 01-04: SEC-04 retrieve_valid_input iterative loop + 4096-char cap + EOFError
+- [x] 01-01: SEC-01 target_path whitespace + traversal-segment check
+- [x] 01-02: SEC-02 backup symlink safety (source-as-symlink + tree-walk)
+- [x] 01-03: SEC-03 key file mode race (umask 0o077 + remove post-hoc chmod)
+- [x] 01-04: SEC-04 retrieve_valid_input iterative loop + 4096-char cap + EOFError
 
 ### Phase 2: Cache + template substitution consolidation
 **Goal**: One authoritative pass rewrites cache paths from a single

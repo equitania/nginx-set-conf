@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: planned
-last_updated: "2026-05-28T17:55:00.000Z"
-last_activity: "2026-05-28 — `/gsd:plan-phase 1` complete: 4 plans (SEC-01..SEC-04) all Wave 1, plan-checker PASS after 1 revision"
+status: planning
+last_updated: "2026-05-28T18:35:00.000Z"
+last_activity: "2026-05-28 — Phase 01 complete: SEC-01..04 closed, verifier PASS, 182 tests green, coverage 71.95%"
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 1
-  percent: 17
+  completed_plans: 5
+  percent: 33
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 1 — Privileged write-surface hardening
+**Current focus:** Phase 2 — Cache + template substitution consolidation (next)
 
 ## Current Position
 
-Phase: 1 of 6 (Privileged write-surface hardening)
-Plan: 0 of 4 (planning complete, ready to execute)
-Status: Planned — ready to execute
-Last activity: 2026-05-28 — `/gsd:plan-phase 1` complete: 4 plans (SEC-01..SEC-04) all Wave 1, plan-checker PASS after 1 revision
+Phase: 02 of 6 (Cache + template substitution consolidation)
+Plan: 0 of TBD (planning not yet run)
+Status: Phase 01 complete — ready to plan Phase 02
+Last activity: 2026-05-28 — Phase 01 complete: SEC-01..04 closed, verifier PASS, 182 tests green, coverage 71.95%
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -43,7 +43,7 @@ Progress: [██░░░░░░░░] 20%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Privileged write-surface hardening | 0 / 4 | — | — |
+| 1. Privileged write-surface hardening | 4 / 4 | ~24 min | ~6 min |
 | 2. Cache + template substitution consolidation | 0 / TBD | — | — |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 0 / 1 | — | — |
 | 3. Tech debt + repository cleanup | 0 / TBD | — | — |
@@ -61,7 +61,7 @@ Progress: [██░░░░░░░░] 20%
 
 ## Next Action
 
-Run `/gsd:execute-phase 1` to execute the 4 Wave-1 plans (SEC-01..SEC-04).
+Run `/gsd:plan-phase 2` to break Phase 2 (Cache + template substitution consolidation, COR-01..05) into executable plans.
 
 ---
 
