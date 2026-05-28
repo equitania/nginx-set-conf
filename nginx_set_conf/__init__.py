@@ -6,7 +6,7 @@ from . import config_templates as config_templates
 from . import utils as utils
 from . import validators as validators
 
-__version__ = "1.11.0"
+__version__ = "1.11.1"
 
 __all__ = [
     "__version__",

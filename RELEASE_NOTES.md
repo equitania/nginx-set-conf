@@ -1,5 +1,61 @@
 # RELEASE NOTES
 
+## Version 1.11.1 (28.05.2026)
+
+### Fixed (security hardening)
+- **[FIX]** **HIGH-1**: `nginx -t` now validates the generated configuration
+  **before** nginx is touched. The previous deploy path ran
+  `systemctl restart nginx.service` first and `nginx -t` afterwards — a
+  malformed config (e.g., an unresolved placeholder from a missing CLI arg)
+  would crash the live nginx process before the test gate fired and drop
+  traffic until manual recovery. The fix aborts via `ClickException` when
+  `nginx -t` returns non-zero (the running nginx keeps the previous config)
+  and replaces `systemctl restart` with the graceful `systemctl reload`
+  once the new config has been validated. `_run_service_command` now
+  returns the `subprocess.CompletedProcess` so callers can inspect
+  `returncode`.
+- **[FIX]** **HIGH-2**: `validate_auth_file` constrains absolute paths to
+  the nginx prefix and forbids the snippet directory. The value is written
+  verbatim into the generated config as `auth_basic_user_file <value>;`,
+  so an attacker-controlled YAML could previously point nginx at any host
+  file (e.g., `/etc/passwd`, `/etc/nginx/conf.d/evil.conf`). Absolute paths
+  must now start with `/etc/nginx/`; `/etc/nginx/conf.d/` is explicitly
+  rejected. Relative filenames remain permitted — nginx resolves them
+  against its configured prefix.
+- **[FIX]** **HIGH-3**: Wildcard domains (`*.example.com`) are now
+  sanitised in the generated filename. The character `*` is a shell glob
+  and the previous code produced `*.example.com.conf` on disk, breaking
+  any operator workflow that enumerates configs via globbing (e.g.,
+  `rm /etc/nginx/conf.d/*.conf`). The new `_safe_conf_filename` helper
+  rewrites a `*.` prefix to `_wildcard.` for filename construction only —
+  the nginx `server_name` directive inside the file is unchanged, so
+  wildcard server names continue to work.
+
+### Why this matters
+
+These are three independent issues surfaced by a codebase audit; each one
+could turn a routine deploy into a production incident:
+
+1. A malformed CLI invocation should not be able to take nginx down.
+2. A YAML-driven generator must not be a privileged file-write surface
+   on the host.
+3. Files in `/etc/nginx/conf.d/` should be globbable for the operator.
+
+### Migration
+
+No CLI changes. Existing deployments pick up the safer behaviour
+automatically. YAML configs that supplied absolute `auth_file` paths
+outside `/etc/nginx/` will now fail validation — fix them by moving the
+htpasswd file under `/etc/nginx/` (e.g., `/etc/nginx/.htpasswd`) or by
+supplying a relative filename.
+
+### Tests
+
+162 → 167 tests (4 service-command + 5 auth-file + 4 wildcard-filename),
+all green. Coverage: 67.8%.
+
+---
+
 ## Version 1.11.0 (22.04.2026)
 
 ### Changed (default behaviour)
