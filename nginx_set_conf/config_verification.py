@@ -398,7 +398,12 @@ class ConfigVerification:
 
         return success
 
-    def backup_configuration(self, backup_dir: str = "/var/backups/nginx_set_conf") -> bool:
+    def backup_configuration(
+        self,
+        backup_dir: str = "/var/backups/nginx_set_conf",
+        nginx_conf_path: str = "/etc/nginx/nginx.conf",
+        nginxconfig_dir: str = "/etc/nginx/nginxconfig.io",
+    ) -> bool:
         """
         Create a backup of current server configuration.
 
@@ -410,6 +415,10 @@ class ConfigVerification:
         Args:
             backup_dir: Directory to store backups. Must be a root-owned,
                 non-world-writable path.
+            nginx_conf_path: Path to the nginx.conf file to back up. Defaults
+                to /etc/nginx/nginx.conf. Injectable for testing.
+            nginxconfig_dir: Path to the nginxconfig.io directory to back up.
+                Defaults to /etc/nginx/nginxconfig.io. Injectable for testing.
 
         Returns:
             True if backup was successful, False otherwise
@@ -431,7 +440,7 @@ class ConfigVerification:
             backup_path.mkdir(mode=0o700, parents=False, exist_ok=False)
 
             # Backup main nginx.conf
-            server_nginx_conf = Path("/etc/nginx/nginx.conf")
+            server_nginx_conf = Path(nginx_conf_path)
             if server_nginx_conf.exists():
                 target = backup_path / "nginx.conf"
                 if target.is_symlink():
@@ -440,9 +449,19 @@ class ConfigVerification:
                 shutil.copy2(server_nginx_conf, target)
 
             # Backup nginxconfig.io directory
-            server_nginxconfig_dir = Path("/etc/nginx/nginxconfig.io")
+            server_nginxconfig_dir = Path(nginxconfig_dir)
             if server_nginxconfig_dir.exists():
-                shutil.copytree(server_nginxconfig_dir, backup_path / "nginxconfig.io")
+                if server_nginxconfig_dir.is_symlink():
+                    logger.error(
+                        "Refusing to backup symlinked source directory: %s",
+                        server_nginxconfig_dir,
+                    )
+                    return False
+                shutil.copytree(
+                    server_nginxconfig_dir,
+                    backup_path / "nginxconfig.io",
+                    symlinks=False,
+                )
 
             logger.info(f"Configuration backup created at: {backup_path}")
             click.echo(f"Backup created: {backup_path}")
