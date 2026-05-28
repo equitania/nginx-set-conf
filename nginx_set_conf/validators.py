@@ -21,6 +21,14 @@ _CERT_PATH_RE = re.compile(r"^[a-zA-Z0-9._/\-]+$")
 # Allowed characters for auth file paths
 _AUTH_FILE_RE = re.compile(r"^[a-zA-Z0-9._/\-]+$")
 
+# Auth file path constraints. The directive is written verbatim into the
+# generated nginx config as `auth_basic_user_file <value>;`. The character
+# regex alone allows `/` freely, so a hostile YAML could supply an arbitrary
+# absolute path. Constrain absolute paths to the nginx prefix and explicitly
+# forbid the config-snippet directory.
+_AUTH_FILE_ALLOWED_BASE = "/etc/nginx/"
+_AUTH_FILE_FORBIDDEN_PREFIX = "/etc/nginx/conf.d/"
+
 # Valid template names (whitelist)
 VALID_TEMPLATES = {
     "code_server",
@@ -234,6 +242,13 @@ def validate_cert_key(cert_key: str) -> str:
 def validate_auth_file(auth_file: str) -> str:
     """Validate authentication file path.
 
+    The value is written verbatim into the nginx config as
+    ``auth_basic_user_file <value>;``. Absolute paths are constrained to
+    ``/etc/nginx/`` (and explicitly forbidden under ``/etc/nginx/conf.d/``,
+    the snippet directory) to prevent an attacker-controlled YAML from
+    pointing nginx at an arbitrary file on the host. Relative filenames are
+    permitted — nginx resolves them against its configured prefix.
+
     Args:
         auth_file: Path to htaccess auth file.
 
@@ -241,7 +256,8 @@ def validate_auth_file(auth_file: str) -> str:
         The validated auth file path.
 
     Raises:
-        ValidationError: If auth_file contains invalid characters.
+        ValidationError: If auth_file contains invalid characters or
+            escapes the permitted location.
     """
     if not auth_file:
         return auth_file
@@ -251,6 +267,18 @@ def validate_auth_file(auth_file: str) -> str:
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
         )
     _reject_path_traversal(auth_file, "auth_file")
+    if auth_file.startswith("/"):
+        if not auth_file.startswith(_AUTH_FILE_ALLOWED_BASE):
+            raise ValidationError(
+                f"Auth file absolute path must be under '{_AUTH_FILE_ALLOWED_BASE}' "
+                f"or supplied as a relative filename (resolved by nginx against its "
+                f"prefix). Got: '{auth_file}'"
+            )
+        if auth_file.startswith(_AUTH_FILE_FORBIDDEN_PREFIX):
+            raise ValidationError(
+                f"Auth file path must NOT be under '{_AUTH_FILE_FORBIDDEN_PREFIX}' "
+                f"(nginx config-snippet directory). Got: '{auth_file}'"
+            )
     return auth_file
 
 

@@ -222,6 +222,13 @@ class TestValidateAuthFile:
     def test_valid_auth_file(self):
         assert validate_auth_file("/etc/nginx/.htpasswd") == "/etc/nginx/.htpasswd"
 
+    def test_valid_relative_filename(self):
+        # nginx resolves relative paths against its configured prefix.
+        assert validate_auth_file(".htpasswd") == ".htpasswd"
+
+    def test_valid_relative_subdir(self):
+        assert validate_auth_file("auth/site.htpasswd") == "auth/site.htpasswd"
+
     def test_empty(self):
         assert validate_auth_file("") == ""
 
@@ -236,6 +243,22 @@ class TestValidateAuthFile:
     def test_path_traversal_mixed(self):
         with pytest.raises(ValidationError, match="Path traversal"):
             validate_auth_file("/etc/nginx/../../etc/shadow")
+
+    def test_reject_absolute_outside_nginx_prefix(self):
+        # The exact concern from CONCERNS.md HIGH-2: an attacker-controlled YAML
+        # could point auth_basic_user_file at any file. Lock it down.
+        with pytest.raises(ValidationError, match="must be under"):
+            validate_auth_file("/etc/passwd")
+
+    def test_reject_absolute_under_var_lib(self):
+        with pytest.raises(ValidationError, match="must be under"):
+            validate_auth_file("/var/lib/nginx/htpasswd")
+
+    def test_reject_under_conf_d(self):
+        # /etc/nginx/conf.d is the snippet directory — pointing
+        # auth_basic_user_file there is the documented injection vector.
+        with pytest.raises(ValidationError, match="conf.d"):
+            validate_auth_file("/etc/nginx/conf.d/evil.conf")
 
 
 class TestValidateConfigTemplate:
