@@ -126,8 +126,7 @@ new directive flows through the consolidated pass cleanly)
   5. No new CLI flags. No firewall change. No operator action
      required beyond running `--sync_config` to pick up the new
      `NGINX_CONF_TEMPLATE` content.
-**Plans**: TBD (likely 1 plan — template touch + embedded base
-config touch + tests)
+**Plans**: 1 plan
 
 Plans:
 - [ ] 02.5-01: PROTO-01 enable HTTP/2 across SSL templates + base config
