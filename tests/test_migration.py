@@ -221,6 +221,43 @@ class TestSetupDefaultServer:
         )
         assert ok is False
 
+    def test_key_file_created_with_mode_600(self, tmp_path, monkeypatch):
+        """Key file must be created with mode 0o600 at the moment of creation.
+
+        Uses os.open(mode=0o666) in the fake _run_command so the active umask
+        (0o077 from _restrictive_umask) restricts the file to 0o600. This
+        verifies there is no race window between creation and chmod.
+        """
+        import os
+
+        ssl_dir = tmp_path / "ssl"
+        ssl_dir.mkdir()
+        conf_dir = tmp_path / "conf.d"
+        conf_dir.mkdir()
+        key_path = ssl_dir / "default.key"
+        cert_path = ssl_dir / "default.crt"
+
+        def fake_run_command(args, *a, **kw):
+            if args and args[0] == "openssl":
+                # os.open honours the active umask; Path.touch(mode=...) does not.
+                fd = os.open(str(key_path), os.O_CREAT | os.O_WRONLY, 0o666)
+                os.close(fd)
+                cert_path.write_text("FAKE CERT")
+            return True
+
+        from nginx_set_conf import utils as utils_module
+
+        monkeypatch.setattr(utils_module, "_run_command", fake_run_command)
+
+        ok = setup_default_server(
+            target_path=str(conf_dir),
+            ssl_dir=str(ssl_dir),
+            dry_run=False,
+        )
+        assert ok is True
+        mode = oct(key_path.stat().st_mode & 0o777)
+        assert mode == oct(0o600), f"Key file mode {mode} is not 0o600"
+
 
 class TestMigrateRollbackPaths:
     """Additional coverage for the rollback branches in migration."""
