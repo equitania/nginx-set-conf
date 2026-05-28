@@ -82,17 +82,23 @@ def welcome():
     logger.info('nginx_set_conf  --config_path="$HOME/docker-builds/ngx-conf/"')
 
 
-def _run_service_command(args: list, dry_run: bool = False) -> None:
+def _run_service_command(args: list, dry_run: bool = False):
     """Run a system service command safely using subprocess.
 
     Args:
         args: Command and arguments as a list.
         dry_run: If True, only log what would be done.
+
+    Returns:
+        subprocess.CompletedProcess on success, None on dry_run or
+        when the binary is not found. Callers MUST check the result's
+        returncode before assuming success when correctness depends on it
+        (e.g., ``nginx -t`` before a reload).
     """
     cmd_str = " ".join(args)
     if dry_run:
         logger.info("[DRY RUN] Would execute: %s", cmd_str)
-        return
+        return None
     try:
         logger.info("Executing: %s", cmd_str)
         result = subprocess.run(args, capture_output=True, text=True)
@@ -100,8 +106,10 @@ def _run_service_command(args: list, dry_run: bool = False) -> None:
             print(result.stdout)
         if result.stderr:
             print(result.stderr)
+        return result
     except FileNotFoundError:
         logger.error("Command not found: %s", args[0])
+        return None
 
 
 # Help text conf
@@ -449,12 +457,21 @@ def start_nginx_set_conf(
         )
 
     if not dry_run:
-        logger.info("Restarting nginx service")
-        _run_service_command(["systemctl", "restart", "nginx.service"])
+        # Validate the new configuration BEFORE touching the live nginx process.
+        # A failing `nginx -t` after `systemctl restart` would have already crashed
+        # the running nginx with a malformed config and dropped traffic.
+        logger.info("Testing nginx configuration")
+        test_result = _run_service_command(["nginx", "-t"])
+        if test_result is not None and test_result.returncode != 0:
+            raise click.ClickException(
+                "nginx -t failed — refusing to reload. The running nginx process "
+                "keeps the previous configuration. Fix the generated config and re-run."
+            )
+        # Graceful reload (no traffic drop) instead of disruptive restart.
+        logger.info("Reloading nginx service")
+        _run_service_command(["systemctl", "reload", "nginx.service"])
         logger.info("Checking nginx service status")
         _run_service_command(["systemctl", "status", "nginx.service"])
-        logger.info("Testing nginx configuration")
-        _run_service_command(["nginx", "-t"])
         logger.info("Checking nginx version")
         _run_service_command(["nginx", "-V"])
     else:
