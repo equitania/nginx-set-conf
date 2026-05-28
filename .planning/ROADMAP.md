@@ -61,13 +61,13 @@ or a safer write pattern.
      the recursion stack; the input is bounded by an explicit length
      cap.
   5. Full test suite green; coverage gate (60%) still met.
-**Plans**: TBD (likely 4 plans, one per requirement)
+**Plans**: 4 (one per SEC requirement, all Wave 1 — independently executable)
 
 Plans:
-- [ ] 01-01: SEC-01 target_path whitespace
-- [ ] 01-02: SEC-02 copytree symlink safety
-- [ ] 01-03: SEC-03 key file mode race
-- [ ] 01-04: SEC-04 retrieve_valid_input loop + length cap
+- [ ] 01-01: SEC-01 target_path whitespace + traversal-segment check
+- [ ] 01-02: SEC-02 backup symlink safety (source-as-symlink + tree-walk)
+- [ ] 01-03: SEC-03 key file mode race (umask 0o077 + remove post-hoc chmod)
+- [ ] 01-04: SEC-04 retrieve_valid_input iterative loop + 4096-char cap + EOFError
 
 ### Phase 2: Cache + template substitution consolidation
 **Goal**: One authoritative pass rewrites cache paths from a single

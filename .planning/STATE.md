@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: planning
-last_updated: "2026-05-28T14:38:14.020Z"
-last_activity: "2026-05-28 — `/gsd:discuss-phase --all` added HTTP/2 fix (Phase 2.5) and HTTP/3 opt-in (Phase 5) to scope; 2 CONTEXT.md files written"
+status: planned
+last_updated: "2026-05-28T17:55:00.000Z"
+last_activity: "2026-05-28 — `/gsd:plan-phase 1` complete: 4 plans (SEC-01..SEC-04) all Wave 1, plan-checker PASS after 1 revision"
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 1
+  total_plans: 5
   completed_plans: 1
   percent: 17
 ---
@@ -25,11 +25,11 @@ See: `.planning/PROJECT.md` (initialized 2026-05-28)
 ## Current Position
 
 Phase: 1 of 6 (Privileged write-surface hardening)
-Plan: 0 of TBD (planning not yet run)
-Status: Ready to plan
-Last activity: 2026-05-28 — `/gsd:discuss-phase --all` added HTTP/2 fix (Phase 2.5) and HTTP/3 opt-in (Phase 5) to scope; 2 CONTEXT.md files written
+Plan: 0 of 4 (planning complete, ready to execute)
+Status: Planned — ready to execute
+Last activity: 2026-05-28 — `/gsd:plan-phase 1` complete: 4 plans (SEC-01..SEC-04) all Wave 1, plan-checker PASS after 1 revision
 
-Progress: [██████████] 100%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -43,7 +43,7 @@ Progress: [██████████] 100%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Privileged write-surface hardening | 0 / TBD | — | — |
+| 1. Privileged write-surface hardening | 0 / 4 | — | — |
 | 2. Cache + template substitution consolidation | 0 / TBD | — | — |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 0 / 1 | — | — |
 | 3. Tech debt + repository cleanup | 0 / TBD | — | — |
@@ -61,7 +61,7 @@ Progress: [██████████] 100%
 
 ## Next Action
 
-Run `/gsd:plan-phase 1` to break Phase 1 into executable plans.
+Run `/gsd:execute-phase 1` to execute the 4 Wave-1 plans (SEC-01..SEC-04).
 
 ---
 
