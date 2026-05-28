@@ -44,6 +44,30 @@ _HOSTNAME_LISTEN_PATTERN = re.compile(
 logger = logging.getLogger("nginx_set_conf")
 
 
+# Prefix used in generated filenames to represent a wildcard domain. Keeps
+# the `*` glob character out of `/etc/nginx/conf.d/` filenames while still
+# making the wildcard intent obvious to operators.
+_WILDCARD_FILENAME_PREFIX = "_wildcard."
+
+
+def _safe_conf_filename(domain: str) -> str:
+    """Return a glob-safe filename stem for a (possibly wildcard) domain.
+
+    Wildcard prefixes (``*.``) are rewritten to a literal token so the
+    generated filename never contains a shell glob character. The nginx
+    ``server_name`` directive inside the file is unaffected — the domain
+    is still substituted verbatim into the template content. Only the
+    on-disk filename is rewritten.
+
+    Example:
+        ``*.example.com`` → ``_wildcard.example.com``
+        ``example.com`` → ``example.com`` (unchanged)
+    """
+    if domain.startswith("*."):
+        return _WILDCARD_FILENAME_PREFIX + domain[2:]
+    return domain
+
+
 def fire_all_functions(function_list: list) -> None:
     """Executes a list of functions in sequence.
 
@@ -727,8 +751,10 @@ def execute_commands(
         logger.info("Set redirect domain in conf to %s", redirect_domain)
         content = _replace_placeholder(content, default_vars["template_redirect_domain"], redirect_domain)
 
-    # Write final configuration to target
-    target_file = os.path.join(server_path, f"{domain}.conf")
+    # Write final configuration to target. `_safe_conf_filename` strips any
+    # wildcard glob (`*.foo` → `_wildcard.foo`) so the on-disk filename is
+    # safe to enumerate with shell globs and `rm /etc/nginx/conf.d/*.conf`.
+    target_file = os.path.join(server_path, f"{_safe_conf_filename(domain)}.conf")
     if not dry_run:
         logger.info("Writing configuration to %s", target_file)
         with open(target_file, "w", encoding="utf-8") as f:

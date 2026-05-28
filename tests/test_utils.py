@@ -7,6 +7,7 @@ from nginx_set_conf.utils import (
     _format_ip_for_nginx,
     _insert_after_marker,
     _replace_placeholder,
+    _safe_conf_filename,
     _warn_public_backend_ip,
     execute_commands,
     get_default_vars,
@@ -501,3 +502,28 @@ class TestExecuteCommandsIPv6:
         assert "proxy_pass http://203.0.113.10" not in content
         # Default backend IP should be used instead
         assert "proxy_pass http://127.0.0.1:3000" in content
+
+
+class TestSafeConfFilename:
+    def test_passthrough_plain_domain(self):
+        assert _safe_conf_filename("example.com") == "example.com"
+
+    def test_passthrough_subdomain(self):
+        assert _safe_conf_filename("sub.example.com") == "sub.example.com"
+
+    def test_rewrites_wildcard_prefix(self):
+        # The exact concern from CONCERNS.md HIGH-3: the wildcard
+        # `*` must never reach a generated filename — it is a shell
+        # glob character and would corrupt `rm /etc/nginx/conf.d/*.conf`
+        # cleanup scripts.
+        assert _safe_conf_filename("*.example.com") == "_wildcard.example.com"
+
+    def test_wildcard_result_contains_no_glob(self):
+        assert "*" not in _safe_conf_filename("*.example.com")
+
+    def test_only_wildcard_prefix_is_rewritten(self):
+        # A literal `*` not in prefix position is not currently produced
+        # by the domain validator, but if it ever were, the helper must
+        # NOT silently rewrite it — the prefix-only rewrite is the
+        # documented contract.
+        assert _safe_conf_filename("a.b.example.com") == "a.b.example.com"
