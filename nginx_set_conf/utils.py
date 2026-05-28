@@ -24,6 +24,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+import click
 import yaml
 
 from .config_templates import get_config_template
@@ -160,8 +161,15 @@ def get_default_vars() -> dict:
     }
 
 
+# 16x the longest valid domain (253 chars); caps piped stdin
+_MAX_INPUT_LENGTH = 4096
+
+
 def retrieve_valid_input(message: str) -> str:
-    """Prompts user for input until non-empty input is provided.
+    """Prompt user for input until non-empty input is provided.
+
+    Iterative (not recursive) to avoid stack overflow on repeated empty input.
+    Caps input at _MAX_INPUT_LENGTH characters; handles EOFError gracefully.
 
     Args:
         message: Prompt message to display to user.
@@ -169,11 +177,15 @@ def retrieve_valid_input(message: str) -> str:
     Returns:
         User's non-empty input string.
     """
-    user_input = input(message)
-    if user_input:
-        return user_input
-    else:
-        return retrieve_valid_input(message)
+    while True:
+        try:
+            user_input = input(message)
+        except EOFError:
+            click.echo("\nNo input received (EOF). Exiting.")
+            raise SystemExit(1)
+        user_input = user_input[:_MAX_INPUT_LENGTH]
+        if user_input:
+            return user_input
 
 
 @contextlib.contextmanager
