@@ -42,7 +42,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       now that `utils.py` does the domain-qualified pass.
       *(CONCERNS.md §COR-MED-1 — `all_templates.py:56-82`,
       `utils.py:620-638`.)*
-- [ ] **COR-02**: `redirect_domain` is required (validated) for the
+- [x] **COR-02**: `redirect_domain` is required (validated) for the
       `redirect` and `redirect_ssl` templates so the literal
       `target.domain.de` sentinel can no longer leak into nginx log
       file paths.
@@ -207,7 +207,7 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | SEC-03 | Phase 1 | Complete |
 | SEC-04 | Phase 1 | Complete |
 | COR-01 | Phase 2 | Complete |
-| COR-02 | Phase 2 | Pending |
+| COR-02 | Phase 2 | Complete |
 | COR-03 | Phase 2 | Complete |
 | COR-04 | Phase 2 | Pending |
 | COR-05 | Phase 2 | Complete |
