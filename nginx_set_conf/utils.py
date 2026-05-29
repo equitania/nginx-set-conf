@@ -28,6 +28,7 @@ import click
 import yaml
 
 from .config_templates import get_config_template
+from nginx_set_conf.templates.all_templates import CACHE_PATH_SENTINEL
 from .validators import ValidationError, validate_all_inputs
 
 # Matches `listen <hostname>:<port>[ ssl];` — i.e. hostname-bound listen
@@ -664,25 +665,36 @@ def execute_commands(
         print("No valid config template")
         return
 
-    # Apply cache path fix with regex (domain-specific unique IDs)
+    # Apply cache path fix with regex (domain-specific unique IDs).
+    # _SENTINEL_PATH: derive the path segment from the constant so the regex
+    # stays in sync if CACHE_PATH_SENTINEL ever changes (sentinel-drift protection).
+    _SENTINEL_PATH = re.escape(CACHE_PATH_SENTINEL.split()[1])
+
+    # First re.sub: rewrite the cache path.  Pattern covers BOTH the raw /tmp
+    # sentinel (COR-01: templates now store raw sentinel) AND any pre-existing
+    # /var/cache/nginx/... path (handles prior-version configs on disk).
     content = re.sub(
-        r"proxy_cache_path\s+/var/cache/nginx/[^\s]+",
+        rf"proxy_cache_path\s+(?:{_SENTINEL_PATH}|/var/cache/nginx/[^\s]+)",
         f"proxy_cache_path /var/cache/nginx/{unique_id}",
         content,
     )
+    # Second re.sub: rewrite the keys_zone name — lambda repl makes back-reference
+    # semantics explicit and immune to digit-prefix / backslash in unique_id (COR-05).
     content = re.sub(
         r"(proxy_cache_path\s+[^\s]+\s+[^;]*keys_zone=)[^\s:]+:",
-        f"\\1{unique_id}_cache:",
+        lambda m: f"{m.group(1)}{unique_id}_cache:",
         content,
     )
+    # Third re.sub: rewrite the limit_req_zone name (COR-05).
     content = re.sub(
         r"(limit_req_zone\s+[^\s]+\s+zone=)[^\s:]+:",
-        f"\\1{unique_id}_ratelimit:",
+        lambda m: f"{m.group(1)}{unique_id}_ratelimit:",
         content,
     )
+    # Fourth re.sub: rewrite limit_req zone references (COR-05).
     content = re.sub(
         r"(limit_req\s+zone=)[^\s;]+",
-        f"\\1{unique_id}_ratelimit",
+        lambda m: f"{m.group(1)}{unique_id}_ratelimit",
         content,
     )
 
