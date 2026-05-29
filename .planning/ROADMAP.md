@@ -93,8 +93,7 @@ sentinel. Redirect templates can no longer leak their literal
   6. Full test suite green; no template output diffs except the
      intentional changes (verified by golden-output tests if
      present, otherwise by manual review of `test_templates.py`).
-**Plans**: TBD (likely 3 plans — substitution refactor, redirect
-required-arg, sentinel constant)
+**Plans**: 3 plans
 
 Plans:
 - [ ] 02-01: COR-01 + COR-03 + COR-05 substitution pass consolidation
