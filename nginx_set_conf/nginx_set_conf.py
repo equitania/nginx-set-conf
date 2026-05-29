@@ -168,7 +168,11 @@ Configuration Management Options:
 )
 @click.option(
     "--cert_key",
-    help="Name and path of certificate key - for self signed or purchased certificates - leave empty for letsencrypt",
+    help=(
+        "Name and path of certificate key file — required for self-signed or purchased "
+        "certificates. Leave empty to let Let's Encrypt auto-generate the key (the "
+        "default when this option is omitted)."
+    ),
 )
 @click.option(
     "--pollport",
@@ -425,6 +429,7 @@ def start_nginx_set_conf(
         domain = retrieve_valid_input("Name of the domain\n")
         port = retrieve_valid_input("Primary port for the Docker container\n")
         cert_name = retrieve_valid_input("Name of certificate\n")
+        cert_key = retrieve_valid_input("Path to certificate key file (leave empty for Let's Encrypt auto-generate)\n")
         pollport = retrieve_valid_input("Secondary Docker container port for odoo pollings\n")
         grpcport = retrieve_valid_input("Secondary Docker container port for qdrant gRPC\n")
         redirect_domain = retrieve_valid_input("Redirect domain\n")
