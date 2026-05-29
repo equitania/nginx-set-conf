@@ -66,19 +66,19 @@ Categories use the codebase-map taxonomy: SEC (security), COR
 
 ### TD — Tech debt cleanup (MEDIUM + LOW)
 
-- [ ] **TD-01**: The stale `nginx_set_conf_equitania.egg-info/`
+- [x] **TD-01**: The stale `nginx_set_conf_equitania.egg-info/`
       directory is removed from the repository. The remaining
       `nginx_set_conf.egg-info/` is verified to be ignored.
       *(CONCERNS.md §TD-MED-1.)*
-- [ ] **TD-02**: The deprecated `config_templates.py` shim is removed.
+- [x] **TD-02**: The deprecated `config_templates.py` shim is removed.
       `nginx_set_conf.py` imports directly from `all_templates`. The
       `print()` side-effects on every template fetch are eliminated.
       *(CONCERNS.md §TD-MED-2 — `config_templates.py:28,94,97`.)*
-- [ ] **TD-03**: `nginx_set_conf.log` is removed from version control
+- [x] **TD-03**: `nginx_set_conf.log` is removed from version control
       (`git rm --cached`) — it was committed before the `*.log` entry
       was added to `.gitignore`.
       *(CONCERNS.md §TD-LOW-1.)*
-- [ ] **TD-04**: `build/` and `dist/` are explicitly in `.gitignore`
+- [x] **TD-04**: `build/` and `dist/` are explicitly in `.gitignore`
       and verified untracked. This is a no-op confirmation but worth
       documenting.
       *(CONCERNS.md §TD-LOW-2.)*
@@ -211,10 +211,10 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | COR-03 | Phase 2 | Complete |
 | COR-04 | Phase 2 | Complete |
 | COR-05 | Phase 2 | Complete |
-| TD-01 | Phase 3 | Pending |
-| TD-02 | Phase 3 | Pending |
-| TD-03 | Phase 3 | Pending |
-| TD-04 | Phase 3 | Pending |
+| TD-01 | Phase 3 | Complete |
+| TD-02 | Phase 3 | Complete |
+| TD-03 | Phase 3 | Complete |
+| TD-04 | Phase 3 | Complete |
 | TD-05 | Phase 3 | Complete |
 | TD-06 | Phase 3 | Complete |
 | DOC-01 | Phase 4 | Pending |
