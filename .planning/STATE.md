@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: planning
-last_updated: "2026-05-29T09:10:00.000Z"
-last_activity: "2026-05-29 — `/gsd:plan-phase 2` complete: 3 plans (02-01 Wave 1, 02-02 + 02-03 Wave 2 parallel), plan-checker PASS after 1 revision"
+status: executing
+last_updated: "2026-05-29T08:12:30.530Z"
+last_activity: 2026-05-29
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 2 — Cache + template substitution consolidation (next)
+**Current focus:** Phase 02 — cache-template-substitution-consolidation
 
 ## Current Position
 
-Phase: 02 of 6 (Cache + template substitution consolidation)
-Plan: 0 of 3 (planning complete, ready to execute)
-Status: Planned — ready to execute (2 waves: 02-01 alone, then 02-02 + 02-03 parallel)
-Last activity: 2026-05-29 — `/gsd:plan-phase 2` complete: 3 plans (Wave 1 = 02-01, Wave 2 = 02-02 + 02-03), plan-checker PASS after 1 revision
+Phase: 02 (cache-template-substitution-consolidation) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-29
 
-Progress: [████░░░░░░] 33%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [████░░░░░░] 33%
 | 3. Tech debt + repository cleanup | 0 / TBD | — | — |
 | 4. Docs, open questions, release | 0 / TBD | — | — |
 | 5. HTTP/3 opt-in support | 0 / 4 | — | — |
+| Phase 02 P01 | 12m | 3 tasks | 3 files |
 
 ## Recent Releases (out-of-GSD context)
 

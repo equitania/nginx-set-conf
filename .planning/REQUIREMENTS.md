@@ -36,7 +36,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
 
 ### COR — Correctness (MEDIUM + LOW)
 
-- [ ] **COR-01**: The dual cache-path substitution pipeline is
+- [x] **COR-01**: The dual cache-path substitution pipeline is
       consolidated into a single authoritative pass. The
       module-level pre-substitution in `all_templates.py` is removed
       now that `utils.py` does the domain-qualified pass.
@@ -48,7 +48,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       file paths.
       *(CONCERNS.md §COR-MED-2 — `templates/redirect_ssl.py:19-35`,
       `utils.py:726-728`.)*
-- [ ] **COR-03**: A single `CACHE_PATH_SENTINEL` constant is shared
+- [x] **COR-03**: A single `CACHE_PATH_SENTINEL` constant is shared
       between `all_templates.py` and every template file so the
       replacement cannot silently fail when a template's sentinel
       drifts.
@@ -58,7 +58,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       `VALID_TEMPLATES` with documentation, or its absence is
       explained inline so future operators do not file phantom bugs.
       *(CONCERNS.md §COR-LOW-1 — `validators.py:25-43`, `utils.py:501`.)*
-- [ ] **COR-05**: The cache-path regex substitution uses a lambda
+- [x] **COR-05**: The cache-path regex substitution uses a lambda
       `repl` instead of `f"\\1{unique_id}_cache:"` so back-reference
       semantics are explicit and a future `unique_id` change cannot
       silently break the substitution.
@@ -206,11 +206,11 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | SEC-02 | Phase 1 | Complete |
 | SEC-03 | Phase 1 | Complete |
 | SEC-04 | Phase 1 | Complete |
-| COR-01 | Phase 2 | Pending |
+| COR-01 | Phase 2 | Complete |
 | COR-02 | Phase 2 | Pending |
-| COR-03 | Phase 2 | Pending |
+| COR-03 | Phase 2 | Complete |
 | COR-04 | Phase 2 | Pending |
-| COR-05 | Phase 2 | Pending |
+| COR-05 | Phase 2 | Complete |
 | TD-01 | Phase 3 | Pending |
 | TD-02 | Phase 3 | Pending |
 | TD-03 | Phase 3 | Pending |
