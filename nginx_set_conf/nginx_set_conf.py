@@ -230,6 +230,15 @@ Configuration Management Options:
     help="Synchronize template files to server configuration",
 )
 @click.option(
+    "--force",
+    is_flag=True,
+    help=(
+        "Required with --sync_config to confirm overwrite of server-local nginx "
+        "customisations. Without this flag, --sync_config aborts when server files "
+        "differ from embedded templates."
+    ),
+)
+@click.option(
     "--backup_config",
     is_flag=True,
     help="Create a backup of current server configuration",
@@ -277,6 +286,7 @@ def start_nginx_set_conf(
     dry_run,
     verify_config,
     sync_config,
+    force,
     backup_config,
     setup_default,
     migrate_to_wildcard,
@@ -326,7 +336,7 @@ def start_nginx_set_conf(
 
             if sync_config:
                 logger.info("Starting configuration synchronization...")
-                if verifier.sync_configurations(results):
+                if verifier.sync_configurations(results, force=force):
                     logger.info("Configuration sync completed successfully")
                     # Re-verify after sync
                     logger.info("Re-verifying configuration after sync...")

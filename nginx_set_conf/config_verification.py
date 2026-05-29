@@ -304,12 +304,21 @@ class ConfigVerification:
             logger.error(f"Error creating directories: {e}")
             return False
 
-    def sync_configurations(self, results: dict[str, dict]) -> bool:
+    def sync_configurations(self, results: dict[str, dict], force: bool = False) -> bool:
         """
         Synchronize template files to server configuration.
 
+        Without --force, the method aborts when server files with content
+        differences exist, printing a data-loss warning. With force=True,
+        the same warning is emitted as a notice and the sync proceeds.
+        Missing server files (not yet present on disk) are always safe to
+        create and are not subject to the force gate.
+
         Args:
             results: Results from verify_configuration_consistency()
+            force: If True, proceed with overwriting differing server files
+                   after printing a data-loss notice. If False (default),
+                   abort when differing server files are detected.
 
         Returns:
             True if sync was successful, False otherwise
@@ -328,39 +337,44 @@ class ConfigVerification:
             click.echo("All configuration files are already up to date. Nothing to sync.")
             return False
 
-        click.echo("\nConfiguration sync required:")
-
+        # Data-loss guard: existing server files with custom operator changes
+        # will be permanently overwritten. Gate on --force.
         if files_to_update:
-            click.echo("\n🔄 Files with content differences:")
+            click.secho(
+                "\nWARNING: The following server files differ from the embedded templates.\n"
+                "Any operator-local customisations (manual edits, local tuning,\n"
+                "site-specific overrides) in these files will be permanently overwritten:",
+                fg="yellow",
+                err=False,
+            )
             for file_name in files_to_update:
                 click.echo(f"  - {file_name}")
 
+            if not force:
+                click.echo(
+                    "\nAborting. Pass --force to proceed with overwriting these files."
+                )
+                return False
+
+            # force=True: continue after the warning notice
+            click.secho(
+                "\nNOTICE: --force specified. Proceeding with overwrite.\n"
+                "Operator-local customisations will be lost.",
+                fg="yellow",
+                err=False,
+            )
+
         if missing_files:
-            click.echo("\n📁 Missing server files:")
+            click.echo("\nMissing server files to be created:")
             for file_name in missing_files:
                 click.echo(f"  - {file_name}")
 
-        click.echo("\nSync options:")
-        click.echo("1. 🔧 Update server configurations from templates [RECOMMENDED]")
-        click.echo("2. ❌ Cancel")
+        # Create backup first
+        if not self.backup_configuration():
+            click.echo("Backup failed. Aborting sync.")
+            return False
 
-        choice = click.prompt("Select option", type=int, default=1)
-
-        if choice == 1:
-            click.echo("\nThis will:")
-            click.echo("  • Create backup of current configuration")
-            click.echo("  • Update server files with template content")
-            click.echo("  • Preserve file permissions")
-
-            if click.confirm("Proceed with configuration sync?"):
-                # Create backup first
-                if not self.backup_configuration():
-                    click.echo("❌ Backup failed. Aborting sync.")
-                    return False
-
-                return self._perform_sync(results, files_to_update + missing_files)
-
-        return False
+        return self._perform_sync(results, files_to_update + missing_files)
 
     def _perform_sync(self, results: dict[str, dict], files_to_sync: list) -> bool:
         """
