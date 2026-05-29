@@ -314,7 +314,7 @@ Phase 5.
 | 2. Cache + template substitution consolidation | 3/3 | Complete   | 2026-05-29 |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
-| 4. Docs, open questions, release | 0/TBD | Pending | - |
+| 4. Docs, open questions, release | 0/2 | Planned    |  |
 | 5. HTTP/3 opt-in support | 0/4 | Pending | - |
 
 ---
