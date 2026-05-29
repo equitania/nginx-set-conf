@@ -348,6 +348,12 @@ def validate_all_inputs(
         ValidationError: If any parameter is invalid.
     """
     validate_config_template(config_template)
+    # COR-02: redirect_domain is required for redirect and redirect_ssl templates.
+    # Without it, the literal sentinel "target.domain.de" leaks into nginx log paths.
+    if "redirect" in config_template and not redirect_domain.strip():
+        raise ValidationError(
+            f"'redirect_domain' is required for template '{config_template}'"
+        )
     validate_domain(domain)
     validate_ip(ip)
     validate_port(port)
