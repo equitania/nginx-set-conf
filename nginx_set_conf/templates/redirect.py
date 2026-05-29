@@ -13,9 +13,6 @@ map $http_upgrade $connection_upgrade {
   '' close;
 }
 
-proxy_cache_path /tmp levels=1:2 keys_zone=my_cache:10m max_size=1g inactive=60m use_temp_path=off;
-limit_req_zone $binary_remote_addr$http_x_forwarded_for zone=iprl:16m rate=500r/m;
-
 server {
     listen ip.ip.ip.ip:80;
     server_name server.domain.de;
