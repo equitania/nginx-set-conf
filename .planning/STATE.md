@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
 status: planning
-last_updated: "2026-05-28T18:35:00.000Z"
-last_activity: "2026-05-28 — Phase 01 complete: SEC-01..04 closed, verifier PASS, 182 tests green, coverage 71.95%"
+last_updated: "2026-05-29T09:10:00.000Z"
+last_activity: "2026-05-29 — `/gsd:plan-phase 2` complete: 3 plans (02-01 Wave 1, 02-02 + 02-03 Wave 2 parallel), plan-checker PASS after 1 revision"
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 5
+  total_plans: 8
   completed_plans: 5
   percent: 33
 ---
@@ -25,9 +25,9 @@ See: `.planning/PROJECT.md` (initialized 2026-05-28)
 ## Current Position
 
 Phase: 02 of 6 (Cache + template substitution consolidation)
-Plan: 0 of TBD (planning not yet run)
-Status: Phase 01 complete — ready to plan Phase 02
-Last activity: 2026-05-28 — Phase 01 complete: SEC-01..04 closed, verifier PASS, 182 tests green, coverage 71.95%
+Plan: 0 of 3 (planning complete, ready to execute)
+Status: Planned — ready to execute (2 waves: 02-01 alone, then 02-02 + 02-03 parallel)
+Last activity: 2026-05-29 — `/gsd:plan-phase 2` complete: 3 plans (Wave 1 = 02-01, Wave 2 = 02-02 + 02-03), plan-checker PASS after 1 revision
 
 Progress: [████░░░░░░] 33%
 
@@ -44,7 +44,7 @@ Progress: [████░░░░░░] 33%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Privileged write-surface hardening | 4 / 4 | ~24 min | ~6 min |
-| 2. Cache + template substitution consolidation | 0 / TBD | — | — |
+| 2. Cache + template substitution consolidation | 0 / 3 | — | — |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 0 / 1 | — | — |
 | 3. Tech debt + repository cleanup | 0 / TBD | — | — |
 | 4. Docs, open questions, release | 0 / TBD | — | — |
@@ -61,7 +61,7 @@ Progress: [████░░░░░░] 33%
 
 ## Next Action
 
-Run `/gsd:plan-phase 2` to break Phase 2 (Cache + template substitution consolidation, COR-01..05) into executable plans.
+Run `/gsd:execute-phase 2` to execute the 3 plans (Wave 1: 02-01 substitution refactor with golden-output net; Wave 2: 02-02 redirect_domain guard + 02-03 default_ssl_reject documentation, parallel).
 
 ---
 

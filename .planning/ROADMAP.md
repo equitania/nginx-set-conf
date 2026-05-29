@@ -96,9 +96,9 @@ sentinel. Redirect templates can no longer leak their literal
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: COR-01 + COR-03 + COR-05 substitution pass consolidation
-- [ ] 02-02: COR-02 redirect_domain required for redirect templates
-- [ ] 02-03: COR-04 default_ssl_reject whitelist decision
+- [ ] 02-01: COR-01 + COR-03 + COR-05 substitution pass consolidation (Wave 1, snapshot-first)
+- [ ] 02-02: COR-02 redirect_domain required for redirect templates (Wave 2)
+- [ ] 02-03: COR-04 default_ssl_reject inline documentation + regression guards (Wave 2)
 
 ### Phase 2.5: HTTP/2 actually enabled (INSERTED)
 **Goal**: Every SSL template + the embedded `NGINX_CONF_TEMPLATE` emit a
