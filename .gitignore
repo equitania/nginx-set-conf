@@ -22,6 +22,8 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+# legacy editable-install artefact (old package name nginx-set-conf-equitania) — removed from disk 2026-05-29
+nginx_set_conf_equitania.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
@@ -55,6 +57,8 @@ coverage.xml
 
 # Django stuff:
 *.log
+# nginx-set-conf runtime log — never track (contains operator inputs: domains, IPs)
+nginx_set_conf.log
 local_settings.py
 db.sqlite3
 
