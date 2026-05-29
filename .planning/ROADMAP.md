@@ -152,8 +152,7 @@ removed. Redirect templates carry only what they actually use.
   6. The interactive CLI path either prompts for `cert_key` or the
      Let's-Encrypt-only behaviour is documented in `--help`.
   7. Full test suite green.
-**Plans**: TBD (likely 3 plans — shim removal, repo cleanup, redirect
-template slim-down)
+**Plans**: 3 plans
 
 Plans:
 - [ ] 03-01: TD-02 retire config_templates.py shim
