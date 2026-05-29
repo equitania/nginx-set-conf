@@ -54,7 +54,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       drifts.
       *(CONCERNS.md §COR-MED-3 — `all_templates.py:58`, every template
       file line 13.)*
-- [ ] **COR-04**: `default_ssl_reject` is either added to
+- [x] **COR-04**: `default_ssl_reject` is either added to
       `VALID_TEMPLATES` with documentation, or its absence is
       explained inline so future operators do not file phantom bugs.
       *(CONCERNS.md §COR-LOW-1 — `validators.py:25-43`, `utils.py:501`.)*
@@ -209,7 +209,7 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | COR-01 | Phase 2 | Complete |
 | COR-02 | Phase 2 | Complete |
 | COR-03 | Phase 2 | Complete |
-| COR-04 | Phase 2 | Pending |
+| COR-04 | Phase 2 | Complete |
 | COR-05 | Phase 2 | Complete |
 | TD-01 | Phase 3 | Pending |
 | TD-02 | Phase 3 | Pending |

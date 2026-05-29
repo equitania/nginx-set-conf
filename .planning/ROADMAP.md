@@ -20,7 +20,7 @@ CONCERNS.md so the next minor can resume feature work.
 - [x] **Phase 1: Privileged write-surface hardening** (completed 2026-05-28) — Closed the four
       MEDIUM/LOW security gaps that let a hostile YAML or stale
       filesystem state reach the host.
-- [ ] **Phase 2: Cache + template substitution consolidation** — Reduce
+- [x] **Phase 2: Cache + template substitution consolidation** — Reduce (completed 2026-05-29)
       the dual cache-path pipeline to one source of truth and make
       sentinel values explicit.
 - [x] **Phase 2.5: HTTP/2 actually enabled** (INSERTED) — Deliver what (completed 2026-05-28)
@@ -98,7 +98,7 @@ sentinel. Redirect templates can no longer leak their literal
 Plans:
 - [x] 02-01: COR-01 + COR-03 + COR-05 substitution pass consolidation (Wave 1, snapshot-first)
 - [x] 02-02: COR-02 redirect_domain required for redirect templates (Wave 2)
-- [ ] 02-03: COR-04 default_ssl_reject inline documentation + regression guards (Wave 2)
+- [x] 02-03: COR-04 default_ssl_reject inline documentation + regression guards (Wave 2)
 
 ### Phase 2.5: HTTP/2 actually enabled (INSERTED)
 **Goal**: Every SSL template + the embedded `NGINX_CONF_TEMPLATE` emit a
@@ -255,7 +255,7 @@ Phase 5.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Privileged write-surface hardening | 0/TBD | Pending | - |
-| 2. Cache + template substitution consolidation | 2/3 | In Progress|  |
+| 2. Cache + template substitution consolidation | 3/3 | Complete   | 2026-05-29 |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 0/TBD | Pending | - |
 | 4. Docs, open questions, release | 0/TBD | Pending | - |
