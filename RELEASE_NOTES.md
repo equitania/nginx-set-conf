@@ -1,6 +1,6 @@
 # RELEASE NOTES
 
-## Version 1.12.0 (development)
+## Version 1.12.0 (29.05.2026)
 
 ### Changed (tech-debt cleanup)
 
@@ -8,6 +8,12 @@
   `nginx_set_conf/config_templates.py` has been hard-deleted. It was marked deprecated
   since v1.11.x. The module had no documented external Python consumers; it existed
   only to provide a backward-compat wrapper around `nginx_set_conf.templates.all_templates`.
+
+### Documentation
+
+- **[FIX]** **DOC-01**: `CLAUDE.md` "Important Files" section corrected — `replace_cache_path()`
+  and `CACHE_PATH_SENTINEL` live in `nginx_set_conf/templates/all_templates.py`, not in
+  `nginx_set_conf/__init__.py`. The `__init__.py` file exposes only `__version__`.
 
 ### Q-01: --migrate_to_ip_bound not implemented
 
@@ -46,7 +52,17 @@ The interactive prompt has been removed. The `--force` flag is the explicit
 operator confirmation. This aligns with the project's data-loss-prevention ethos
 and the safety gate pattern already established by `--migrate_to_wildcard`.
 
+### Tests
+
+209 tests passed, 2 skipped, 2 xpassed (167 → 209 tests; +5 `test_sync_config.py`
+for the `--force` gate). Coverage: 76% (gate: 60%).
+
 ### Migration
+
+v1.12.0 is a drop-in upgrade from v1.11.1. The only operator-visible behaviour change
+is that `--sync_config` now requires `--force` when server files differ from the
+embedded templates. Existing deployments with no server-side customisations are
+unaffected.
 
 If any in-house code imported from `nginx_set_conf.config_templates`,
 update the import to `nginx_set_conf.templates.all_templates.get_config_template`.
