@@ -24,6 +24,12 @@ from nginx_set_conf.templates.redirect import TEMPLATE as REDIRECT_TEMPLATE
 from nginx_set_conf.templates.redirect_ssl import TEMPLATE as REDIRECT_SSL_TEMPLATE
 from nginx_set_conf.templates.supabase import TEMPLATE as SUPABASE_TEMPLATE
 
+# Sentinel string used as the raw cache-path placeholder in every template that
+# declares a proxy_cache_path directive.  Defined once here so that the utils.py
+# substitution regex and template files share a single authoritative value —
+# any future change to the literal propagates automatically to both sites.
+CACHE_PATH_SENTINEL = "proxy_cache_path /tmp"
+
 
 # Replace cache paths to avoid conflicts
 def replace_cache_path(template, service_name, domain=None):
@@ -55,7 +61,7 @@ def replace_cache_path(template, service_name, domain=None):
     limit_zone_name = f"{unique_id}_limit"
 
     # First replace the cache path
-    updated_template = template.replace("proxy_cache_path /tmp", f"proxy_cache_path /var/cache/nginx/{unique_id}")
+    updated_template = template.replace(CACHE_PATH_SENTINEL, f"proxy_cache_path /var/cache/nginx/{unique_id}")
 
     # Then replace the cache zone name
     updated_template = updated_template.replace("keys_zone=my_cache:", f"keys_zone={cache_zone_name}:")
@@ -84,53 +90,53 @@ def replace_cache_path(template, service_name, domain=None):
 
 # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 
-# Dictionary mit allen Templates für einfachen Zugriff
+# Dictionary mit allen Templates für einfachen Zugriff.
+# Templates are stored RAW — the proxy_cache_path /tmp sentinel is NOT
+# substituted here.  All cache-path rewriting is performed by a single
+# authoritative pass in utils.py execute_commands (COR-01).
 TEMPLATES = {
-    "code_server": replace_cache_path(CODE_SERVER_TEMPLATE, "code_server"),
+    "code_server": CODE_SERVER_TEMPLATE,
     # default_ssl_reject has no proxy_cache_path / limit_req_zone, so it is
     # registered verbatim without replace_cache_path().
     "default_ssl_reject": DEFAULT_SSL_REJECT_TEMPLATE,
-    "fast_report": replace_cache_path(FAST_REPORT_TEMPLATE, "fast_report"),
-    "nextcloud": replace_cache_path(NEXTCLOUD_TEMPLATE, "nextcloud"),
-    "portainer": replace_cache_path(PORTAINER_TEMPLATE, "portainer"),
-    "odoo_http": replace_cache_path(ODOO_HTTP_TEMPLATE, "odoo_http"),
-    "odoo_ssl": replace_cache_path(ODOO_SSL_TEMPLATE, "odoo_ssl"),
-    "pgadmin": replace_cache_path(PGADMIN_TEMPLATE, "pgadmin"),
-    "pwa": replace_cache_path(PWA_TEMPLATE, "pwa"),
-    "mailpit": replace_cache_path(MAILPIT_TEMPLATE, "mailpit"),
-    "redirect": replace_cache_path(REDIRECT_TEMPLATE, "redirect"),
-    "redirect_ssl": replace_cache_path(REDIRECT_SSL_TEMPLATE, "redirect_ssl"),
-    "n8n": replace_cache_path(N8N_TEMPLATE, "n8n"),
-    "kasm": replace_cache_path(KASM_TEMPLATE, "kasm"),
-    "qdrant": replace_cache_path(QDRANT_TEMPLATE, "qdrant"),
-    "supabase": replace_cache_path(SUPABASE_TEMPLATE, "supabase"),
-    "flowise": replace_cache_path(FLOWISE_TEMPLATE, "flowise"),
-    "guacamole": replace_cache_path(GUACAMOLE_TEMPLATE, "guacamole"),
+    "fast_report": FAST_REPORT_TEMPLATE,
+    "nextcloud": NEXTCLOUD_TEMPLATE,
+    "portainer": PORTAINER_TEMPLATE,
+    "odoo_http": ODOO_HTTP_TEMPLATE,
+    "odoo_ssl": ODOO_SSL_TEMPLATE,
+    "pgadmin": PGADMIN_TEMPLATE,
+    "pwa": PWA_TEMPLATE,
+    "mailpit": MAILPIT_TEMPLATE,
+    "redirect": REDIRECT_TEMPLATE,
+    "redirect_ssl": REDIRECT_SSL_TEMPLATE,
+    "n8n": N8N_TEMPLATE,
+    "kasm": KASM_TEMPLATE,
+    "qdrant": QDRANT_TEMPLATE,
+    "supabase": SUPABASE_TEMPLATE,
+    "flowise": FLOWISE_TEMPLATE,
+    "guacamole": GUACAMOLE_TEMPLATE,
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 }
 
 
 def get_config_template(config_template_name, domain=None):
     """
-    Get template by name.
+    Get the raw template string by name.
+
+    Returns the template exactly as stored in TEMPLATES — with the raw
+    proxy_cache_path /tmp sentinel intact.  Cache-path substitution
+    (sentinel → /var/cache/nginx/{unique_id}) is performed by
+    utils.py execute_commands as the single authoritative rewrite site
+    (COR-01).  The domain parameter is accepted for API compatibility
+    but is not used here.
 
     Args:
         config_template_name (str): Name of the template to retrieve
-        domain (str, optional): Domain name to create unique cache paths
+        domain (str, optional): Accepted for API compatibility; unused.
 
     Returns:
-        str: Template content or empty string if not found
+        str: Raw template content or empty string if not found
     """
     if config_template_name in TEMPLATES:
-        # Get the base template
-        base_template = TEMPLATES[config_template_name]
-
-        # If domain is provided, create a domain-specific version
-        if domain:
-            # Service name is already clean without ngx_ prefix
-            service_name = config_template_name
-            return replace_cache_path(base_template, service_name, domain)
-
-        return base_template
-    else:
-        return ""
+        return TEMPLATES[config_template_name]
+    return ""
