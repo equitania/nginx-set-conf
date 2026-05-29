@@ -30,7 +30,7 @@ CONCERNS.md so the next minor can resume feature work.
       the docs already claim: every SSL template + embedded base
       configs emit a real HTTP/2 directive.
 
-- [ ] **Phase 3: Tech debt + repository cleanup** — Retire the
+- [x] **Phase 3: Tech debt + repository cleanup** — Retire the (completed 2026-05-29)
       deprecated `config_templates.py` shim, remove committed build
       artefacts, slim down the redirect templates.
 
@@ -199,7 +199,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-03: TD-05 + TD-06 redirect template slim-down + interactive help
+- [x] 03-03: TD-05 + TD-06 redirect template slim-down + interactive help
 
 ### Phase 4: Docs, open questions, release
 
@@ -314,7 +314,7 @@ Phase 5.
 | 1. Privileged write-surface hardening | 0/TBD | Pending | - |
 | 2. Cache + template substitution consolidation | 3/3 | Complete   | 2026-05-29 |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
-| 3. Tech debt + repository cleanup | 2/3 | In Progress|  |
+| 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
 | 4. Docs, open questions, release | 0/TBD | Pending | - |
 | 5. HTTP/3 opt-in support | 0/4 | Pending | - |
 

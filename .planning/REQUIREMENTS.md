@@ -82,13 +82,13 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       and verified untracked. This is a no-op confirmation but worth
       documenting.
       *(CONCERNS.md §TD-LOW-2.)*
-- [ ] **TD-05**: The unused `proxy_cache_path` and `limit_req_zone`
+- [x] **TD-05**: The unused `proxy_cache_path` and `limit_req_zone`
       directives are stripped from `templates/redirect.py` and
       `templates/redirect_ssl.py`. nginx no longer allocates shared
       memory zones for these vhosts.
       *(CONCERNS.md §TD-LOW-3 — `templates/redirect.py:13,17`,
       `templates/redirect_ssl.py:13-14`.)*
-- [ ] **TD-06**: The interactive `start_nginx_set_conf` path either
+- [x] **TD-06**: The interactive `start_nginx_set_conf` path either
       prompts for `cert_key` or its Let's-Encrypt-only behaviour is
       documented in the help text.
       *(CONCERNS.md §TD-LOW-4 — `nginx_set_conf.py:414-448`.)*
@@ -215,8 +215,8 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | TD-02 | Phase 3 | Pending |
 | TD-03 | Phase 3 | Pending |
 | TD-04 | Phase 3 | Pending |
-| TD-05 | Phase 3 | Pending |
-| TD-06 | Phase 3 | Pending |
+| TD-05 | Phase 3 | Complete |
+| TD-06 | Phase 3 | Complete |
 | DOC-01 | Phase 4 | Pending |
 | Q-01 | Phase 4 | Pending |
 | Q-02 | Phase 4 | Pending |
