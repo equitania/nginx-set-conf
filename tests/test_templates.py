@@ -279,6 +279,54 @@ class TestDefaultSslReject:
         assert "/etc/nginx/ssl/default.key" in content
 
 
+class TestRedirectTemplateSlimDown:
+    """TD-05 / TD-06: redirect and redirect_ssl must not allocate shared-memory zones.
+
+    proxy_cache_path and limit_req_zone are orphaned in the redirect vhosts —
+    the server blocks contain no proxy_cache or limit_req consumer directives.
+    Their presence wastes nginx shared-memory and is misleading. After Task 1
+    of plan 03-03 these two directives must be absent from both templates.
+    """
+
+    def test_redirect_no_proxy_cache_path(self):
+        content = get_config_template("redirect")
+        assert "proxy_cache_path" not in content, (
+            "redirect template must not contain proxy_cache_path directive"
+        )
+
+    def test_redirect_no_limit_req_zone(self):
+        content = get_config_template("redirect")
+        assert "limit_req_zone" not in content, (
+            "redirect template must not contain limit_req_zone directive"
+        )
+
+    def test_redirect_ssl_no_proxy_cache_path(self):
+        content = get_config_template("redirect_ssl")
+        assert "proxy_cache_path" not in content, (
+            "redirect_ssl template must not contain proxy_cache_path directive"
+        )
+
+    def test_redirect_ssl_no_limit_req_zone(self):
+        content = get_config_template("redirect_ssl")
+        assert "limit_req_zone" not in content, (
+            "redirect_ssl template must not contain limit_req_zone directive"
+        )
+
+    def test_redirect_core_functionality_intact(self):
+        """The rewrite directive is the core purpose of a redirect vhost."""
+        content = get_config_template("redirect")
+        assert "rewrite" in content, "redirect template must still contain 'rewrite' directive"
+        assert "upstream" in content, "redirect template must still contain 'upstream' block"
+
+    def test_redirect_ssl_core_functionality_intact(self):
+        """SSL redirect must still terminate TLS and perform the rewrite."""
+        content = get_config_template("redirect_ssl")
+        assert "ssl_certificate" in content, (
+            "redirect_ssl template must still contain 'ssl_certificate' directive"
+        )
+        assert "rewrite" in content, "redirect_ssl template must still contain 'rewrite' directive"
+
+
 class TestHttp2Enabled:
     """Regression guard: NGINX_CONF_TEMPLATE must carry `http2 on;` inside the http{} block.
 
