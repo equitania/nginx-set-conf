@@ -4,15 +4,15 @@ import re
 
 import pytest
 
-from nginx_set_conf.config_templates import get_config_template
 from nginx_set_conf.config_verification import NGINX_CONF_TEMPLATE
 from nginx_set_conf.templates.all_templates import (
     TEMPLATES,
+    get_config_template,
     replace_cache_path,
 )
-from nginx_set_conf.templates.all_templates import (
-    get_config_template as all_get_config_template,
-)
+
+# Alias for tests that call all_get_config_template directly (same function)
+all_get_config_template = get_config_template
 
 
 class TestTemplateRegistry:
@@ -48,8 +48,9 @@ class TestTemplateRegistry:
         result = get_config_template("nonexistent_template")
         assert result == ""
 
-    def test_backward_compat_ngx_prefix(self):
-        result = get_config_template("ngx_odoo_ssl")
+    def test_canonical_name_resolves(self):
+        """After config_templates.py removal, the canonical name 'odoo_ssl' must resolve directly."""
+        result = get_config_template("odoo_ssl")
         assert result != ""
         assert "server" in result
 

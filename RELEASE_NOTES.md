@@ -1,5 +1,24 @@
 # RELEASE NOTES
 
+## Version 1.12.0 (development)
+
+### Changed (tech-debt cleanup)
+
+- **[CHG]** **config_templates.py removed** — the internal shim module
+  `nginx_set_conf/config_templates.py` has been hard-deleted. It was marked deprecated
+  since v1.11.x. The module had no documented external Python consumers; it existed
+  only to provide a backward-compat wrapper around `nginx_set_conf.templates.all_templates`.
+
+### Migration
+
+If any in-house code imported from `nginx_set_conf.config_templates`,
+update the import to `nginx_set_conf.templates.all_templates.get_config_template`.
+The function signature (`config_template_name: str, domain: str | None = None`) -> `str`
+is identical. Operator YAML configs are unaffected — this change is internal to the
+Python import surface only.
+
+---
+
 ## Version 1.11.1 (28.05.2026)
 
 ### Fixed (security hardening)

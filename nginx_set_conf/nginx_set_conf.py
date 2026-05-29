@@ -23,7 +23,7 @@ from logging.handlers import RotatingFileHandler
 import click
 
 from . import __version__
-from .config_templates import get_config_template
+from .templates.all_templates import get_config_template
 from .config_verification import ConfigVerification
 from .utils import (
     execute_commands,

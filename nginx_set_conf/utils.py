@@ -27,8 +27,7 @@ from pathlib import Path
 import click
 import yaml
 
-from .config_templates import get_config_template
-from nginx_set_conf.templates.all_templates import CACHE_PATH_SENTINEL
+from .templates.all_templates import get_config_template, CACHE_PATH_SENTINEL
 from .validators import ValidationError, validate_all_inputs
 
 # Matches `listen <hostname>:<port>[ ssl];` — i.e. hostname-bound listen
