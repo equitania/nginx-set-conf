@@ -95,7 +95,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
 
 ### DOC — Documentation drift (LOW)
 
-- [ ] **DOC-01**: `CLAUDE.md` is corrected — `replace_cache_path` lives
+- [x] **DOC-01**: `CLAUDE.md` is corrected — `replace_cache_path` lives
       in `nginx_set_conf/templates/all_templates.py`, not
       `nginx_set_conf/__init__.py`.
       *(CONCERNS.md §DOC-LOW-1.)*
@@ -154,11 +154,11 @@ Categories use the codebase-map taxonomy: SEC (security), COR
 
 ### Q — Open questions to resolve (decisions, then implement or document)
 
-- [ ] **Q-01**: Decide on `--migrate_to_ip_bound` (RELEASE_NOTES v1.11.0
+- [x] **Q-01**: Decide on `--migrate_to_ip_bound` (RELEASE_NOTES v1.11.0
       teases it). Implement the analog to `--migrate_to_wildcard` OR
       remove the teaser and document the manual procedure in README.
       *(CONCERNS.md §Q-1 — `RELEASE_NOTES.md:31-32`.)*
-- [ ] **Q-02**: `--sync_config` currently silently overwrites operator
+- [x] **Q-02**: `--sync_config` currently silently overwrites operator
       customisations. Add a `--force` flag and a clearer warning before
       sync, OR document this limitation prominently in README.
       *(CONCERNS.md §Q-2 — `config_verification.py:199-241`.)*
@@ -217,9 +217,9 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | TD-04 | Phase 3 | Complete |
 | TD-05 | Phase 3 | Complete |
 | TD-06 | Phase 3 | Complete |
-| DOC-01 | Phase 4 | Pending |
-| Q-01 | Phase 4 | Pending |
-| Q-02 | Phase 4 | Pending |
+| DOC-01 | Phase 4 | Complete |
+| Q-01 | Phase 4 | Complete |
+| Q-02 | Phase 4 | Complete |
 | PROTO-01 | Phase 2.5 | Complete |
 | PROTO-02 | Phase 5 | Pending |
 | PROTO-03 | Phase 5 | Pending |

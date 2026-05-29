@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: completed
-last_updated: "2026-05-29T12:52:28.833Z"
-last_activity: 2026-05-29 -- Phase 03 marked complete
+status: executing
+last_updated: "2026-05-29T14:55:19.253Z"
+last_activity: 2026-05-29
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
   percent: 67
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 03 — tech-debt-repository-cleanup
+**Current focus:** Phase 04 — docs-open-questions-release
 
 ## Current Position
 
-Phase: 03 — COMPLETE
-Plan: 3 of 3
-Status: Phase 03 complete
-Last activity: 2026-05-29 -- Phase 03 marked complete
+Phase: 04 (docs-open-questions-release) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-05-29
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100%
 | 5. HTTP/3 opt-in support | 0 / 4 | — | — |
 | Phase 02 P01 | 12m | 3 tasks | 3 files |
 | 02 | 3 | - | - |
+| Phase 04 P01 | 18m | 3 tasks | 6 files |
 
 ## Recent Releases (out-of-GSD context)
 
@@ -65,10 +66,13 @@ Progress: [██████████] 100%
 
 - Strip orphaned proxy_cache_path/limit_req_zone from redirect templates via TDD RED/GREEN cycle
 - cert_key interactive prompt uses existing retrieve_valid_input helper; empty string is valid for LE auto-generation
+- DOC-01: CLAUDE.md Important Files corrected — all_templates.py is the home of replace_cache_path() and CACHE_PATH_SENTINEL; __init__.py covers version only
+- Q-01: --migrate_to_ip_bound not implemented; MIG-01 deferred to v2; manual per-vhost regeneration procedure documented in README
+- Q-02: --force gate implemented on --sync_config; warn-and-abort without --force, proceed-with-notice with --force; interactive prompt removed
 
 ## Next Action
 
-Phase 03 complete (3/3 plans done). Run `/gsd:execute-phase 4` for Docs, open questions, release.
+Phase 04 Plan 01 complete. Execute Plan 04-02 (release prep: version bump, CONCERNS.md re-audit, v1.12.0 finalisation).
 
 ---
 
