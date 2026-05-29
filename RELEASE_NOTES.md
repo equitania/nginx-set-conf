@@ -9,6 +9,43 @@
   since v1.11.x. The module had no documented external Python consumers; it existed
   only to provide a backward-compat wrapper around `nginx_set_conf.templates.all_templates`.
 
+### Q-01: --migrate_to_ip_bound not implemented
+
+**Decision**: The `--migrate_to_ip_bound` atomic migration flag will **not** be
+implemented in v1.12.0 or any near-term release. The implementation risk class is
+identical to the v1.10.0 mass `listen` rewrite that caused the SNI-fallback incident
+on 21.04.2026. An atomic bulk rewrite of listen directives across all server configs
+carries the same partial-migration hazard.
+
+Migration tooling (MIG-01) is explicitly deferred to v2. Operators who need to move
+from hostname-bound to IP-bound listen directives must follow the manual regeneration
+procedure documented in the README under
+"Manual Migration: Hostname-bound to IP-bound Listen". The procedure uses existing
+per-vhost `nginx-set-conf` invocations (no new CLI flag required).
+
+### Q-02: --sync_config now requires --force to overwrite server files
+
+**Decision**: `--sync_config` now requires an explicit `--force` flag before it
+will overwrite any server file that already exists with different content.
+
+**Before this change** (v1.11.x and earlier): `--sync_config` displayed an
+interactive prompt and, on confirmation, silently overwrote all differing server
+files — including any operator-local customisations made directly to
+`/etc/nginx/nginx.conf`, `/etc/nginx/nginxconfig.io/general.conf`, or
+`/etc/nginx/nginxconfig.io/security.conf`. Custom hardening, local tuning, or
+site-specific overrides were destroyed without a visible data-loss warning.
+
+**After this change** (v1.12.0+):
+- `--sync_config` **without** `--force`: prints a clear warning that
+  operator-local customisations will be permanently lost, then aborts. No
+  filesystem writes occur.
+- `--sync_config --force`: emits the same warning as a notice, then proceeds
+  with the sync (backup is still created first).
+
+The interactive prompt has been removed. The `--force` flag is the explicit
+operator confirmation. This aligns with the project's data-loss-prevention ethos
+and the safety gate pattern already established by `--migrate_to_wildcard`.
+
 ### Migration
 
 If any in-house code imported from `nginx_set_conf.config_templates`,
@@ -103,9 +140,9 @@ IP-bound listens combine the two properties we wanted separately in v1.10:
 - **New deployments**: run `nginx-set-conf` with the updated templates.
   The `--ip` parameter is already mandatory, so no CLI change is needed.
 - **Existing deployments** with hostname-bound listens: simply regenerate
-  the affected `*.conf` files. A future minor release may add an atomic
-  `--migrate_to_ip_bound` companion to `--migrate_to_wildcard` for bulk
-  server-side rewrites.
+  the affected `*.conf` files. See the README section
+  "Manual Migration: Hostname-bound to IP-bound Listen" for a step-by-step
+  procedure.
 - **IPv6-only hosts**: supply the IPv6 address via `--ip`; bracketing is
   automatic via `_format_ip_for_nginx`.
 

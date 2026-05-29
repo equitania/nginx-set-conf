@@ -111,7 +111,7 @@ nginx-set-conf --backup_config
 
 - Enhanced cache path handling with domain-specific paths
 - Prevents cache conflicts between multiple instances
-- `replace_cache_path()` function ensures unique paths per domain
+- `replace_cache_path()` function in `nginx_set_conf/templates/all_templates.py` ensures unique paths per domain
 
 ## Common Development Tasks
 
@@ -127,7 +127,8 @@ nginx-set-conf --config_template flowise --ip 127.0.0.1 --domain flowise.local -
 
 ## Important Files
 
-- `nginx_set_conf/__init__.py`: Contains version and `replace_cache_path()` utility
+- `nginx_set_conf/__init__.py`: Contains version (`__version__`)
+- `nginx_set_conf/templates/all_templates.py`: Central template registry; defines `replace_cache_path()` and `CACHE_PATH_SENTINEL`
 - `nginx_set_conf/config_verification.py`: Contains embedded templates and verification logic
 - `yaml_examples/server_config/config.yaml`: Example configurations for all templates (development only)
 - `yaml_examples/nginxconfig.io/`: Source template files (development only - not needed for deployment)

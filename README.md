@@ -138,6 +138,63 @@ nginx's SNI routing to serve the wrong TLS certificate for unmatched
 names. This is exactly the production incident that motivated v1.10.2.
 Either migrate atomically, or stay on the v1.11.0 IP-bound default.
 
+## Manual Migration: Hostname-bound to IP-bound Listen
+
+**Context**: Starting from v1.11.0, all templates use IP-bound listen directives
+(`listen <ip>:443 ssl;`) instead of the old hostname-bound form
+(`listen <domain>:443 ssl;`). If you have servers still running configs generated
+with v1.9.x or v1.10.2, this section describes the safe migration path.
+
+**Why no `--migrate_to_ip_bound` flag?** An atomic bulk rewrite of listen
+directives across all server configs carries the same partial-migration risk
+that caused the SNI-fallback incident on 21.04.2026 (see v1.10.2 release notes).
+The implementation is deferred to v2. The conceptual analog for the wildcard
+migration (`--migrate_to_wildcard`) exists, but IP-bound migration requires
+knowing each vhost's `--ip` value at rewrite time — that information is not
+stored in the generated config file and cannot be reliably extracted.
+
+**Procedure: manual per-vhost regeneration** (the safe path):
+
+```bash
+# 1. Identify which configs still use hostname-bound listen directives
+grep -l "listen [a-z].*:" /etc/nginx/conf.d/*.conf
+
+# 2. For each affected file, regenerate it with the same parameters you
+#    originally used, now adding or confirming the --ip argument.
+#    Example — regenerate an Odoo vhost:
+sudo nginx-set-conf \
+  --config_template odoo_ssl \
+  --ip 1.2.3.4 \
+  --domain www.example.com \
+  --port 8069 \
+  --cert_name www.example.com \
+  --pollport 8072
+
+# 3. After all vhosts have been regenerated, validate the configuration
+sudo nginx -t
+
+# 4. If validation passes, reload nginx
+sudo systemctl reload nginx
+```
+
+**Key points**:
+
+- Regenerate configs one at a time, not all at once. After each regeneration
+  run `nginx -t` to catch any issue early.
+- The `--ip` parameter must match the actual IP address of the server
+  interface you want nginx to bind to. Do not use the domain name as the IP.
+- `server_name` in the generated config still uses the domain — only the
+  listen socket binding changes. Name-based virtual hosting and SNI routing
+  continue to work as before.
+- If you have multiple vhosts on the same server, they all use the same `--ip`
+  value (the server's public IP). Regenerate them all before reloading.
+- This is a safe operation: regenerating a config replaces only the specific
+  `*.conf` file. The running nginx keeps the old config until you reload.
+
+**Tip**: Check your deployment scripts or Ansible playbooks for the original
+parameter values (`--domain`, `--port`, `--cert_name`, etc.) so you can
+reproduce the exact invocation for each vhost.
+
 ### Examples
 
 #### Basic Configuration
