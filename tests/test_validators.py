@@ -344,3 +344,47 @@ class TestValidateAllInputs:
                 ip="not-an-ip",
                 port="8069",
             )
+
+
+class TestValidateRedirectDomain:
+    def test_redirect_without_domain_raises(self):
+        with pytest.raises(ValidationError, match="redirect_domain"):
+            validate_all_inputs(
+                config_template="redirect",
+                domain="old.example.com",
+                ip="1.2.3.4",
+                port="80",
+                cert_name="old.example.com",
+                redirect_domain="",
+            )
+
+    def test_redirect_ssl_without_domain_raises(self):
+        with pytest.raises(ValidationError, match="redirect_domain"):
+            validate_all_inputs(
+                config_template="redirect_ssl",
+                domain="old.example.com",
+                ip="1.2.3.4",
+                port="80",
+                cert_name="old.example.com",
+                redirect_domain="",
+            )
+
+    def test_redirect_with_valid_domain_passes(self):
+        validate_all_inputs(
+            config_template="redirect",
+            domain="old.example.com",
+            ip="1.2.3.4",
+            port="80",
+            cert_name="old.example.com",
+            redirect_domain="new.example.com",
+        )
+
+    def test_non_redirect_does_not_require_domain(self):
+        validate_all_inputs(
+            config_template="odoo_ssl",
+            domain="example.com",
+            ip="1.2.3.4",
+            port="8069",
+            cert_name="example.com",
+            redirect_domain="",
+        )
