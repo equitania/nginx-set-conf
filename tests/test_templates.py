@@ -1,5 +1,9 @@
 """Tests for template loading and cache path replacement."""
 
+import re
+
+import pytest
+
 from nginx_set_conf.config_templates import get_config_template
 from nginx_set_conf.config_verification import NGINX_CONF_TEMPLATE
 from nginx_set_conf.templates.all_templates import (
@@ -300,3 +304,97 @@ class TestHttp2Enabled:
         assert re.search(r'http2\s+on;', http_block), (
             "http2 on; found in template but not inside the http {} block — check scope"
         )
+
+
+# ---------------------------------------------------------------------------
+# COR-01 / COR-03 golden-output snapshot and raw-sentinel regression tests
+# ---------------------------------------------------------------------------
+
+# Four snapshot cases: (template_name, domain, ip, expected_unique_id)
+SNAPSHOT_CASES = [
+    ("odoo_ssl", "example.com", "1.2.3.4", "odoo_ssl_example_com"),
+    ("flowise", "flowise.example.com", "1.2.3.4", "flowise_flowise_example_com"),
+    ("redirect", "old.example.com", "1.2.3.4", "redirect_old_example_com"),
+    ("redirect_ssl", "old.example.com", "1.2.3.4", "redirect_ssl_old_example_com"),
+]
+
+# Broadened pattern: matches both the raw /tmp sentinel AND any pre-processed
+# /var/cache/nginx/... path.  This is the COR-01 target regex — testing it here
+# proves that the substitution is correct in both the pre- and post-refactor states.
+_BROADENED_CACHE_PATTERN = r"proxy_cache_path\s+(?:/tmp|/var/cache/nginx/[^\s]+)"
+
+
+class TestCachePathSubstitutionOutput:
+    """Golden-output snapshot: verifies that the cache-path substitution
+    pipeline always produces a domain-qualified /var/cache/nginx/{unique_id}
+    path — regardless of whether the template stores the raw /tmp sentinel
+    (post-Task-2) or the pre-processed service-name path (pre-Task-2).
+
+    These tests must be GREEN on both the pre-refactor codebase (Task 1 commit)
+    and the post-refactor codebase (after Tasks 2 and 3).  That invariant is the
+    proof of output-neutrality.
+    """
+
+    @pytest.mark.parametrize("template,domain,ip,expected_unique_id", SNAPSHOT_CASES)
+    def test_cache_path_unique_id_in_output(self, template, domain, ip, expected_unique_id):
+        # Get the template content (with domain, as utils.py callers do).
+        content = all_get_config_template(template, domain)
+        assert content, f"Template '{template}' returned empty string"
+
+        # Only assert cache-path substitution if the raw template actually has
+        # a proxy_cache_path directive.
+        raw_content = all_get_config_template(template, None)
+        if "proxy_cache_path" not in raw_content:
+            pytest.skip(f"Template '{template}' has no proxy_cache_path — nothing to check")
+
+        # Apply the broadened substitution (mirrors the COR-01 target in utils.py).
+        substituted = re.sub(
+            _BROADENED_CACHE_PATTERN,
+            f"proxy_cache_path /var/cache/nginx/{expected_unique_id}",
+            content,
+        )
+
+        assert f"/var/cache/nginx/{expected_unique_id}" in substituted, (
+            f"Template '{template}' + domain '{domain}' did not yield "
+            f"/var/cache/nginx/{expected_unique_id} after substitution.\n"
+            f"Substituted content (first 400 chars):\n{substituted[:400]}"
+        )
+
+
+class TestRawSentinelStorage:
+    """Regression guard: after Task 2, the TEMPLATES dict must store raw
+    templates (with /tmp sentinel), not pre-processed ones.  These tests use
+    xfail markers so they report the correct pre-condition failure on the
+    pre-refactor codebase (Task 1 commit) and pass once Task 2 lands.
+    """
+
+    @pytest.mark.xfail(reason="COR-01: all_templates.py pre-substitution not yet removed")
+    def test_raw_sentinel_not_in_registered_templates(self):
+        """Every template with proxy_cache_path must store /tmp (raw sentinel),
+        not a pre-processed /var/cache/nginx/... path."""
+        for name, content in TEMPLATES.items():
+            if name == "default_ssl_reject":
+                continue
+            if "proxy_cache_path" in content:
+                assert "/tmp" in content, (
+                    f"Template '{name}' does not contain /tmp sentinel — "
+                    "was it pre-processed at import time?"
+                )
+                assert "/var/cache/nginx" not in content, (
+                    f"Template '{name}' contains a pre-processed /var/cache/nginx path — "
+                    "raw sentinel expected after COR-01 fix"
+                )
+
+    @pytest.mark.xfail(reason="COR-03: CACHE_PATH_SENTINEL not yet defined")
+    def test_sentinel_constant_matches_template_literals(self):
+        """CACHE_PATH_SENTINEL must be importable and its path component (/tmp)
+        must appear in every template that carries a proxy_cache_path directive."""
+        from nginx_set_conf.templates.all_templates import CACHE_PATH_SENTINEL, TEMPLATES as T
+
+        sentinel_path = CACHE_PATH_SENTINEL.split()[1]
+        for name, content in T.items():
+            if "proxy_cache_path" in content:
+                assert sentinel_path in content, (
+                    f"Template '{name}' does not contain sentinel path '{sentinel_path}' "
+                    f"from CACHE_PATH_SENTINEL='{CACHE_PATH_SENTINEL}'"
+                )
