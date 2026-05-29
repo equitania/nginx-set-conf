@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: verifying
-last_updated: "2026-05-29T08:18:19.010Z"
+status: ready_to_plan
+last_updated: 2026-05-29T08:22:42.930Z
 last_activity: 2026-05-29
 progress:
   total_phases: 6
@@ -11,6 +11,7 @@ progress:
   total_plans: 8
   completed_plans: 8
   percent: 50
+stopped_at: Phase 02 complete (3/3) — ready to discuss Phase 02.5
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 02 — cache-template-substitution-consolidation
+**Current focus:** Phase 02.5 — http2 actually enabled
 
 ## Current Position
 
-Phase: 02 (cache-template-substitution-consolidation) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
+Phase: 02.5
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-05-29
 
 Progress: [██████████] 100%
@@ -35,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 3
 - Average duration: —
 - Total execution time: —
 
@@ -50,6 +51,7 @@ Progress: [██████████] 100%
 | 4. Docs, open questions, release | 0 / TBD | — | — |
 | 5. HTTP/3 opt-in support | 0 / 4 | — | — |
 | Phase 02 P01 | 12m | 3 tasks | 3 files |
+| 02 | 3 | - | - |
 
 ## Recent Releases (out-of-GSD context)
 
