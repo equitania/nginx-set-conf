@@ -34,6 +34,12 @@ the validator surface.
   failures, no SNI fallback leaks).
 - **TPL-V1.5.4+**: Embedded nginx config templates ship inside the
   package — no filesystem dependency on `yaml_examples/` at runtime.
+- **COR-V1.12 (Phase 2)**: Cache-path substitution consolidated into a
+  single authoritative pass in `utils.py`; `CACHE_PATH_SENTINEL` defined
+  once in `all_templates.py`; redirect/redirect_ssl invocations require
+  `--redirect_domain` (no `target.domain.de` sentinel leak); the
+  `default_ssl_reject` exclusion from `VALID_TEMPLATES` is documented
+  inline. Covers COR-01..COR-05.
 
 ### Active
 
@@ -41,7 +47,6 @@ v1.12 scope — see `REQUIREMENTS.md` for the full list.
 
 - [ ] Tighten privileged write surface (key file mode, copytree symlink
       safety, YAML whitespace).
-- [ ] Consolidate the dual cache-path substitution into a single pass.
 - [ ] Retire the deprecated `config_templates.py` shim and clean up
       committed artefacts (`*.egg-info/`, `*.log`).
 - [ ] Resolve open questions (`--migrate_to_ip_bound`, `--sync_config`
