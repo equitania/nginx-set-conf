@@ -188,6 +188,28 @@ def retrieve_valid_input(message: str) -> str:
             return user_input
 
 
+def retrieve_optional_input(message: str) -> str:
+    """Prompt user for optional input; empty input is accepted and returns "".
+
+    Unlike retrieve_valid_input, this does NOT loop on empty input — it is used
+    for prompts where leaving the field blank is a valid, meaningful choice
+    (e.g. cert_key empty => Let's Encrypt auto-generation). Caps input at
+    _MAX_INPUT_LENGTH characters; handles EOFError gracefully.
+
+    Args:
+        message: Prompt message to display to user.
+
+    Returns:
+        User's input string, or "" if the user left it blank.
+    """
+    try:
+        user_input = input(message)
+    except EOFError:
+        click.echo("\nNo input received (EOF). Exiting.")
+        raise SystemExit(1)
+    return user_input[:_MAX_INPUT_LENGTH]
+
+
 @contextlib.contextmanager
 def _restrictive_umask():
     """Context manager: set umask 0o077, restore on exit."""

@@ -29,6 +29,7 @@ from .utils import (
     execute_commands,
     migrate_configs_to_wildcard,
     parse_yaml_folder,
+    retrieve_optional_input,
     retrieve_valid_input,
     setup_default_server,
 )
@@ -429,7 +430,9 @@ def start_nginx_set_conf(
         domain = retrieve_valid_input("Name of the domain\n")
         port = retrieve_valid_input("Primary port for the Docker container\n")
         cert_name = retrieve_valid_input("Name of certificate\n")
-        cert_key = retrieve_valid_input("Path to certificate key file (leave empty for Let's Encrypt auto-generate)\n")
+        cert_key = retrieve_optional_input(
+            "Path to certificate key file (leave empty for Let's Encrypt auto-generate)\n"
+        )
         pollport = retrieve_valid_input("Secondary Docker container port for odoo pollings\n")
         grpcport = retrieve_valid_input("Secondary Docker container port for qdrant gRPC\n")
         redirect_domain = retrieve_valid_input("Redirect domain\n")

@@ -7,6 +7,7 @@ import os
 import pytest
 
 from nginx_set_conf.utils import (
+    retrieve_optional_input,
     retrieve_valid_input,
     _format_ip_for_nginx,
     _insert_after_marker,
@@ -570,3 +571,28 @@ class TestRetrieveValidInput:
         result = retrieve_valid_input("prompt: ")
         assert result == "valid"
         assert count[0] == 1001
+
+
+class TestRetrieveOptionalInput:
+    def test_returns_empty_on_blank_input(self, monkeypatch):
+        # CR-01 regression: empty input must be accepted (Let's Encrypt path),
+        # NOT loop forever like retrieve_valid_input does.
+        monkeypatch.setattr(builtins, "input", lambda _: "")
+        assert retrieve_optional_input("cert_key: ") == ""
+
+    def test_returns_value_when_provided(self, monkeypatch):
+        monkeypatch.setattr(builtins, "input", lambda _: "/etc/ssl/key.pem")
+        assert retrieve_optional_input("cert_key: ") == "/etc/ssl/key.pem"
+
+    def test_truncates_oversized_input(self, monkeypatch):
+        big = "x" * 8000
+        monkeypatch.setattr(builtins, "input", lambda _: big)
+        assert len(retrieve_optional_input("prompt: ")) == 4096
+
+    def test_eof_raises_system_exit(self, monkeypatch):
+        monkeypatch.setattr(
+            builtins, "input",
+            lambda _: (_ for _ in ()).throw(EOFError())
+        )
+        with pytest.raises(SystemExit):
+            retrieve_optional_input("prompt: ")
