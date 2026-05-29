@@ -29,7 +29,12 @@ _AUTH_FILE_RE = re.compile(r"^[a-zA-Z0-9._/\-]+$")
 _AUTH_FILE_ALLOWED_BASE = "/etc/nginx/"
 _AUTH_FILE_FORBIDDEN_PREFIX = "/etc/nginx/conf.d/"
 
-# Valid template names (whitelist)
+# VALID_TEMPLATES: template names accessible via --config_template / YAML config_template.
+#
+# `default_ssl_reject` is intentionally excluded: it is generated only by --setup_default
+# (setup_default_server in utils.py) which writes to 00-default.conf using a sacrificial
+# self-signed cert. Exposing it via --config_template would allow misuse as a regular
+# vhost config and could overwrite the SNI catch-all. See CONCERNS.md §COR-LOW-1.
 VALID_TEMPLATES = {
     "code_server",
     "fast_report",
