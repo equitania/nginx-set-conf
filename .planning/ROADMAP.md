@@ -235,7 +235,7 @@ the audit have a recorded decision and a shipped implementation
 Plans:
 
 - [x] 04-01-PLAN.md — DOC-01 + Q-01 + Q-02: docs correction, migrate_to_ip_bound manual procedure, --force gate for sync_config
-- [ ] 04-02-PLAN.md — v1.12.0 release: CONCERNS re-audit, RELEASE_NOTES finalise, bump-my-version, operator tag + publish
+- [x] 04-02-PLAN.md — v1.12.0 release: CONCERNS re-audit, RELEASE_NOTES finalise, bump-my-version, operator tag + publish (tag push + PyPI publish pending operator)
 
 ### Phase 5: HTTP/3 opt-in support
 
@@ -314,7 +314,7 @@ Phase 5.
 | 2. Cache + template substitution consolidation | 3/3 | Complete   | 2026-05-29 |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
-| 4. Docs, open questions, release | 1/2 | In Progress|  |
+| 4. Docs, open questions, release | 2/2 | Complete (operator push pending) | 2026-05-29 |
 | 5. HTTP/3 opt-in support | 0/4 | Pending | - |
 
 ---
