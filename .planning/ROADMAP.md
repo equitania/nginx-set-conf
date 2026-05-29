@@ -194,8 +194,8 @@ removed. Redirect templates carry only what they actually use.
 Plans:
 **Wave 1**
 
-- [ ] 03-01: TD-02 retire config_templates.py shim
-- [ ] 03-02: TD-01 + TD-03 + TD-04 repo artefact cleanup
+- [x] 03-01: TD-02 retire config_templates.py shim
+- [x] 03-02: TD-01 + TD-03 + TD-04 repo artefact cleanup
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -314,7 +314,7 @@ Phase 5.
 | 1. Privileged write-surface hardening | 0/TBD | Pending | - |
 | 2. Cache + template substitution consolidation | 3/3 | Complete   | 2026-05-29 |
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
-| 3. Tech debt + repository cleanup | 0/TBD | Pending | - |
+| 3. Tech debt + repository cleanup | 2/3 | In Progress|  |
 | 4. Docs, open questions, release | 0/TBD | Pending | - |
 | 5. HTTP/3 opt-in support | 0/4 | Pending | - |
 

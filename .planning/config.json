@@ -24,7 +24,8 @@
     "ai_integration_phase": false,
     "pattern_mapper": true,
     "tdd_mode": false,
-    "mvp_mode": false
+    "mvp_mode": false,
+    "_auto_chain_active": false
   },
   "ship": {
     "pr_body_sections": []
