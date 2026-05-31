@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: gaps_found
-last_updated: "2026-05-31T12:00:00.000Z"
+status: verified
+last_updated: "2026-05-31T14:00:00.000Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 17
   completed_plans: 17
-  percent: 83
+  percent: 100
 ---
 
 # Project State
@@ -20,25 +20,26 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 05 gap closure — verification found 2 blockers (CR-01, CR-02) that must be fixed before v1.14.0 ships.
+**Current focus:** Phase 05 VERIFIED. Both blockers (CR-01, CR-02) closed; v1.14.0 shippable.
 
 ## Current Position
 
-Phase 05 (http3-opt-in-support) — PLANS DONE, GOAL NOT YET VERIFIED.
-All 4 plans executed and committed, but phase verification (05-VERIFICATION.md)
-returned gaps_found (5/7 must-haves). Two blockers prevent goal achievement:
-- BLOCKER 1 (CR-02): injected `ssl_protocols TLSv1.3;` lands inside the shared
-  TCP/443 server block, dropping TLSv1.2 fallback — violates ROADMAP SC-1.
-- BLOCKER 2 (CR-01): `--enable_http3` + `--disable_domain_listen` silently emits
-  a config with NO HTTP/3 directives (no error raised).
+Phase 05 (http3-opt-in-support) — GOAL VERIFIED (7/7 SC).
+Initial verification returned gaps_found (5/7). Both blockers fixed and re-verified
+on 2026-05-31:
+- CR-02 (SC-1) CLOSED: removed `ssl_protocols TLSv1.3;` from the injected QUIC
+  block — TCP/443 keeps http-scope `TLSv1.2 TLSv1.3`. Commit b3000b7.
+- CR-01 CLOSED: mutual-exclusion guard rejects `--enable_http3` +
+  `--disable_domain_listen` with a ClickException. Commit b3000b7 (test fix ffe762f).
+Full suite: 244 passed, 2 skipped, coverage gate reached.
 v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
-template, commit 089b9db, 2026-05-31). v1.14.0 NOT yet shippable.
-Phase: 05 (http3-opt-in-support) — gap closure pending
-Plan: 4 of 4 executed — verification gaps_found
-Status: Run /gsd-plan-phase 05 --gaps  (or /gsd-code-review 05 --fix)
+template, commit 089b9db, 2026-05-31). v1.14.0 now shippable (operator publishes).
+Phase: 05 (http3-opt-in-support) — COMPLETE
+Plan: 4 of 4 executed + gap closure verified
+Status: Ready for /gsd-complete-milestone, then publish v1.14.0 (local-only)
 Last activity: 2026-05-31
 
-Progress: [████████░░] 83% (5/6 phases goal-verified)
+Progress: [██████████] 100% (6/6 phases goal-verified)
 
 ## Open Verification Debt
 
@@ -96,17 +97,18 @@ Progress: [████████░░] 83% (5/6 phases goal-verified)
 - 05-02: _inject_http3_directives inserts 5-directive QUIC block (quic listen, http3 on, quic_retry on, ssl_protocols TLSv1.3, Alt-Svc) after first listen <ip>:443 ssl; via string injection; dual-form reuseport regex (optional IP prefix) matches both IP-bound and wildcard forms; no IPv6 QUIC line (intentional: no included template has listen [::]:443 ssl;); get_nginx_version parses nginx -v stderr; version gate deferred to 05-03
 - 05-03: version gate in execute_commands after validate_all_inputs, before content = get_config_template(); gate only fires when enable_http3=True (zero subprocess overhead for existing operators); QUIC catch-all block in default_ssl_reject uses wildcard listen + default_server + reuseport (intentional: catch-all IS the fallback, not an SNI leak; reuseport claimed here so vhosts omit it via _quic_reuseport_already_claimed)
 - 05-04: UDP/443 firewall callout rendered as blockquote WARNING in both README and RELEASE_NOTES; --migrate_to_http3 deferred to v2 (PROTO-V2-01); version bumped manually 1.13.0 → 1.14.0 (not via bump-my-version)
-- v1.14.0 released: HTTP/3 opt-in support complete — 12 templates, nginx >= 1.25.0 version gate, QUIC SNI catch-all, Alt-Svc header; 242 tests passing
+- v1.14.0 released: HTTP/3 opt-in support complete — 12 templates, nginx >= 1.25.0 version gate, QUIC SNI catch-all, Alt-Svc header; 244 tests passing
+- 05 gap closure: CR-02 fixed by removing server-scope ssl_protocols from QUIC injection (QUIC enforces TLS 1.3 at protocol level; TCP/443 keeps http-scope TLSv1.2 TLSv1.3 — SC-1 satisfied). CR-01 fixed via mutual-exclusion guard (enable_http3 + disable_domain_listen → ClickException). Re-verified 2026-05-31: 7/7 SC.
 
 ## Next Action
 
-Phase 05 COMPLETE. All 4 plans executed, all 17 total plans across all phases complete.
+Phase 05 VERIFIED. All 4 plans executed + both blockers closed. All 6 phases goal-verified.
 
-Outstanding operator tasks (release publishing — local-only, never CI):
-
-- Push branch `2026` + tags `v1.12.0` / `v1.13.0` / `v1.14.0` to origin + upstream
-- `uv build` + `uvpublish` for v1.14.0; confirm PyPI shows nginx-set-conf 1.14.0
-- Create git tag `v1.14.0` locally: `git tag v1.14.0`
+1. `/gsd-complete-milestone` — archive completed milestone
+2. Outstanding operator tasks (release publishing — local-only, never CI):
+   - Create git tag `v1.14.0` locally: `git tag v1.14.0`
+   - Push branch `2026` + tags `v1.12.0` / `v1.13.0` / `v1.14.0` to origin + upstream
+   - `uv build` + `uvpublish` for v1.14.0; confirm PyPI shows nginx-set-conf 1.14.0
 
 ---
 

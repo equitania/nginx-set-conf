@@ -1,8 +1,10 @@
 ---
 phase: 05-http3-opt-in-support
-verified: 2026-05-31T12:00:00Z
-status: gaps_found
-score: 5/7 must-haves verified
+verified: 2026-05-31T14:00:00Z
+status: verified
+score: 7/7 must-haves verified
+reverified: 2026-05-31T14:00:00Z
+initial_status: gaps_found
 overrides_applied: 0
 gaps:
   - truth: "The non-HTTP/3 server block (TCP/443 with HTTP/2) remains unchanged so HTTP/1.1 + HTTP/2 fallback still work (ROADMAP SC-1)"
@@ -199,7 +201,22 @@ None — all findings are deterministic code-level issues verifiable programmati
 
 ---
 
-## Gaps Summary
+## Re-Verification (2026-05-31T14:00:00Z)
+
+**Status: verified — 7/7 SC. Both blockers closed.**
+
+| Blocker | Fix | Commit | Test evidence |
+|---------|-----|--------|---------------|
+| CR-02 (SC-1) | Removed `ssl_protocols TLSv1.3;` from `insert_lines` in `_inject_http3_directives` (utils.py). QUIC negotiates TLS 1.3 at the protocol level; the shared TCP/443 block keeps its http-scope `ssl_protocols TLSv1.2 TLSv1.3;`, so TLSv1.2 fallback survives. | `b3000b7` | `test_inject_omits_server_scope_tls13` asserts `"ssl_protocols TLSv1.3;" not in result` |
+| CR-01 | Added mutual-exclusion guard in `execute_commands` after `validate_all_inputs`: `if enable_http3 and disable_domain_listen: raise click.ClickException(...)`. Fail-fast instead of silently emitting a config with zero HTTP/3 directives. | `b3000b7`, test signature corrected in `ffe762f` | `TestHttp3DisableDomainListenMutex` (2 tests): raises ClickException + no `.conf` written on rejection |
+
+Docs reconciled: README §HTTP/3 prerequisite and RELEASE_NOTES directive list no longer claim a server-scope `ssl_protocols` is injected. `.gitignore` extended for rotated logs (`nginx_set_conf.log.*`).
+
+**Full suite after fixes:** `uv run pytest` → 244 passed, 2 skipped, coverage gate (60%) reached. PROTO-04 now SATISFIED (the "scoped to the HTTP/3 server block" wording is met by *not* emitting a TCP-affecting directive; QUIC's own TLS-1.3 enforcement covers the intent).
+
+---
+
+## Gaps Summary (historical — initial verification)
 
 Two blockers prevent full goal achievement:
 
