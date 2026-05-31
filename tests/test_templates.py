@@ -405,8 +405,8 @@ class TestHttp3DirectiveInjection:
 
     def test_inject_first_only_leaves_second_block(self):
         result = _inject_http3_directives(_TWO_BLOCK_CONTENT, "1.2.3.4")
-        # Directives should appear exactly once (first block only)
-        assert result.count("quic") == 1
+        # QUIC listen line should appear exactly once (first block only, second left untouched)
+        assert result.count("listen 1.2.3.4:443 quic") == 1
 
     def test_inject_noop_when_no_ssl_listen(self):
         result = _inject_http3_directives(_NO_SSL_CONTENT, "1.2.3.4")
