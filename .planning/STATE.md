@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: verifying
-last_updated: "2026-05-31T11:23:51.421Z"
+status: gaps_found
+last_updated: "2026-05-31T12:00:00.000Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 6
-  completed_phases: 6
+  completed_phases: 5
   total_plans: 17
   completed_plans: 17
-  percent: 100
+  percent: 83
 ---
 
 # Project State
@@ -20,20 +20,25 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** COMPLETE — all phases and plans done; v1.14.0 ready for release
+**Current focus:** Phase 05 gap closure — verification found 2 blockers (CR-01, CR-02) that must be fixed before v1.14.0 ships.
 
 ## Current Position
 
-ALL PHASES COMPLETE — 17 / 17 plans across all phases.
+Phase 05 (http3-opt-in-support) — PLANS DONE, GOAL NOT YET VERIFIED.
+All 4 plans executed and committed, but phase verification (05-VERIFICATION.md)
+returned gaps_found (5/7 must-haves). Two blockers prevent goal achievement:
+- BLOCKER 1 (CR-02): injected `ssl_protocols TLSv1.3;` lands inside the shared
+  TCP/443 server block, dropping TLSv1.2 fallback — violates ROADMAP SC-1.
+- BLOCKER 2 (CR-01): `--enable_http3` + `--disable_domain_listen` silently emits
+  a config with NO HTTP/3 directives (no error raised).
 v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
-template, commit 089b9db, 2026-05-31). v1.14.0 code complete (HTTP/3 opt-in,
-Phase 05, commits 6a5fde3 + ed8df99, 2026-05-31).
-Phase: 05 (http3-opt-in-support) — COMPLETE
-Plan: 4 of 4 — COMPLETE
-Status: All plans complete — ready for operator release tasks
+template, commit 089b9db, 2026-05-31). v1.14.0 NOT yet shippable.
+Phase: 05 (http3-opt-in-support) — gap closure pending
+Plan: 4 of 4 executed — verification gaps_found
+Status: Run /gsd-plan-phase 05 --gaps  (or /gsd-code-review 05 --fix)
 Last activity: 2026-05-31
 
-Progress: [██████████] 100%
+Progress: [████████░░] 83% (5/6 phases goal-verified)
 
 ## Open Verification Debt
 

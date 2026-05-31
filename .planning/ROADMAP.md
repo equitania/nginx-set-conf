@@ -38,7 +38,7 @@ CONCERNS.md so the next minor can resume feature work.
       drift, resolve the two open questions from the audit, ship
       v1.12.0.
 
-- [x] **Phase 5: HTTP/3 opt-in support** — Add `--enable_http3` for (completed 2026-05-31)
+- [ ] **Phase 5: HTTP/3 opt-in support** — Add `--enable_http3` for (plans 4/4 done; verification found 2 blockers 2026-05-31)
       12 browser-facing SSL templates with nginx-version gate, Alt-Svc
       header, dedicated TLS 1.3 path, and prominent UDP/443 firewall
       documentation. v1.10.0-class risk surface — bounded blast radius
@@ -314,7 +314,7 @@ Phase 5.
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
 | 4. Docs, open questions, release | 2/2 | Complete (operator push pending) | 2026-05-29 |
-| 5. HTTP/3 opt-in support | 4/4 | Complete   | 2026-05-31 |
+| 5. HTTP/3 opt-in support | 4/4 | Gaps found (verification — 2 blockers) | - |
 
 ---
 
