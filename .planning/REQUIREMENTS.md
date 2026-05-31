@@ -137,7 +137,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
         (overrides the TLS 1.2+1.3 global default — HTTP/3 requires
         TLS 1.3)
       - `quic_retry on;` for amplification protection
-- [ ] **PROTO-05**: An nginx-version check (`nginx -v` ≥ 1.25.0)
+- [x] **PROTO-05**: An nginx-version check (`nginx -v` ≥ 1.25.0)
       runs BEFORE writing any HTTP/3-emitting config. If the host's
       nginx is too old, the tool refuses with a clear remediation
       message ("HTTP/3 requires nginx ≥ 1.25; upgrade nginx or omit
@@ -224,7 +224,7 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | PROTO-02 | Phase 5 | Complete |
 | PROTO-03 | Phase 5 | Complete |
 | PROTO-04 | Phase 5 | Complete |
-| PROTO-05 | Phase 5 | Pending |
+| PROTO-05 | Phase 5 | Complete |
 | PROTO-06 | Phase 5 | Pending |
 
 **Coverage:**

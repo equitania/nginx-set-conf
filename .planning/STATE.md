@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-31T11:14:32.752Z"
+last_updated: "2026-05-31T11:19:38.397Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
   percent: 83
 ---
 
@@ -28,11 +28,11 @@ Phases 1–4 (+2.5): COMPLETE — 13 / 13 plans across NSC-01..NSC-04 + 02.5.
 v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
 template, commit 089b9db, 2026-05-31).
 Phase: 05 (http3-opt-in-support) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-05-31
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 94%
 
 ## Open Verification Debt
 
@@ -61,6 +61,7 @@ Progress: [█████████░] 88%
 | 02 | 3 | - | - |
 | Phase 04 P01 | 18m | 3 tasks | 6 files |
 | Phase 05-http3-opt-in-support P02 | 30min | 2 tasks | 2 files |
+| Phase 05-http3-opt-in-support P03 | 20min | 2 tasks | 3 files |
 
 ## Recent Releases (out-of-GSD context)
 
@@ -86,10 +87,11 @@ Progress: [█████████░] 88%
 - v1.13.0 (out-of-GSD): PatchMon template added directly; version bumped manually (NOT via bump-my-version, to avoid its auto-commit/tag). This took the v1.13.0 slot ROADMAP §306 had reserved for Phase 5 → HTTP/3 now targets v1.14.0
 - 05-01: --enable_http3 is_flag wired CLI → YAML → execute_commands → validate_all_inputs; HTTP3_EXCLUDED_TEMPLATES frozenset (6 templates) in validators.py with exclusion guard; default_ssl_reject excluded from HTTP3 guard via validate_config_template (not in VALID_TEMPLATES)
 - 05-02: _inject_http3_directives inserts 5-directive QUIC block (quic listen, http3 on, quic_retry on, ssl_protocols TLSv1.3, Alt-Svc) after first listen <ip>:443 ssl; via string injection; dual-form reuseport regex (optional IP prefix) matches both IP-bound and wildcard forms; no IPv6 QUIC line (intentional: no included template has listen [::]:443 ssl;); get_nginx_version parses nginx -v stderr; version gate deferred to 05-03
+- 05-03: version gate in execute_commands after validate_all_inputs, before content = get_config_template(); gate only fires when enable_http3=True (zero subprocess overhead for existing operators); QUIC catch-all block in default_ssl_reject uses wildcard listen + default_server + reuseport (intentional: catch-all IS the fallback, not an SNI leak; reuseport claimed here so vhosts omit it via _quic_reuseport_already_claimed)
 
 ## Next Action
 
-Execute Phase 05 Plan 03 (default_ssl_reject QUIC catch-all + version gate).
+Execute Phase 05 Plan 04 (docs, release notes, v1.14.0 bump).
 
 Outstanding operator tasks (release publishing — local-only, never CI):
 
