@@ -144,7 +144,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       --enable_http3"). The pre-write check is mandatory because a
       `quic` listen directive crashes nginx-1.24 with
       `[emerg] unknown directive "quic"`.
-- [ ] **PROTO-06**: README.md and RELEASE_NOTES.md document the
+- [x] **PROTO-06**: README.md and RELEASE_NOTES.md document the
       operator prerequisites for HTTP/3 in a dedicated subsection:
       (1) nginx ≥ 1.25.0, (2) **UDP/443 firewall opening in addition
       to TCP/443**, (3) TLS 1.3 enforcement implication, (4) ECDSA
@@ -225,7 +225,7 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | PROTO-03 | Phase 5 | Complete |
 | PROTO-04 | Phase 5 | Complete |
 | PROTO-05 | Phase 5 | Complete |
-| PROTO-06 | Phase 5 | Pending |
+| PROTO-06 | Phase 5 | Complete |
 
 **Coverage:**
 - v1.12 requirements: 24 total (18 hardening + 1 HTTP/2 fix + 5 HTTP/3 opt-in)

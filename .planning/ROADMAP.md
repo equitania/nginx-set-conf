@@ -38,7 +38,7 @@ CONCERNS.md so the next minor can resume feature work.
       drift, resolve the two open questions from the audit, ship
       v1.12.0.
 
-- [ ] **Phase 5: HTTP/3 opt-in support** — Add `--enable_http3` for
+- [x] **Phase 5: HTTP/3 opt-in support** — Add `--enable_http3` for (completed 2026-05-31)
       12 browser-facing SSL templates with nginx-version gate, Alt-Svc
       header, dedicated TLS 1.3 path, and prominent UDP/443 firewall
       documentation. v1.10.0-class risk surface — bounded blast radius
@@ -295,7 +295,7 @@ Plans:
 - [x] 05-01: PROTO-02 `--enable_http3` flag plumbing (CLI, YAML, validator)
 - [x] 05-02: PROTO-03 + PROTO-04 template-level QUIC + Alt-Svc emission for 12 templates
 - [x] 05-03: PROTO-05 nginx version gate + `default_ssl_reject` HTTP/3 catch-all
-- [ ] 05-04: PROTO-06 README + RELEASE_NOTES UDP/443 callout
+- [x] 05-04: PROTO-06 README + RELEASE_NOTES UDP/443 callout
 
 ## Progress
 
@@ -314,7 +314,7 @@ Phase 5.
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
 | 4. Docs, open questions, release | 2/2 | Complete (operator push pending) | 2026-05-29 |
-| 5. HTTP/3 opt-in support | 3/4 | In Progress|  |
+| 5. HTTP/3 opt-in support | 4/4 | Complete   | 2026-05-31 |
 
 ---
 

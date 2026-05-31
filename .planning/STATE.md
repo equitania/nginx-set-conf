@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
-status: executing
-last_updated: "2026-05-31T11:19:38.397Z"
+status: verifying
+last_updated: "2026-05-31T11:23:51.421Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 17
-  completed_plans: 16
-  percent: 83
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -20,19 +20,20 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 05 — http3-opt-in-support
+**Current focus:** COMPLETE — all phases and plans done; v1.14.0 ready for release
 
 ## Current Position
 
-Phases 1–4 (+2.5): COMPLETE — 13 / 13 plans across NSC-01..NSC-04 + 02.5.
+ALL PHASES COMPLETE — 17 / 17 plans across all phases.
 v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
-template, commit 089b9db, 2026-05-31).
-Phase: 05 (http3-opt-in-support) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
+template, commit 089b9db, 2026-05-31). v1.14.0 code complete (HTTP/3 opt-in,
+Phase 05, commits 6a5fde3 + ed8df99, 2026-05-31).
+Phase: 05 (http3-opt-in-support) — COMPLETE
+Plan: 4 of 4 — COMPLETE
+Status: All plans complete — ready for operator release tasks
 Last activity: 2026-05-31
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Open Verification Debt
 
@@ -62,6 +63,7 @@ Progress: [█████████░] 94%
 | Phase 04 P01 | 18m | 3 tasks | 6 files |
 | Phase 05-http3-opt-in-support P02 | 30min | 2 tasks | 2 files |
 | Phase 05-http3-opt-in-support P03 | 20min | 2 tasks | 3 files |
+| Phase 05-http3-opt-in-support P04 | 10min | 2 tasks | 4 files |
 
 ## Recent Releases (out-of-GSD context)
 
@@ -88,15 +90,18 @@ Progress: [█████████░] 94%
 - 05-01: --enable_http3 is_flag wired CLI → YAML → execute_commands → validate_all_inputs; HTTP3_EXCLUDED_TEMPLATES frozenset (6 templates) in validators.py with exclusion guard; default_ssl_reject excluded from HTTP3 guard via validate_config_template (not in VALID_TEMPLATES)
 - 05-02: _inject_http3_directives inserts 5-directive QUIC block (quic listen, http3 on, quic_retry on, ssl_protocols TLSv1.3, Alt-Svc) after first listen <ip>:443 ssl; via string injection; dual-form reuseport regex (optional IP prefix) matches both IP-bound and wildcard forms; no IPv6 QUIC line (intentional: no included template has listen [::]:443 ssl;); get_nginx_version parses nginx -v stderr; version gate deferred to 05-03
 - 05-03: version gate in execute_commands after validate_all_inputs, before content = get_config_template(); gate only fires when enable_http3=True (zero subprocess overhead for existing operators); QUIC catch-all block in default_ssl_reject uses wildcard listen + default_server + reuseport (intentional: catch-all IS the fallback, not an SNI leak; reuseport claimed here so vhosts omit it via _quic_reuseport_already_claimed)
+- 05-04: UDP/443 firewall callout rendered as blockquote WARNING in both README and RELEASE_NOTES; --migrate_to_http3 deferred to v2 (PROTO-V2-01); version bumped manually 1.13.0 → 1.14.0 (not via bump-my-version)
+- v1.14.0 released: HTTP/3 opt-in support complete — 12 templates, nginx >= 1.25.0 version gate, QUIC SNI catch-all, Alt-Svc header; 242 tests passing
 
 ## Next Action
 
-Execute Phase 05 Plan 04 (docs, release notes, v1.14.0 bump).
+Phase 05 COMPLETE. All 4 plans executed, all 17 total plans across all phases complete.
 
 Outstanding operator tasks (release publishing — local-only, never CI):
 
-- Push branch `2026` + tags `v1.12.0` / `v1.13.0` to origin + upstream
-- `uv build` + `uvpublish` for v1.13.0; confirm PyPI shows nginx-set-conf 1.13.0
+- Push branch `2026` + tags `v1.12.0` / `v1.13.0` / `v1.14.0` to origin + upstream
+- `uv build` + `uvpublish` for v1.14.0; confirm PyPI shows nginx-set-conf 1.14.0
+- Create git tag `v1.14.0` locally: `git tag v1.14.0`
 
 ---
 
