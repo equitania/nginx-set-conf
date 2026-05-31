@@ -146,3 +146,5 @@ dmypy.json
 
 .serena/memories/nginx-set-conf-testing-limitation.md
 temp/
+# Claude Code local artifacts (settings, locks, worktrees) — never track
+.claude/
