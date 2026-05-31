@@ -3,6 +3,7 @@
 import re
 import subprocess
 
+import click
 import pytest
 
 from nginx_set_conf.config_verification import NGINX_CONF_TEMPLATE
@@ -11,7 +12,7 @@ from nginx_set_conf.templates.all_templates import (
     get_config_template,
     replace_cache_path,
 )
-from nginx_set_conf.utils import _inject_http3_directives, get_nginx_version
+from nginx_set_conf.utils import _inject_http3_directives, execute_commands, get_nginx_version
 
 # Alias for tests that call all_get_config_template directly (same function)
 all_get_config_template = get_config_template
@@ -501,6 +502,61 @@ class TestNginxVersionParsing:
         )
         monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: mock_result)
         assert get_nginx_version() is None
+
+
+# ---------------------------------------------------------------------------
+# nginx version gate in execute_commands (05-03)
+# ---------------------------------------------------------------------------
+
+# Common args that pass validate_all_inputs but avoid file writes (dry_run=True).
+_GATE_ARGS = dict(
+    config_template="odoo_ssl",
+    domain="example.com",
+    ip="1.2.3.4",
+    cert_name="example.com",
+    cert_key="",
+    port="8069",
+    pollport="8072",
+    redirect_domain="",
+    auth_file="",
+    allowed_ips="",
+    dry_run=True,
+)
+
+
+class TestNginxVersionGate:
+    """execute_commands must refuse to proceed when enable_http3=True and nginx < 1.25.0."""
+
+    def test_gate_allows_new_nginx(self, monkeypatch):
+        """Nginx >= 1.25.0 must NOT raise ClickException."""
+        monkeypatch.setattr("nginx_set_conf.utils.get_nginx_version", lambda: (1, 27, 2))
+        try:
+            execute_commands(**_GATE_ARGS, enable_http3=True)
+        except click.ClickException as exc:
+            pytest.fail(f"Unexpected ClickException for nginx 1.27.2: {exc}")
+
+    def test_gate_blocks_old_nginx(self, monkeypatch):
+        """Nginx 1.24.0 (< 1.25.0) must raise ClickException with version in message."""
+        monkeypatch.setattr("nginx_set_conf.utils.get_nginx_version", lambda: (1, 24, 0))
+        with pytest.raises(click.ClickException) as exc_info:
+            execute_commands(**_GATE_ARGS, enable_http3=True)
+        assert "1.24.0" in str(exc_info.value)
+
+    def test_gate_blocks_nginx_not_found(self, monkeypatch):
+        """nginx not installed (get_nginx_version returns None) must raise with 'unknown'."""
+        monkeypatch.setattr("nginx_set_conf.utils.get_nginx_version", lambda: None)
+        with pytest.raises(click.ClickException) as exc_info:
+            execute_commands(**_GATE_ARGS, enable_http3=True)
+        assert "unknown" in str(exc_info.value)
+
+    def test_gate_not_called_when_http3_disabled(self, monkeypatch):
+        """When enable_http3=False the version gate must not be invoked."""
+        monkeypatch.setattr(
+            "nginx_set_conf.utils.get_nginx_version",
+            lambda: (_ for _ in ()).throw(RuntimeError("should not be called")),
+        )
+        # Should run without RuntimeError
+        execute_commands(**_GATE_ARGS, enable_http3=False)
 
 
 # ---------------------------------------------------------------------------
