@@ -764,6 +764,19 @@ def execute_commands(
         print(f"ERROR: {e}")
         return
 
+    # nginx version gate — checked BEFORE any file write or content substitution.
+    # Only evaluated when enable_http3=True to avoid subprocess overhead for
+    # existing operators who don't use HTTP/3.
+    if enable_http3:
+        version = get_nginx_version()
+        if version is None or version < (1, 25, 0):
+            ver_str = ".".join(str(v) for v in version) if version else "unknown"
+            raise click.ClickException(
+                f"HTTP/3 requires nginx >= 1.25.0 (you have {ver_str}). "
+                "Either upgrade nginx (Debian: bookworm-backports; Ubuntu: 24.04+; "
+                "RHEL: 9.4+) or omit --enable_http3 to ship HTTP/2-only configs."
+            )
+
     # Get default vars
     default_vars = get_default_vars()
     server_path = target_path if target_path else default_vars["server_path"]
