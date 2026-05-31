@@ -1,5 +1,58 @@
 # RELEASE NOTES
 
+## Version 1.14.0 (31.05.2026)
+
+### Added
+
+- **[ADD]** **HTTP/3 / QUIC opt-in support** — new `--enable_http3` flag (and YAML key
+  `enable_http3: true`) adds QUIC + HTTP/3 listen directives to 12 browser-facing SSL
+  templates: `odoo_ssl`, `flowise`, `n8n`, `nextcloud`, `guacamole`, `kasm`, `pgadmin`,
+  `portainer`, `pwa`, `code_server`, `supabase`, `qdrant` (REST port only). Default is
+  **off**; existing operators see no change.
+
+  **Generated directives per HTTP/3-enabled vhost:**
+  - `listen <ip>:443 quic;` (IP-bound, after TCP 443 SSL listen)
+  - `http3 on;`
+  - `quic_retry on;` (amplification protection)
+  - `ssl_protocols TLSv1.3;` (scoped to HTTP/3 server block; TCP/HTTP/2 block keeps TLS 1.2 + 1.3)
+  - `add_header Alt-Svc 'h3=":443"; ma=86400' always;`
+
+  **Prerequisites (see README §HTTP/3 / QUIC for full details):**
+  1. nginx >= 1.25.0 (enforced by a pre-write version gate — the tool refuses to emit `quic`
+     directives on too-old nginx).
+  2. **UDP/443 must be opened in the host firewall in addition to TCP/443.** Without this,
+     QUIC connections are silently dropped. (`ufw allow 443/udp` or equivalent.)
+  3. TLS 1.3 is required for HTTP/3 (enforced per-server-block; fallback clients use
+     TCP/HTTP/2 with TLS 1.2).
+  4. Run `nginx-set-conf --setup_default` on any host with HTTP/3-enabled vhosts — the
+     catch-all is extended with a QUIC block that returns 444 for unknown SNI (mitigating
+     the QUIC form of the v1.10.0 SNI-fallback risk).
+
+- **[ADD]** **nginx version gate** — `get_nginx_version()` helper parses `nginx -v` output
+  and aborts with a clear remediation message when the installed nginx is older than 1.25.0.
+
+- **[ADD]** **QUIC SNI catch-all** — `default_ssl_reject` template extended with a QUIC
+  `default_server` block that returns 444 for unknown SNI on UDP/443.
+
+### Excluded templates
+
+`--enable_http3` is rejected (with a clear error message) for templates that do not serve
+browser traffic: `fast_report`, `mailpit`, `redirect`, `redirect_ssl`, `default_ssl_reject`,
+`odoo_http`.
+
+### Not in this release
+
+A bulk `--migrate_to_http3` flag (analog to `--migrate_to_wildcard`) is planned for v2
+(`PROTO-V2-01`). To add HTTP/3 to an existing vhost, regenerate it individually with
+`--enable_http3`.
+
+### Tests
+
+242 tests passed (209 → 242 tests; +33 for HTTP/3 directive injection, nginx version gate,
+QUIC catch-all, and `--enable_http3` CLI/YAML wiring).
+
+---
+
 ## Version 1.13.0 (31.05.2026)
 
 ### Added
