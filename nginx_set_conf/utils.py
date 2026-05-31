@@ -600,6 +600,7 @@ def execute_commands(
     grpcport=None,
     disable_domain_listen=False,
     backend_ip=None,
+    enable_http3=False,
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -622,6 +623,7 @@ def execute_commands(
         grpcport: gRPC port number for Nginx configuration (optional).
         disable_domain_listen: If True, remove domain prefix from listen directives.
         backend_ip: Backend IP for proxy_pass/grpc_pass (default: 127.0.0.1).
+        enable_http3: If True, emit QUIC/HTTP/3 listen directives and Alt-Svc header.
     """
     # Validate all inputs
     try:
@@ -639,6 +641,7 @@ def execute_commands(
             allowed_ips=allowed_ips or "",
             target_path=target_path or "",
             backend_ip=backend_ip or "",
+            enable_http3=enable_http3,
         )
     except ValidationError as e:
         logger.error("Input validation failed: %s", e)
@@ -746,6 +749,8 @@ def execute_commands(
         )
         content = content.replace(f"listen {formatted_listen_ip}:80", "listen 80")
         content = content.replace(f"listen {formatted_listen_ip}:443", "listen 443")
+
+    # TODO(05-02): inject HTTP/3 directives here when enable_http3=True
 
     # Backend IP handling (proxy_pass target)
     effective_backend_ip = backend_ip if backend_ip else "127.0.0.1"

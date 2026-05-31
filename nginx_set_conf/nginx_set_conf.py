@@ -208,6 +208,17 @@ Configuration Management Options:
     ),
 )
 @click.option(
+    "--enable_http3",
+    is_flag=True,
+    help=(
+        "Emit QUIC/HTTP/3 listen directives and Alt-Svc header for "
+        "browser-facing SSL templates. Requires nginx >= 1.25.0 and "
+        "UDP/443 open in the host firewall. See README for full "
+        "prerequisites. Excluded templates: fast_report, mailpit, "
+        "redirect, redirect_ssl, default_ssl_reject, odoo_http."
+    ),
+)
+@click.option(
     "--config_path",
     help='Yaml configuration folder f.e.  --config_path="$HOME/docker-builds/ngx-conf/"',
 )
@@ -282,6 +293,7 @@ def start_nginx_set_conf(
     allowed_ips,
     backend_ip,
     disable_domain_listen,
+    enable_http3,
     config_path,
     target_path,
     dry_run,
@@ -384,6 +396,7 @@ def start_nginx_set_conf(
                 allowed_ips = str(yaml_config.get("allowed_ips", ""))
                 yaml_backend_ip = str(yaml_config.get("backend_ip", ""))
                 yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
+                yaml_enable_http3 = yaml_config.get("enable_http3", False)
                 yaml_target_path = str(yaml_config.get("target_path", ""))
                 if not yaml_target_path:
                     yaml_target_path = target_path
@@ -410,6 +423,7 @@ def start_nginx_set_conf(
                     grpcport,
                     yaml_disable_domain_listen,
                     backend_ip=yaml_backend_ip or None,
+                    enable_http3=yaml_enable_http3,
                 )
     elif config_template and ip and domain and port and cert_name:
         logger.info(
@@ -434,6 +448,7 @@ def start_nginx_set_conf(
             grpcport,
             disable_domain_listen,
             backend_ip=backend_ip,
+            enable_http3=enable_http3,
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
@@ -455,6 +470,12 @@ def start_nginx_set_conf(
         disable_domain_listen = (
             disable_domain_listen_input.lower() in ["yes", "y", "true", "1"] if disable_domain_listen_input else False
         )
+        enable_http3_input = retrieve_valid_input(
+            "Enable HTTP/3 QUIC directives? (yes/no, optional)\n"
+        )
+        enable_http3 = (
+            enable_http3_input.lower() in ["yes", "y", "true", "1"] if enable_http3_input else False
+        )
         custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)\n")
         target_path = custom_target_path if custom_target_path else target_path
 
@@ -473,6 +494,7 @@ def start_nginx_set_conf(
             dry_run,
             grpcport,
             disable_domain_listen,
+            enable_http3=enable_http3,
         )
 
     if not dry_run:

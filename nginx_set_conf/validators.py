@@ -344,11 +344,13 @@ def validate_all_inputs(
     allowed_ips: str = "",
     target_path: str = "",
     backend_ip: str = "",
+    enable_http3: bool = False,
 ) -> None:
     """Validate all input parameters at once.
 
     Args:
         All parameters from execute_commands.
+        enable_http3: If True, validates that the template supports HTTP/3.
 
     Raises:
         ValidationError: If any parameter is invalid.
