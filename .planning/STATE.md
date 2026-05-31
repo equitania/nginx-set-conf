@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-31T11:08:19.335Z"
+last_updated: "2026-05-31T11:14:32.752Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 17
-  completed_plans: 14
-  percent: 82
+  completed_plans: 15
+  percent: 83
 ---
 
 # Project State
@@ -28,11 +28,11 @@ Phases 1–4 (+2.5): COMPLETE — 13 / 13 plans across NSC-01..NSC-04 + 02.5.
 v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
 template, commit 089b9db, 2026-05-31).
 Phase: 05 (http3-opt-in-support) — EXECUTING
-Plan: 2 of 4
-Status: Executing Phase 05
-Last activity: 2026-05-31 -- 05-01 complete: --enable_http3 plumbing + HTTP3_EXCLUDED_TEMPLATES
+Plan: 3 of 4
+Status: Ready to execute
+Last activity: 2026-05-31
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 88%
 
 ## Open Verification Debt
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 82%
 | Phase 02 P01 | 12m | 3 tasks | 3 files |
 | 02 | 3 | - | - |
 | Phase 04 P01 | 18m | 3 tasks | 6 files |
+| Phase 05-http3-opt-in-support P02 | 30min | 2 tasks | 2 files |
 
 ## Recent Releases (out-of-GSD context)
 
@@ -84,10 +85,11 @@ Progress: [████████░░] 82%
 - bump-my-version v1.3.0: TOML files[] not auto-resolved; workaround via explicit CLI flags
 - v1.13.0 (out-of-GSD): PatchMon template added directly; version bumped manually (NOT via bump-my-version, to avoid its auto-commit/tag). This took the v1.13.0 slot ROADMAP §306 had reserved for Phase 5 → HTTP/3 now targets v1.14.0
 - 05-01: --enable_http3 is_flag wired CLI → YAML → execute_commands → validate_all_inputs; HTTP3_EXCLUDED_TEMPLATES frozenset (6 templates) in validators.py with exclusion guard; default_ssl_reject excluded from HTTP3 guard via validate_config_template (not in VALID_TEMPLATES)
+- 05-02: _inject_http3_directives inserts 5-directive QUIC block (quic listen, http3 on, quic_retry on, ssl_protocols TLSv1.3, Alt-Svc) after first listen <ip>:443 ssl; via string injection; dual-form reuseport regex (optional IP prefix) matches both IP-bound and wildcard forms; no IPv6 QUIC line (intentional: no included template has listen [::]:443 ssl;); get_nginx_version parses nginx -v stderr; version gate deferred to 05-03
 
 ## Next Action
 
-Execute Phase 05 Plan 02 (HTTP/3 directive emission in templates).
+Execute Phase 05 Plan 03 (default_ssl_reject QUIC catch-all + version gate).
 
 Outstanding operator tasks (release publishing — local-only, never CI):
 

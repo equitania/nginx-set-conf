@@ -127,7 +127,7 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       `qdrant`'s gRPC port. The exclusion list is encoded as a
       constant or per-template attribute; the validator rejects
       `--enable_http3` for excluded templates with a clear message.
-- [ ] **PROTO-04**: When HTTP/3 is enabled, the generated SSL server
+- [x] **PROTO-04**: When HTTP/3 is enabled, the generated SSL server
       block emits:
       - `listen ip.ip.ip.ip:443 quic reuseport;` (one `reuseport` per
         IP/port pair across the host — handled by `setup_default`
@@ -223,7 +223,7 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | PROTO-01 | Phase 2.5 | Complete |
 | PROTO-02 | Phase 5 | Complete |
 | PROTO-03 | Phase 5 | Complete |
-| PROTO-04 | Phase 5 | Pending |
+| PROTO-04 | Phase 5 | Complete |
 | PROTO-05 | Phase 5 | Pending |
 | PROTO-06 | Phase 5 | Pending |
 
