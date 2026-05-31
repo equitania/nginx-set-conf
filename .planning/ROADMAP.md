@@ -288,8 +288,7 @@ does not block the hardening release.
   7. Full test suite green; HTTP/3-emitting templates produce
      stable output across runs (no nondeterministic
      `reuseport`-ordering).
-**Plans**: TBD (likely 4 plans — flag plumbing, per-template HTTP/3
-emit, version + exclusion validators, docs)
+**Plans**: 4 plans (Wave 1: 05-01; Wave 2: 05-02; Wave 3: 05-03 + 05-04)
 
 Plans:
 
@@ -315,7 +314,7 @@ Phase 5.
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
 | 4. Docs, open questions, release | 2/2 | Complete (operator push pending) | 2026-05-29 |
-| 5. HTTP/3 opt-in support | 0/4 | Pending | - |
+| 5. HTTP/3 opt-in support | 0/4 | Planned (ready to execute) | - |
 
 ---
 
