@@ -447,7 +447,7 @@ Before enabling HTTP/3 on any vhost, verify all five of the following:
    > from TCP/443. Without this, QUIC connections are silently dropped and browsers fall back to
    > HTTP/2 — the Alt-Svc header is effectively dead.
 
-3. **TLS 1.3** — the generated config emits `ssl_protocols TLSv1.3;` inside the HTTP/3 server
+- **TLS 1.3 for QUIC** — QUIC negotiates TLS 1.3 at the protocol level, so **no** server-scope `ssl_protocols` directive is injected. The shared TCP/443 (HTTP/2) listener keeps its http-scope `ssl_protocols TLSv1.2 TLSv1.3;`, preserving TLSv1.2 fallback (ROADMAP SC-1)
    block. Clients that cannot negotiate TLS 1.3 fall back to the TCP/HTTP/2 block which keeps
    TLS 1.2 + 1.3 support. No clients are denied — the fallback is seamless.
 

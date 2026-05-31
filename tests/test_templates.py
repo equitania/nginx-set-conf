@@ -396,9 +396,14 @@ class TestHttp3DirectiveInjection:
         result = _inject_http3_directives(_SIMPLE_SSL_CONTENT, "1.2.3.4")
         assert "quic_retry on;" in result
 
-    def test_inject_adds_tls13(self):
+    def test_inject_omits_server_scope_tls13(self):
+        # CR-02 (SC-1): the injected QUIC directives must NOT include a
+        # server-scope `ssl_protocols TLSv1.3;`. It would override the
+        # http-scope `ssl_protocols TLSv1.2 TLSv1.3;` and drop TLSv1.2
+        # fallback for the TCP/443 (HTTP/2) listener sharing this block.
+        # QUIC negotiates TLS 1.3 at the protocol level regardless.
         result = _inject_http3_directives(_SIMPLE_SSL_CONTENT, "1.2.3.4")
-        assert "ssl_protocols TLSv1.3;" in result
+        assert "ssl_protocols TLSv1.3;" not in result
 
     def test_inject_adds_alt_svc(self):
         result = _inject_http3_directives(_SIMPLE_SSL_CONTENT, "1.2.3.4")
@@ -456,6 +461,49 @@ class TestHttp3DirectiveInjection:
             assert "http3" not in content, (
                 f"Template '{tmpl_name}' already contains 'http3' before HTTP/3 injection"
             )
+
+
+class TestHttp3DisableDomainListenMutex:
+    """CR-01: --enable_http3 must be mutually exclusive with --disable_domain_listen."""
+
+    @staticmethod
+    def _kwargs(tmp_path):
+        return {
+            "server_name": "odoo_ssl",
+            "config_template": "odoo_ssl",
+            "ip": "1.2.3.4",
+            "domain": "erp.example.com",
+            "port": "8069",
+            "poll_port": "8072",
+            "grpc_port": "",
+            "redirect_domain": "",
+            "cert_name": "erp.example.com",
+            "cert_key": "",
+            "auth_file": "",
+            "backend_ip": "",
+            "dry_run": True,
+            "target_path": str(tmp_path),
+            "disable_domain_listen": True,
+            "enable_http3": True,
+        }
+
+    def test_combination_raises_clickexception(self, tmp_path):
+        # The mutual-exclusion guard runs before the nginx version gate, so no
+        # get_nginx_version stub is needed. Combining the flags would otherwise
+        # silently emit a config with zero HTTP/3 directives.
+        kwargs = self._kwargs(tmp_path)
+        with pytest.raises(
+            click.ClickException, match="cannot be combined with --disable_domain_listen"
+        ):
+            execute_commands(**kwargs)
+
+    def test_no_config_written_on_rejection(self, tmp_path):
+        kwargs = self._kwargs(tmp_path)
+        kwargs["dry_run"] = False
+        with pytest.raises(click.ClickException):
+            execute_commands(**kwargs)
+        # Guard fires before any file write — target dir stays empty.
+        assert list(tmp_path.glob("*.conf")) == []
 
 
 # ---------------------------------------------------------------------------

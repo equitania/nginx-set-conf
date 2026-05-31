@@ -14,7 +14,7 @@
   - `listen <ip>:443 quic;` (IP-bound, after TCP 443 SSL listen)
   - `http3 on;`
   - `quic_retry on;` (amplification protection)
-  - `ssl_protocols TLSv1.3;` (scoped to HTTP/3 server block; TCP/HTTP/2 block keeps TLS 1.2 + 1.3)
+  - **No** server-scope `ssl_protocols` directive is injected: QUIC mandates TLS 1.3 at the protocol level, and the shared TCP/HTTP/2 block keeps its http-scope `ssl_protocols TLSv1.2 TLSv1.3;` (TLSv1.2 fallback preserved)
   - `add_header Alt-Svc 'h3=":443"; ma=86400' always;`
 
   **Prerequisites (see README §HTTP/3 / QUIC for full details):**

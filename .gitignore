@@ -59,6 +59,8 @@ coverage.xml
 *.log
 # nginx-set-conf runtime log — never track (contains operator inputs: domains, IPs)
 nginx_set_conf.log
+# rotated log files (logrotate / RotatingFileHandler), e.g. nginx_set_conf.log.1
+nginx_set_conf.log.*
 local_settings.py
 db.sqlite3
 

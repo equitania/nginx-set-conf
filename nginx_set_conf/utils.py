@@ -427,11 +427,16 @@ def _inject_http3_directives(
     else:
         reuseport_suffix = " reuseport"
 
+    # CR-02: deliberately NO `ssl_protocols TLSv1.3;` here. The QUIC listener
+    # negotiates TLS 1.3 at the protocol level regardless (QUIC mandates it),
+    # so adding a server-scope ssl_protocols directive would override the
+    # http-scope `ssl_protocols TLSv1.2 TLSv1.3;` and drop TLSv1.2 fallback for
+    # the TCP/443 (HTTP/2) listener sharing this server block — violating
+    # ROADMAP SC-1 ("TCP/443 server block remains unchanged").
     insert_lines = [
         f"    listen {formatted_listen_ip}:443 quic{reuseport_suffix};",
         "    http3 on;",
         "    quic_retry on;",
-        "    ssl_protocols TLSv1.3;",
         "    add_header Alt-Svc 'h3=\":443\"; ma=86400' always;",
     ]
 
@@ -763,6 +768,20 @@ def execute_commands(
         logger.error("Input validation failed: %s", e)
         print(f"ERROR: {e}")
         return
+
+    # Mutual exclusion (CR-01): --disable_domain_listen rewrites
+    # `listen <ip>:443` to the wildcard `listen 443`, which destroys the
+    # `listen <ip>:443 ssl;` marker that _inject_http3_directives relies on.
+    # Combining the two flags would silently emit a config with NO HTTP/3
+    # directives (the injection no-ops and only logs a warning). Fail fast
+    # instead so the operator cannot ship a silently-degraded config.
+    if enable_http3 and disable_domain_listen:
+        raise click.ClickException(
+            "--enable_http3 cannot be combined with --disable_domain_listen: "
+            "the wildcard listen rewrite removes the IP-bound marker required "
+            "for QUIC injection, which would silently drop all HTTP/3 "
+            "directives. Drop one of the two flags."
+        )
 
     # nginx version gate — checked BEFORE any file write or content substitution.
     # Only evaluated when enable_http3=True to avoid subprocess overhead for
