@@ -5,7 +5,7 @@ nginx-set-conf - A tool for managing Nginx configurations
 from . import utils as utils
 from . import validators as validators
 
-__version__ = "1.12.0"
+__version__ = "1.13.0"
 
 __all__ = [
     "__version__",

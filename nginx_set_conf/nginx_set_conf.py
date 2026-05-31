@@ -129,6 +129,7 @@ We support:\f
 - nextcloud (NextCloud with ssl)
 - odoo_http (Odoo only http)
 - odoo_ssl (Odoo with ssl)
+- patchmon (PatchMon with ssl/http2 and WebSocket)
 - pgadmin (pgAdmin4 with ssl)
 - portainer (Portainer with ssl)
 - pwa (Progressive Web App with ssl)

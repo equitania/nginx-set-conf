@@ -1,5 +1,23 @@
 # RELEASE NOTES
 
+## Version 1.13.0 (31.05.2026)
+
+### Added
+
+- **[ADD]** **PatchMon template** — new `patchmon` config template for the
+  PatchMon patch-/update-monitoring application
+  (https://github.com/PatchMon/PatchMon). PatchMon runs a single Go API server
+  with an embedded frontend that serves both the API and static files on one
+  upstream port (default 3000). The template provides full WebSocket support
+  (`map $http_upgrade $connection_upgrade`) required for in-browser RDP tunnelled
+  through the server via Apache Guacamole/guacd, and uses long (1200s) proxy
+  timeouts suited to RDP/WebSocket sessions. No `limit_req` rate-limiting is
+  applied — monitoring agents check in regularly, often from shared NAT IPs, and
+  per-IP throttling would drop legitimate check-ins. Follows the v1.11.0 IP-bound
+  listen invariant (`listen ip.ip.ip.ip:80;` / `:443 ssl;`). Registered in
+  `all_templates.py`, `validators.VALID_TEMPLATES`, the CLI help text, and the
+  YAML example config.
+
 ## Version 1.12.0 (29.05.2026)
 
 ### Changed (tech-debt cleanup)

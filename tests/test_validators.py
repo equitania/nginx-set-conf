@@ -297,6 +297,7 @@ class TestValidateConfigTemplate:
             "nextcloud",
             "odoo_http",
             "odoo_ssl",
+            "patchmon",
             "pgadmin",
             "portainer",
             "pwa",

@@ -16,6 +16,7 @@ from nginx_set_conf.templates.n8n import TEMPLATE as N8N_TEMPLATE
 from nginx_set_conf.templates.nextcloud import TEMPLATE as NEXTCLOUD_TEMPLATE
 from nginx_set_conf.templates.odoo_http import TEMPLATE as ODOO_HTTP_TEMPLATE
 from nginx_set_conf.templates.odoo_ssl import TEMPLATE as ODOO_SSL_TEMPLATE
+from nginx_set_conf.templates.patchmon import TEMPLATE as PATCHMON_TEMPLATE
 from nginx_set_conf.templates.pgadmin import TEMPLATE as PGADMIN_TEMPLATE
 from nginx_set_conf.templates.portainer import TEMPLATE as PORTAINER_TEMPLATE
 from nginx_set_conf.templates.pwa import TEMPLATE as PWA_TEMPLATE
@@ -115,6 +116,7 @@ TEMPLATES = {
     "supabase": SUPABASE_TEMPLATE,
     "flowise": FLOWISE_TEMPLATE,
     "guacamole": GUACAMOLE_TEMPLATE,
+    "patchmon": PATCHMON_TEMPLATE,
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 }
 

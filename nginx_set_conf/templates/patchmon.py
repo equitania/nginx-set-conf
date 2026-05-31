@@ -1,0 +1,82 @@
+"""
+Template for PatchMon NGINX configuration with SSL/HTTP2 support.
+"""
+
+TEMPLATE = """# Template for PatchMon NGINX configuration with SSL/HTTP2 support
+# 31.05.2026
+
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  '' close;
+}
+
+proxy_cache_path /tmp levels=1:2 keys_zone=my_cache:10m max_size=1g inactive=60m use_temp_path=off;
+
+server {
+    listen ip.ip.ip.ip:80;
+    server_name server.domain.de;
+    rewrite ^/.*$ https://$host$request_uri? permanent;
+}
+
+server {
+    listen ip.ip.ip.ip:443 ssl;
+    server_name server.domain.de;
+
+    # HTTP/2 is enabled globally in nginx.conf
+    # Security headers including HSTS are in nginxconfig.io/security.conf
+
+    access_log /var/log/nginx/server.domain.de-access.log combined buffer=512k flush=1m;
+    error_log /var/log/nginx/server.domain.de-error.log warn;
+
+    # ssl certificate files
+    ssl_certificate /etc/letsencrypt/live/zertifikat.crt/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/zertifikat.key/privkey.pem;
+
+    # SSL settings are defined globally in /etc/nginx/nginx.conf
+    keepalive_timeout    60;
+
+    #ip_restrictions
+
+    # security
+    include                 nginxconfig.io/security.conf;
+
+    # additional config
+    include                 nginxconfig.io/general.conf;
+
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *Disallow: /";
+    }
+
+    # error pages
+    error_page 500 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+        root /etc/nginx/html/;
+        internal;
+    }
+
+    #general proxy settings
+    # force timeouts if the backend dies
+    proxy_connect_timeout 1200s;
+    proxy_send_timeout 1200s;
+    proxy_read_timeout 1200s;
+    proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
+
+    # PatchMon serves both the API and the embedded frontend on a single
+    # upstream port. WebSocket support is required for in-browser RDP
+    # (Apache Guacamole / guacd) tunnelled through the server.
+    location / {
+        #authentication
+        proxy_http_version 1.1;
+        proxy_pass http://{{BACKEND_IP}}:{{PORT}};
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port  $server_port;
+    }
+}
+"""

@@ -213,6 +213,19 @@ Supabase:
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
+PatchMon:
+  config_template: patchmon
+  ip:
+  domain: www.
+  port: 3000
+  cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
+  #auth_file: authfile
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
+
 # Example with IP restrictions enabled
 Flowise with IP restrictions:
   config_template: flowise
