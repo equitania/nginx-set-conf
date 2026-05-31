@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-29T15:30:00.000Z"
-last_activity: 2026-05-29
+last_updated: "2026-05-31T00:00:00.000Z"
+last_activity: 2026-05-31
 progress:
   total_phases: 6
   completed_phases: 4
@@ -20,16 +20,23 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 04 — docs-open-questions-release
+**Current focus:** Phase 05 — HTTP/3 opt-in support (only remaining phase; ready to plan)
 
 ## Current Position
 
-Phase: 04 (docs-open-questions-release) — COMPLETE (operator task pending: tag push + PyPI publish)
-Plan: 2 of 2 — COMPLETE
-Status: Awaiting operator: `git push origin/upstream v1.12.0` + `uv build` + `uvpublish`
-Last activity: 2026-05-29
+Phases 1–4 (+2.5): COMPLETE — 13 / 13 plans across NSC-01..NSC-04 + 02.5.
+v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
+template, commit 089b9db, 2026-05-31).
+Phase: 05 (http3-opt-in-support) — NOT YET PLANNED (0 plans on disk; CONTEXT.md ✓)
+Status: Ready to plan Phase 5.
+Last activity: 2026-05-31
 
-Progress: [██████████] 100%
+Progress: [██████████] 100% (planned phases) — Phase 5 not yet planned
+
+## Open Verification Debt
+
+- NSC-03 `03-VERIFICATION.md`: status `human_needed` — manual test run still
+  outstanding. Non-blocking. Review via `/gsd-audit-uat`.
 
 ## Performance Metrics
 
@@ -57,6 +64,8 @@ Progress: [██████████] 100%
 
 | Version | Date | Type | Summary |
 |---------|------|------|---------|
+| v1.13.0 | 2026-05-31 | Minor (out-of-GSD direct feature) | PatchMon nginx template — single-port Go server, WebSocket support for in-browser RDP (guacd); no rate-limit. NOTE: this consumed the v1.13.0 number ROADMAP §306 earmarked for Phase 5 — HTTP/3 now targets v1.14.0 |
+| v1.12.0 | 2026-05-29 | Minor (GSD milestone output) | Phases 1–4: write-surface hardening, cache/template consolidation, real HTTP/2, tech-debt cleanup, docs + `--force` sync gate |
 | v1.11.1 | 2026-05-28 | Security patch (direct sprint, pre-GSD) | 3 HIGH findings fixed: pre-reload `nginx -t`, `auth_file` constraints, wildcard filename sanitisation |
 | v1.11.0 | 2026-04-22 | Minor | IP-bound `listen` directives (Pattern C) |
 | v1.10.2 | 2026-04-21 | Patch (rollback fix) | Restored hostname-bound default; opt-in `--migrate_to_wildcard` |
@@ -72,15 +81,15 @@ Progress: [██████████] 100%
 - Re-audit CONCERNS.md: zero HIGH / zero MEDIUM open findings confirmed after Phases 1-4
 - v1.12.0 release: RELEASE_NOTES finalised, version bumped, git tag v1.12.0 created locally
 - bump-my-version v1.3.0: TOML files[] not auto-resolved; workaround via explicit CLI flags
+- v1.13.0 (out-of-GSD): PatchMon template added directly; version bumped manually (NOT via bump-my-version, to avoid its auto-commit/tag). This took the v1.13.0 slot ROADMAP §306 had reserved for Phase 5 → HTTP/3 now targets v1.14.0
 
 ## Next Action
 
-Phase 04 complete. Operator must:
-1. `git push origin 2026 && git push upstream 2026`
-2. `git push origin v1.12.0 && git push upstream v1.12.0`
-3. `uv build`
-4. `uvpublish`
-Then confirm PyPI shows nginx-set-conf 1.12.0.
+Plan Phase 5 (HTTP/3 opt-in support). CONTEXT.md is ready; run `/gsd-plan-phase 5`.
+
+Outstanding operator tasks (release publishing — local-only, never CI):
+- Push branch `2026` + tags `v1.12.0` / `v1.13.0` to origin + upstream
+- `uv build` + `uvpublish` for v1.13.0; confirm PyPI shows nginx-set-conf 1.13.0
 
 ---
 
