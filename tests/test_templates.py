@@ -469,20 +469,18 @@ class TestHttp3DisableDomainListenMutex:
     @staticmethod
     def _kwargs(tmp_path):
         return {
-            "server_name": "odoo_ssl",
             "config_template": "odoo_ssl",
-            "ip": "1.2.3.4",
             "domain": "erp.example.com",
-            "port": "8069",
-            "poll_port": "8072",
-            "grpc_port": "",
-            "redirect_domain": "",
+            "ip": "1.2.3.4",
             "cert_name": "erp.example.com",
-            "cert_key": "",
+            "cert_key": "/etc/ssl/erp.key",
+            "port": "8069",
+            "pollport": "8072",
+            "redirect_domain": "",
             "auth_file": "",
-            "backend_ip": "",
-            "dry_run": True,
+            "allowed_ips": "",
             "target_path": str(tmp_path),
+            "dry_run": True,
             "disable_domain_listen": True,
             "enable_http3": True,
         }
