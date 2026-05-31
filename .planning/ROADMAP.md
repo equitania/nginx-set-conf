@@ -292,7 +292,7 @@ does not block the hardening release.
 
 Plans:
 
-- [ ] 05-01: PROTO-02 `--enable_http3` flag plumbing (CLI, YAML, validator)
+- [x] 05-01: PROTO-02 `--enable_http3` flag plumbing (CLI, YAML, validator)
 - [ ] 05-02: PROTO-03 + PROTO-04 template-level QUIC + Alt-Svc emission for 12 templates
 - [ ] 05-03: PROTO-05 nginx version gate + `default_ssl_reject` HTTP/3 catch-all
 - [ ] 05-04: PROTO-06 README + RELEASE_NOTES UDP/443 callout
@@ -314,7 +314,7 @@ Phase 5.
 | 2.5. HTTP/2 actually enabled (INSERTED) | 1/1 | Complete   | 2026-05-28 |
 | 3. Tech debt + repository cleanup | 3/3 | Complete   | 2026-05-29 |
 | 4. Docs, open questions, release | 2/2 | Complete (operator push pending) | 2026-05-29 |
-| 5. HTTP/3 opt-in support | 0/4 | Planned (ready to execute) | - |
+| 5. HTTP/3 opt-in support | 1/4 | In Progress|  |
 
 ---
 

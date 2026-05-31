@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.11.1
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-31T00:00:00.000Z"
+last_updated: "2026-05-31T11:08:19.335Z"
 last_activity: 2026-05-31
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  completed_phases: 5
+  total_plans: 17
+  completed_plans: 14
+  percent: 82
 ---
 
 # Project State
@@ -20,18 +20,19 @@ progress:
 See: `.planning/PROJECT.md` (initialized 2026-05-28)
 
 **Core value:** A YAML-driven generator must never become a privileged file-write surface on the host, and a routine deploy must never take nginx down.
-**Current focus:** Phase 05 — HTTP/3 opt-in support (only remaining phase; ready to plan)
+**Current focus:** Phase 05 — http3-opt-in-support
 
 ## Current Position
 
 Phases 1–4 (+2.5): COMPLETE — 13 / 13 plans across NSC-01..NSC-04 + 02.5.
 v1.12.0 released (GSD milestone output). v1.13.0 released out-of-GSD (PatchMon
 template, commit 089b9db, 2026-05-31).
-Phase: 05 (http3-opt-in-support) — NOT YET PLANNED (0 plans on disk; CONTEXT.md ✓)
-Status: Ready to plan Phase 5.
-Last activity: 2026-05-31
+Phase: 05 (http3-opt-in-support) — EXECUTING
+Plan: 2 of 4
+Status: Executing Phase 05
+Last activity: 2026-05-31 -- 05-01 complete: --enable_http3 plumbing + HTTP3_EXCLUDED_TEMPLATES
 
-Progress: [██████████] 100% (planned phases) — Phase 5 not yet planned
+Progress: [████████░░] 82%
 
 ## Open Verification Debt
 
@@ -82,12 +83,14 @@ Progress: [██████████] 100% (planned phases) — Phase 5 not
 - v1.12.0 release: RELEASE_NOTES finalised, version bumped, git tag v1.12.0 created locally
 - bump-my-version v1.3.0: TOML files[] not auto-resolved; workaround via explicit CLI flags
 - v1.13.0 (out-of-GSD): PatchMon template added directly; version bumped manually (NOT via bump-my-version, to avoid its auto-commit/tag). This took the v1.13.0 slot ROADMAP §306 had reserved for Phase 5 → HTTP/3 now targets v1.14.0
+- 05-01: --enable_http3 is_flag wired CLI → YAML → execute_commands → validate_all_inputs; HTTP3_EXCLUDED_TEMPLATES frozenset (6 templates) in validators.py with exclusion guard; default_ssl_reject excluded from HTTP3 guard via validate_config_template (not in VALID_TEMPLATES)
 
 ## Next Action
 
-Plan Phase 5 (HTTP/3 opt-in support). CONTEXT.md is ready; run `/gsd-plan-phase 5`.
+Execute Phase 05 Plan 02 (HTTP/3 directive emission in templates).
 
 Outstanding operator tasks (release publishing — local-only, never CI):
+
 - Push branch `2026` + tags `v1.12.0` / `v1.13.0` to origin + upstream
 - `uv build` + `uvpublish` for v1.13.0; confirm PyPI shows nginx-set-conf 1.13.0
 

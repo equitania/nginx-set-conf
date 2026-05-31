@@ -112,12 +112,12 @@ Categories use the codebase-map taxonomy: SEC (security), COR
       firewall change required.
       *(CONCERNS.md §DOC-DRIFT MEDIUM addition — every
       `templates/*.py` SSL template + `config_verification.py:17,84,100`.)*
-- [ ] **PROTO-02**: A new `--enable_http3` opt-in CLI flag (and YAML
+- [x] **PROTO-02**: A new `--enable_http3` opt-in CLI flag (and YAML
       key `enable_http3: true`) is recognised by `execute_commands`
       and validated. Default: **off**. When set, applicable SSL
       templates emit the QUIC/HTTP/3 listen directives + Alt-Svc
       header.
-- [ ] **PROTO-03**: HTTP/3 emission is applied **only** to the 11–12
+- [x] **PROTO-03**: HTTP/3 emission is applied **only** to the 11–12
       SSL templates that serve browser/end-user traffic:
       `odoo_ssl`, `flowise`, `n8n`, `nextcloud`, `guacamole`, `kasm`,
       `pgadmin`, `portainer`, `pwa`, `code_server`, `supabase`,
@@ -221,8 +221,8 @@ Mapped during ROADMAP creation (see `ROADMAP.md`).
 | Q-01 | Phase 4 | Complete |
 | Q-02 | Phase 4 | Complete |
 | PROTO-01 | Phase 2.5 | Complete |
-| PROTO-02 | Phase 5 | Pending |
-| PROTO-03 | Phase 5 | Pending |
+| PROTO-02 | Phase 5 | Complete |
+| PROTO-03 | Phase 5 | Complete |
 | PROTO-04 | Phase 5 | Pending |
 | PROTO-05 | Phase 5 | Pending |
 | PROTO-06 | Phase 5 | Pending |
