@@ -59,6 +59,25 @@ VALID_TEMPLATES = {
 # Backward compatibility: old template names with ngx_ prefix
 VALID_TEMPLATES_COMPAT = {f"ngx_{t}" for t in VALID_TEMPLATES}
 
+# HTTP3_EXCLUDED_TEMPLATES: templates for which --enable_http3 is rejected.
+# These templates either have no TLS (so QUIC cannot apply) or serve
+# non-browser traffic where HTTP/3 provides no benefit.
+# Rationale per template:
+#   fast_report      — server-to-server PDF API, no browser traffic
+#   mailpit          — dev SMTP test tool, internal-only
+#   redirect         — HTTP-only, no TLS
+#   redirect_ssl     — trivial 301 response, QUIC overhead not worth it
+#   default_ssl_reject — SNI catch-all returns 444, no useful response
+#   odoo_http        — HTTP-only, no TLS
+HTTP3_EXCLUDED_TEMPLATES = frozenset({
+    "fast_report",
+    "mailpit",
+    "redirect",
+    "redirect_ssl",
+    "default_ssl_reject",
+    "odoo_http",
+})
+
 
 class ValidationError(ValueError):
     """Raised when input validation fails."""
@@ -361,6 +380,14 @@ def validate_all_inputs(
     if "redirect" in config_template and not redirect_domain.strip():
         raise ValidationError(
             f"'redirect_domain' is required for template '{config_template}'"
+        )
+    # HTTP/3 exclusion guard: reject --enable_http3 for templates that have no TLS
+    # or serve non-browser traffic where QUIC provides no benefit.
+    if enable_http3 and config_template in HTTP3_EXCLUDED_TEMPLATES:
+        http3_capable = ", ".join(sorted(VALID_TEMPLATES - HTTP3_EXCLUDED_TEMPLATES))
+        raise ValidationError(
+            f"Template '{config_template}' does not support --enable_http3. "
+            f"HTTP/3-capable templates: {http3_capable}"
         )
     validate_domain(domain)
     validate_ip(ip)

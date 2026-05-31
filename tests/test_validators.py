@@ -3,6 +3,7 @@
 import pytest
 
 from nginx_set_conf.validators import (
+    HTTP3_EXCLUDED_TEMPLATES,
     ValidationError,
     validate_all_inputs,
     validate_allowed_ips,
@@ -404,4 +405,63 @@ class TestValidateRedirectDomain:
             port="8069",
             cert_name="example.com",
             redirect_domain="",
+        )
+
+
+class TestHttp3Exclusion:
+    """validate_all_inputs must reject --enable_http3 for excluded templates."""
+
+    def test_excluded_template_raises_validation_error(self):
+        """fast_report is excluded — must raise ValidationError with 'enable_http3' in message."""
+        with pytest.raises(ValidationError, match="enable_http3"):
+            validate_all_inputs(
+                config_template="fast_report",
+                domain="example.com",
+                ip="1.2.3.4",
+                port="8080",
+                cert_name="example.com",
+                enable_http3=True,
+            )
+
+    def test_included_template_passes(self):
+        """odoo_ssl is in the HTTP/3-capable set — must not raise."""
+        validate_all_inputs(
+            config_template="odoo_ssl",
+            domain="example.com",
+            ip="1.2.3.4",
+            port="8069",
+            cert_name="example.com",
+            enable_http3=True,
+        )
+
+    @pytest.mark.parametrize("template", [
+        "fast_report",
+        "mailpit",
+        "redirect",
+        "redirect_ssl",
+        "default_ssl_reject",
+        "odoo_http",
+    ])
+    def test_all_excluded_templates_reject_http3(self, template):
+        """Each of the 6 excluded templates must raise ValidationError with enable_http3=True."""
+        with pytest.raises(ValidationError):
+            validate_all_inputs(
+                config_template=template,
+                domain="example.com",
+                ip="1.2.3.4",
+                port="80",
+                cert_name="example.com",
+                redirect_domain="new.example.com" if template in ("redirect", "redirect_ssl") else "",
+                enable_http3=True,
+            )
+
+    def test_http3_false_skips_exclusion_check(self):
+        """enable_http3=False (default) must never trigger the exclusion check."""
+        validate_all_inputs(
+            config_template="fast_report",
+            domain="example.com",
+            ip="1.2.3.4",
+            port="8080",
+            cert_name="example.com",
+            enable_http3=False,
         )
