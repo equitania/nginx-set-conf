@@ -21,7 +21,7 @@ untrusted and must never be used as a real cert.
 """
 
 TEMPLATE = """# Default SSL reject — catches unknown SNI / Host
-# 21.04.2026
+# 31.05.2026
 #
 # Deploy as /etc/nginx/conf.d/00-default.conf (alphabetical ordering ensures
 # nginx loads it before domain-specific configs, so it wins the default_server
@@ -50,6 +50,26 @@ server {
     ssl_certificate_key /etc/nginx/ssl/default.key;
 
     # Close the connection the moment the TLS handshake is done.
+    return 444;
+}
+
+server {
+    # QUIC/HTTP3 catch-all — mirrors the TCP 443 catch-all above for UDP/443.
+    #
+    # SAFETY NOTE: wildcard listen (no IP prefix) + default_server + reuseport
+    # is intentional and correct here. This IS the explicit default_server for
+    # QUIC; it does not introduce SNI fallback — it IS the fallback (returns 444).
+    # Vhost configs must omit reuseport on their QUIC listen lines because this
+    # block already claims the UDP/443 socket (_quic_reuseport_already_claimed
+    # detects this at deploy time and suppresses reuseport in vhost configs).
+    listen 443 quic default_server reuseport;
+    listen [::]:443 quic default_server reuseport;
+    server_name _;
+
+    ssl_certificate /etc/nginx/ssl/default.crt;
+    ssl_certificate_key /etc/nginx/ssl/default.key;
+
+    # Drop QUIC connections for unknown SNI before any data is exchanged.
     return 444;
 }
 """
