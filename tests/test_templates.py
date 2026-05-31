@@ -614,6 +614,44 @@ class TestCachePathSubstitutionOutput:
         )
 
 
+# ---------------------------------------------------------------------------
+# HTTP/3 QUIC catch-all in default_ssl_reject (05-03)
+# ---------------------------------------------------------------------------
+
+
+class TestHttp3DefaultCatchAll:
+    """default_ssl_reject must carry a QUIC default_server catch-all block (Phase 5).
+
+    Background: Without a QUIC default_server, an unrecognised SNI on UDP/443
+    would fall through to the first-loaded QUIC server block — the UDP form of
+    the v1.10.0 SNI-fallback incident. The QUIC catch-all block returns 444
+    before any application data is exchanged, mirroring the TCP 443 catch-all.
+    """
+
+    def test_quic_catch_all_block_present(self):
+        content = TEMPLATES["default_ssl_reject"]
+        assert "listen 443 quic default_server" in content
+
+    def test_quic_ipv6_catch_all_present(self):
+        content = TEMPLATES["default_ssl_reject"]
+        assert "listen [::]:443 quic default_server" in content
+
+    def test_quic_catch_all_returns_444(self):
+        content = TEMPLATES["default_ssl_reject"]
+        # At least 3 return 444; blocks: port 80, TCP 443 SSL, QUIC 443
+        assert content.count("return 444;") >= 3
+
+    def test_quic_catch_all_has_ssl_cert(self):
+        content = TEMPLATES["default_ssl_reject"]
+        # The QUIC catch-all block uses the same sacrificial cert as TCP 443
+        assert content.count("ssl_certificate /etc/nginx/ssl/default.crt") >= 2
+
+    def test_quic_default_server_is_wildcard(self):
+        content = TEMPLATES["default_ssl_reject"]
+        # The catch-all must use wildcard listen (no IP placeholder)
+        assert "ip.ip.ip.ip:443 quic" not in content
+
+
 class TestRawSentinelStorage:
     """Regression guard: after Task 2, the TEMPLATES dict must store raw
     templates (with /tmp sentinel), not pre-processed ones.  These tests use
