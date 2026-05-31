@@ -331,6 +331,122 @@ def _insert_after_marker(content: str, marker: str, insert_lines: list, first_on
     return "\n".join(new_lines)
 
 
+def get_nginx_version() -> "tuple[int, int, int] | None":
+    """Parse nginx version from ``nginx -v`` stderr output.
+
+    Returns:
+        (major, minor, patch) tuple, or None if nginx is not found or
+        the version string cannot be parsed.  Never raises.
+    """
+    try:
+        result = subprocess.run(
+            ["nginx", "-v"],
+            capture_output=True,
+            text=True,
+        )
+        # nginx -v writes to stderr: "nginx version: nginx/1.27.2"
+        match = re.search(r"nginx/(\d+)\.(\d+)\.(\d+)", result.stderr)
+        if match:
+            return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def _quic_reuseport_already_claimed(conf_dir: str, ip: str, port: int = 443) -> bool:
+    """Return True if any .conf in conf_dir already carries a quic reuseport listen
+    on this port — either IP-bound (``listen <ip>:<port> quic reuseport;``) OR the
+    wildcard form emitted by the default_ssl_reject catch-all
+    (``listen <port> quic default_server reuseport;``).
+
+    Only one listen directive per (IP, port) may carry reuseport across the entire
+    nginx host.  If already claimed, the new vhost must omit it.
+
+    Returns False on any filesystem error (safe default: include reuseport when
+    the conf_dir cannot be read, so the operator sees a startup error rather than
+    silently missing the socket).
+    """
+    # IP prefix is OPTIONAL — the default_ssl_reject QUIC catch-all uses a
+    # wildcard ``listen 443 quic ... reuseport;`` with no IP prefix.  The scanner
+    # MUST match both forms or vhosts would double-claim reuseport on UDP/443
+    # and break nginx reload (Phase 5 BLOCKER 3).
+    pattern = re.compile(
+        rf"listen\s+(?:{re.escape(ip)}:)?{port}\s+quic\b.*\breuseport"
+    )
+    try:
+        for fname in os.listdir(conf_dir):
+            if not fname.endswith(".conf"):
+                continue
+            fpath = os.path.join(conf_dir, fname)
+            with open(fpath, encoding="utf-8") as f:
+                if pattern.search(f.read()):
+                    return True
+    except (OSError, PermissionError):
+        pass
+    return False
+
+
+def _inject_http3_directives(
+    content: str,
+    formatted_listen_ip: str,
+    conf_dir: str | None = None,
+) -> str:
+    """Inject QUIC/HTTP/3 directives after the first ``listen <ip>:443 ssl;`` line.
+
+    Inserts the QUIC listen line plus four companion directives immediately after
+    the first occurrence of ``listen {formatted_listen_ip}:443 ssl;`` in *content*.
+    Uses ``first_only=True`` so a second server block (e.g. qdrant gRPC) is left
+    untouched.
+
+    Args:
+        content: Already-substituted nginx config string (IP placeholder already
+            replaced with ``formatted_listen_ip``).
+        formatted_listen_ip: The real IP address, formatted for nginx listen
+            directives (e.g. "1.2.3.4" or "[2001:db8::1]").  MUST be the value
+            produced by ``_format_ip_for_nginx`` — never the raw placeholder.
+        conf_dir: Path to the nginx conf.d directory.  When provided,
+            ``_quic_reuseport_already_claimed`` is consulted and ``reuseport``
+            is omitted when already claimed by another vhost.  Defaults to None
+            (reuseport always included — safe for first deployment).
+
+    Returns:
+        Modified content string with HTTP/3 directives injected.  Returns
+        *content* unchanged (with a warning log) if the marker is not found.
+
+    Note:
+        IPv6 QUIC injection is intentionally absent: none of the 12 HTTP/3-
+        included templates carry a ``listen [::]:443 ssl;`` line (only
+        default_ssl_reject does, and that template is excluded from
+        --enable_http3).  If a future template gains an IPv6 ssl listen this
+        function must be extended.
+    """
+    marker = f"listen {formatted_listen_ip}:443 ssl;"
+
+    if conf_dir is not None and _quic_reuseport_already_claimed(conf_dir, formatted_listen_ip):
+        reuseport_suffix = ""
+    else:
+        reuseport_suffix = " reuseport"
+
+    insert_lines = [
+        f"    listen {formatted_listen_ip}:443 quic{reuseport_suffix};",
+        "    http3 on;",
+        "    quic_retry on;",
+        "    ssl_protocols TLSv1.3;",
+        "    add_header Alt-Svc 'h3=\":443\"; ma=86400' always;",
+    ]
+
+    result = _insert_after_marker(content, marker, insert_lines, first_only=True)
+
+    if result == content:
+        logger.warning(
+            "_inject_http3_directives: marker '%s' not found in content — "
+            "no HTTP/3 directives injected",
+            marker,
+        )
+
+    return result
+
+
 def _create_cert_if_needed(cert_name: str, dry_run: bool = False) -> None:
     """Check for Let's Encrypt certificate and create if missing.
 
@@ -750,7 +866,14 @@ def execute_commands(
         content = content.replace(f"listen {formatted_listen_ip}:80", "listen 80")
         content = content.replace(f"listen {formatted_listen_ip}:443", "listen 443")
 
-    # TODO(05-02): inject HTTP/3 directives here when enable_http3=True
+    # Inject HTTP/3 (QUIC) directives after the listen :443 ssl; line.
+    # Placement invariant: AFTER IP-placeholder, domain-placeholder, and
+    # disable_domain_listen passes so that formatted_listen_ip is already the
+    # real IP value and the marker `listen <ip>:443 ssl;` is present in content.
+    # BEFORE backend-IP substitution (backend IP is unrelated to the listen block).
+    if enable_http3:
+        effective_conf_dir = target_path if target_path else "/etc/nginx/conf.d"
+        content = _inject_http3_directives(content, formatted_listen_ip, effective_conf_dir)
 
     # Backend IP handling (proxy_pass target)
     effective_backend_ip = backend_ip if backend_ip else "127.0.0.1"
