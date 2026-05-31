@@ -423,6 +423,121 @@ server {
 **Warning**: wildcard listens without `default_ssl_reject` leak
 certificates via SNI fallback. Deploy `--setup_default` first.
 
+## HTTP/3 / QUIC (--enable_http3)
+
+HTTP/3 opt-in support is available since v1.14.0. The `--enable_http3` flag adds QUIC + HTTP/3
+listen directives to 12 browser-facing SSL templates. By default the flag is **off** — existing
+operators see no change until they explicitly set it. When HTTP/3 is unavailable (wrong nginx
+version, firewall closed), browsers automatically fall back to HTTP/2 over TCP and the feature
+degrades silently.
+
+### Prerequisites
+
+Before enabling HTTP/3 on any vhost, verify all five of the following:
+
+1. **nginx >= 1.25.0** — QUIC/HTTP/3 was stabilised in nginx 1.25.0 (May 2023). Upgrade paths:
+   Debian bookworm-backports, Ubuntu 24.04+, RHEL 9.4+. The tool enforces this requirement:
+   it runs `nginx -v` before writing any HTTP/3-emitting config and aborts with a clear
+   remediation message if the installed nginx is older than 1.25.0.
+
+2. **Open UDP port 443 in the host firewall**
+
+   > **WARNING — Firewall action required:** HTTP/3 uses UDP/443 in addition to TCP/443. You
+   > must open UDP port 443 in your host firewall (`ufw allow 443/udp` or equivalent) separately
+   > from TCP/443. Without this, QUIC connections are silently dropped and browsers fall back to
+   > HTTP/2 — the Alt-Svc header is effectively dead.
+
+3. **TLS 1.3** — the generated config emits `ssl_protocols TLSv1.3;` inside the HTTP/3 server
+   block. Clients that cannot negotiate TLS 1.3 fall back to the TCP/HTTP/2 block which keeps
+   TLS 1.2 + 1.3 support. No clients are denied — the fallback is seamless.
+
+4. **ECDSA certificate (recommended)** — RSA certificates work, but ECDSA certificates produce
+   smaller TLS handshakes which improve QUIC connection setup latency. Use your CA's ECDSA
+   endpoint if available (e.g. `certbot --key-type ecdsa`).
+
+5. **Explicit opt-in** — the flag must be set on every invocation; no existing operator sees any
+   change without adding `--enable_http3` to their command or `enable_http3: true` to their
+   YAML config.
+
+### Usage
+
+```bash
+# CLI flag
+nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain erp.example.com \
+  --port 8069 --cert_name erp.example.com --enable_http3
+```
+
+YAML configuration:
+
+```yaml
+My Odoo Server:
+  config_template: odoo_ssl
+  ip: 1.2.3.4
+  domain: erp.example.com
+  port: 8069
+  cert_name: erp.example.com
+  enable_http3: true
+```
+
+Both the CLI flag and the YAML key produce identical output.
+
+### Supported templates
+
+The following 12 browser-facing templates support `--enable_http3`:
+
+| Template | Rationale |
+|----------|-----------|
+| `odoo_ssl` | ERP web UI, longpoll, mobile workforce |
+| `flowise` | AI workflow UI, streaming responses |
+| `n8n` | Workflow automation web UI |
+| `nextcloud` | File sync clients + browser UI, large transfers |
+| `guacamole` | Browser RDP/VNC — latency-sensitive |
+| `kasm` | Browser VDI — latency-sensitive |
+| `pgadmin` | Postgres admin UI (low traffic, harmless inclusion) |
+| `portainer` | Docker management UI |
+| `pwa` | Generic PWA shell (HTTP/3 is ideal for PWAs) |
+| `code_server` | VSCode in browser, developer UX |
+| `supabase` | Backend-as-a-service, mixed API + browser |
+| `qdrant` | REST port only — gRPC port stays HTTP/2 |
+
+### Excluded templates
+
+The following 6 templates do not support `--enable_http3`. The tool rejects them with a clear
+error message:
+
+- `fast_report` — server-to-server PDF API, no browser traffic
+- `mailpit` — dev SMTP test tool, internal-only
+- `redirect` — HTTP-only, no TLS, no HTTP/3
+- `redirect_ssl` — trivial 301 redirect, UDP/QUIC overhead not worth it
+- `default_ssl_reject` — SNI catch-all that returns 444, no useful response body
+- `odoo_http` — HTTP-only, no TLS
+
+### Catch-all requirement
+
+Any host running at least one HTTP/3-enabled vhost must also have the QUIC catch-all deployed.
+Run `--setup_default` to install it:
+
+```bash
+sudo nginx-set-conf --setup_default
+```
+
+This extends the existing TCP SNI catch-all (`default_ssl_reject`) with a QUIC catch-all that
+returns 444 for unknown SNI on UDP/443 — mirroring the lesson from the v1.10.0 incident for the
+UDP surface. See [IP-bound Listen Directives](#ip-bound-listen-directives-v1110) for context on
+why the catch-all matters.
+
+### Manual migration (no bulk flag)
+
+A bulk `--migrate_to_http3` flag is **not available** in this version. It is planned for v2
+(`PROTO-V2-01`). To add HTTP/3 to an existing vhost, regenerate it individually:
+
+```bash
+sudo nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain erp.example.com \
+  --port 8069 --cert_name erp.example.com --enable_http3
+```
+
+Regenerate each vhost one at a time, running `nginx -t` after each to catch issues early.
+
 ### IP Access Restrictions
 
 nginx-set-conf supports optional IP-based access control to restrict access to your applications to specific IP addresses or CIDR blocks.
