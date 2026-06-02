@@ -12,7 +12,12 @@ from nginx_set_conf.templates.all_templates import (
     get_config_template,
     replace_cache_path,
 )
-from nginx_set_conf.utils import _inject_http3_directives, execute_commands, get_nginx_version
+from nginx_set_conf.utils import (
+    _inject_http3_directives,
+    check_ufw_udp_443,
+    execute_commands,
+    get_nginx_version,
+)
 
 # Alias for tests that call all_get_config_template directly (same function)
 all_get_config_template = get_config_template
@@ -39,6 +44,7 @@ class TestTemplateRegistry:
             "qdrant",
             "redirect",
             "redirect_ssl",
+            "static_ssl",
             "supabase",
         }
         assert set(TEMPLATES.keys()) == expected
@@ -603,6 +609,198 @@ class TestNginxVersionGate:
         )
         # Should run without RuntimeError
         execute_commands(**_GATE_ARGS, enable_http3=False)
+
+
+# ---------------------------------------------------------------------------
+# ufw UDP/443 advisory firewall check
+# ---------------------------------------------------------------------------
+
+
+def _ufw_result(stdout):
+    return subprocess.CompletedProcess(args=["ufw", "status"], returncode=0, stdout=stdout, stderr="")
+
+
+class TestUfwUdp443Parsing:
+    """Unit tests for the check_ufw_udp_443() helper."""
+
+    def test_explicit_udp_rule_returns_true(self, monkeypatch):
+        out = "Status: active\n\nTo            Action      From\n443/udp       ALLOW       Anywhere\n"
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(out))
+        assert check_ufw_udp_443() is True
+
+    def test_bare_443_rule_returns_true(self, monkeypatch):
+        """A bare '443' rule opens both TCP and UDP in ufw."""
+        out = "Status: active\n\nTo       Action      From\n443      ALLOW       Anywhere\n"
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(out))
+        assert check_ufw_udp_443() is True
+
+    def test_v6_udp_rule_returns_true(self, monkeypatch):
+        out = "Status: active\n\nTo               Action      From\n443/udp (v6)     ALLOW       Anywhere (v6)\n"
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(out))
+        assert check_ufw_udp_443() is True
+
+    def test_tcp_only_rule_returns_false(self, monkeypatch):
+        """'443/tcp' must NOT satisfy the UDP/443 requirement."""
+        out = "Status: active\n\nTo            Action      From\n443/tcp       ALLOW       Anywhere\n"
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(out))
+        assert check_ufw_udp_443() is False
+
+    def test_no_443_rule_returns_false(self, monkeypatch):
+        out = "Status: active\n\nTo           Action      From\n22/tcp       ALLOW       Anywhere\n"
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(out))
+        assert check_ufw_udp_443() is False
+
+    def test_outbound_udp_rule_returns_false(self, monkeypatch):
+        """An 'ALLOW OUT' rule for 443/udp must not count as inbound."""
+        out = "Status: active\n\nTo            Action      From\n443/udp       ALLOW OUT   Anywhere\n"
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(out))
+        assert check_ufw_udp_443() is False
+
+    def test_inactive_returns_none(self, monkeypatch):
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result("Status: inactive\n"))
+        assert check_ufw_udp_443() is None
+
+    def test_empty_output_returns_none(self, monkeypatch):
+        """Permission denied prints to stderr and leaves stdout empty."""
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", lambda *a, **kw: _ufw_result(""))
+        assert check_ufw_udp_443() is None
+
+    def test_ufw_missing_returns_none(self, monkeypatch):
+        def raise_fnf(*a, **kw):
+            raise FileNotFoundError
+
+        monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", raise_fnf)
+        assert check_ufw_udp_443() is None
+
+
+class TestUfwFirewallWarning:
+    """execute_commands emits an advisory (non-blocking) warning for UDP/443."""
+
+    @staticmethod
+    def _pass_version(monkeypatch):
+        # Keep the version gate satisfied so the firewall check is reached.
+        monkeypatch.setattr("nginx_set_conf.utils.get_nginx_version", lambda: (1, 27, 2))
+
+    def test_warns_when_udp_blocked(self, monkeypatch, capsys):
+        self._pass_version(monkeypatch)
+        monkeypatch.setattr("nginx_set_conf.utils.check_ufw_udp_443", lambda: False)
+        # Must NOT raise — advisory only.
+        execute_commands(**_GATE_ARGS, enable_http3=True)
+        err = capsys.readouterr().err
+        assert "UDP/443" in err and "ufw allow 443/udp" in err
+
+    def test_note_when_undeterminable(self, monkeypatch, capsys):
+        self._pass_version(monkeypatch)
+        monkeypatch.setattr("nginx_set_conf.utils.check_ufw_udp_443", lambda: None)
+        execute_commands(**_GATE_ARGS, enable_http3=True)
+        err = capsys.readouterr().err
+        assert "could not verify" in err
+
+    def test_silent_when_udp_open(self, monkeypatch, capsys):
+        self._pass_version(monkeypatch)
+        monkeypatch.setattr("nginx_set_conf.utils.check_ufw_udp_443", lambda: True)
+        execute_commands(**_GATE_ARGS, enable_http3=True)
+        err = capsys.readouterr().err
+        assert "UDP/443" not in err
+
+    def test_not_called_when_http3_disabled(self, monkeypatch):
+        monkeypatch.setattr(
+            "nginx_set_conf.utils.check_ufw_udp_443",
+            lambda: (_ for _ in ()).throw(RuntimeError("should not be called")),
+        )
+        # Must run without RuntimeError when HTTP/3 is off.
+        execute_commands(**_GATE_ARGS, enable_http3=False)
+
+
+# ---------------------------------------------------------------------------
+# static_ssl template (static website / file-download hosting)
+# ---------------------------------------------------------------------------
+
+
+def _render_static_ssl(tmp_path, root_path=None, enable_http3=False):
+    """Render static_ssl via execute_commands and return the written .conf content.
+
+    cert_key is set (!= cert_name) so the Let's Encrypt / certbot branch is skipped.
+    """
+    execute_commands(
+        config_template="static_ssl",
+        domain="dl.example.com",
+        ip="1.2.3.4",
+        cert_name="dl.example.com",
+        cert_key="/etc/ssl/dl.key",
+        port="",
+        pollport="",
+        redirect_domain="",
+        auth_file="",
+        allowed_ips="",
+        target_path=str(tmp_path),
+        dry_run=False,
+        root_path=root_path,
+        enable_http3=enable_http3,
+    )
+    confs = list(tmp_path.glob("*.conf"))
+    assert len(confs) == 1, f"expected exactly one .conf, got {confs}"
+    return confs[0].read_text(encoding="utf-8")
+
+
+class TestStaticSslTemplate:
+    """static_ssl serves files from a local document root — no upstream proxy."""
+
+    def test_default_root_path(self, tmp_path):
+        content = _render_static_ssl(tmp_path)
+        assert "root /opt/www;" in content
+        assert "{{ROOT_PATH}}" not in content
+
+    def test_custom_root_path(self, tmp_path):
+        content = _render_static_ssl(tmp_path, root_path="/srv/files")
+        assert "root /srv/files;" in content
+        assert "{{ROOT_PATH}}" not in content
+
+    def test_no_proxy_placeholders_or_pass(self, tmp_path):
+        content = _render_static_ssl(tmp_path)
+        assert "{{PORT}}" not in content
+        assert "{{BACKEND_IP}}" not in content
+        assert "proxy_pass" not in content
+
+    def test_static_serving_directives(self, tmp_path):
+        content = _render_static_ssl(tmp_path)
+        assert "try_files $uri $uri/ =404;" in content
+        assert "X-Robots-Tag" in content
+
+    def test_ip_bound_listen(self, tmp_path):
+        content = _render_static_ssl(tmp_path)
+        assert "listen 1.2.3.4:80;" in content
+        assert "listen 1.2.3.4:443 ssl;" in content
+
+    def test_certificate_substituted(self, tmp_path):
+        # cert_key is set in the render helper → self-signed branch: the full
+        # cert path placeholder is replaced by cert_name / cert_key verbatim.
+        content = _render_static_ssl(tmp_path)
+        assert "zertifikat" not in content
+        assert "ssl_certificate dl.example.com;" in content
+        assert "ssl_certificate_key /etc/ssl/dl.key;" in content
+
+    def test_http3_not_excluded(self):
+        """validate_all_inputs must NOT reject --enable_http3 for static_ssl."""
+        from nginx_set_conf.validators import validate_all_inputs
+
+        # Should not raise — static_ssl is HTTP/3-capable.
+        validate_all_inputs(
+            config_template="static_ssl",
+            domain="dl.example.com",
+            ip="1.2.3.4",
+            port="",
+            cert_name="dl.example.com",
+            root_path="/opt/www",
+            enable_http3=True,
+        )
+
+    def test_http3_injection(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("nginx_set_conf.utils.get_nginx_version", lambda: (1, 27, 2))
+        content = _render_static_ssl(tmp_path, enable_http3=True)
+        assert "listen 1.2.3.4:443 quic" in content
+        assert "http3 on;" in content
+        assert "Alt-Svc" in content
 
 
 # ---------------------------------------------------------------------------

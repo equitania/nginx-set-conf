@@ -1,5 +1,34 @@
 # RELEASE NOTES
 
+## Version 1.15.0 (02.06.2026)
+
+### Added
+
+- **[ADD]** **New `static_ssl` template — static website / file-download hosting** — serves files
+  directly from a local document root (`root <dir>;` + `try_files $uri $uri/ =404;`) with no upstream
+  backend (no `proxy_pass`). New `--root_path` CLI option / YAML `root_path` key sets the document
+  root (default `/opt/www`); a new `{{ROOT_PATH}}` placeholder is validated as an absolute,
+  traversal-free path. The template is HTTP/3-capable and supports `--auth_file` (HTTP basic auth)
+  and `--allowed_ips` (IP restrictions) for protecting downloads. Uses IP-bound listen directives
+  (Pattern C), inherits the central `security.conf`/`general.conf` includes, and sets an
+  `X-Robots-Tag: noindex` header at server scope (so it merges with the security headers instead of
+  cancelling their inheritance inside `location /`). The non-interactive CLI guard now accepts
+  `static_ssl` without `--port` (it has no upstream port) as long as `--root_path` is supplied.
+
+- **[ADD]** **Advisory UDP/443 firewall check for HTTP/3** — when `--enable_http3` is set,
+  `execute_commands` now runs a best-effort `check_ufw_udp_443()` preflight. If `ufw` is active
+  but has no inbound ALLOW rule covering UDP/443 (explicit `443/udp` or a bare `443` rule, which
+  ufw opens for both TCP and UDP), the tool prints a yellow **WARNING** reminding the operator to
+  run `ufw allow 443/udp` — otherwise QUIC is silently dropped and browsers fall back to HTTP/2.
+  When the state cannot be determined (ufw not installed, inactive, or not permitted) it prints a
+  short **NOTE** instead.
+
+  The check is **advisory, never blocking**: the host firewall state cannot be determined reliably
+  (cloud security groups, externally managed or default-open firewalls are invisible from the
+  host), so a missing/unknown rule must not abort a valid deployment. Only `ufw` is inspected (the
+  firewall referenced throughout the README). The check runs under `--dry_run` too — previewing a
+  config is exactly when the reminder is useful.
+
 ## Version 1.14.0 (31.05.2026)
 
 ### Added

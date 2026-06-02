@@ -158,6 +158,7 @@ def get_default_vars() -> dict:
         "template_redirect_domain": "target.domain.de",
         "template_auth_file": "authfile",
         "template_backend_ip": "{{BACKEND_IP}}",
+        "template_root_path": "{{ROOT_PATH}}",
     }
 
 
@@ -351,6 +352,54 @@ def get_nginx_version() -> "tuple[int, int, int] | None":
     except FileNotFoundError:
         pass
     return None
+
+
+def check_ufw_udp_443() -> "bool | None":
+    """Check whether ufw allows inbound UDP port 443 (needed for HTTP/3 QUIC).
+
+    Parses ``ufw status`` output. Only ufw is supported on purpose — it is the
+    firewall referenced in the README (``ufw allow 443/udp``). This is an
+    advisory, best-effort check: the host-local firewall state cannot be
+    determined reliably (cloud security groups, externally managed or
+    default-open firewalls are invisible here), so the result only drives a
+    warning, never a hard stop.
+
+    Returns:
+        True  if ufw is active and an inbound ALLOW rule covering UDP/443 is
+              present (explicit ``443/udp`` or a bare ``443`` rule, which ufw
+              opens for both TCP and UDP).
+        False if ufw is active but no such rule is found.
+        None  if the state cannot be determined — ufw not installed, inactive,
+              or ``ufw status`` not permitted (requires root). Never raises.
+    """
+    try:
+        result = subprocess.run(
+            ["ufw", "status"],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return None  # ufw not installed
+
+    out = result.stdout
+    # "Status: inactive", an empty body (permission denied prints to stderr and
+    # exits non-zero with empty stdout), or any non-active state is undeterminable.
+    if "Status: active" not in out:
+        return None
+
+    # ufw status lines look like:
+    #   "443/udp                    ALLOW       Anywhere"
+    #   "443                        ALLOW       Anywhere"      (bare = tcp + udp)
+    #   "443/udp (v6)               ALLOW       Anywhere (v6)"
+    # The first whitespace token is the port spec. A bare "443" covers UDP too;
+    # "443/tcp" does not. Skip outbound rules ("ALLOW OUT").
+    for line in out.splitlines():
+        if "ALLOW" not in line or "ALLOW OUT" in line:
+            continue
+        tokens = line.split()
+        if tokens and tokens[0] in ("443/udp", "443"):
+            return True
+    return False
 
 
 def _quic_reuseport_already_claimed(conf_dir: str, ip: str, port: int = 443) -> bool:
@@ -722,6 +771,7 @@ def execute_commands(
     disable_domain_listen=False,
     backend_ip=None,
     enable_http3=False,
+    root_path=None,
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -745,6 +795,7 @@ def execute_commands(
         disable_domain_listen: If True, remove domain prefix from listen directives.
         backend_ip: Backend IP for proxy_pass/grpc_pass (default: 127.0.0.1).
         enable_http3: If True, emit QUIC/HTTP/3 listen directives and Alt-Svc header.
+        root_path: Document root for static-serving templates (default: /opt/www).
     """
     # Validate all inputs
     try:
@@ -763,6 +814,7 @@ def execute_commands(
             target_path=target_path or "",
             backend_ip=backend_ip or "",
             enable_http3=enable_http3,
+            root_path=root_path or "",
         )
     except ValidationError as e:
         logger.error("Input validation failed: %s", e)
@@ -794,6 +846,36 @@ def execute_commands(
                 f"HTTP/3 requires nginx >= 1.25.0 (you have {ver_str}). "
                 "Either upgrade nginx (Debian: bookworm-backports; Ubuntu: 24.04+; "
                 "RHEL: 9.4+) or omit --enable_http3 to ship HTTP/2-only configs."
+            )
+
+    # Advisory firewall check (ufw only) — HTTP/3 (QUIC) needs UDP/443 reachable
+    # in addition to TCP/443. Non-blocking on purpose: the host firewall state
+    # cannot be determined reliably (cloud security groups, externally managed
+    # firewalls), so a missing/undeterminable rule is a warning, not an error.
+    # Runs under dry_run too — previewing a config is exactly when the operator
+    # wants the reminder.
+    if enable_http3:
+        ufw_udp_443 = check_ufw_udp_443()
+        if ufw_udp_443 is False:
+            click.echo(
+                click.style(
+                    "WARNING: ufw is active but no ALLOW rule for UDP/443 was found. "
+                    "HTTP/3 (QUIC) needs UDP/443 open — run 'ufw allow 443/udp', or "
+                    "browsers will silently fall back to HTTP/2 (the Alt-Svc header "
+                    "is effectively dead).",
+                    fg="yellow",
+                ),
+                err=True,
+            )
+        elif ufw_udp_443 is None:
+            click.echo(
+                click.style(
+                    "NOTE: could not verify the UDP/443 firewall state (ufw not "
+                    "installed, inactive, or not permitted). Ensure UDP/443 is open "
+                    "in your firewall for HTTP/3.",
+                    fg="yellow",
+                ),
+                err=True,
             )
 
     # Get default vars
@@ -913,6 +995,11 @@ def execute_commands(
     formatted_backend_ip = _format_ip_for_nginx(effective_backend_ip)
     logger.info("Set backend IP in conf to %s (formatted: %s)", effective_backend_ip, formatted_backend_ip)
     content = _replace_placeholder(content, default_vars["template_backend_ip"], formatted_backend_ip)
+
+    # Document root for static-serving templates ({{ROOT_PATH}}). No-op for
+    # proxy templates that don't carry the placeholder. Defaults to /opt/www.
+    effective_root_path = root_path if root_path else "/opt/www"
+    content = _replace_placeholder(content, default_vars["template_root_path"], effective_root_path)
 
     # Handle certificate placeholders
     if cert_key:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nginx-set-conf"
-version = "1.14.0"
+version = "1.15.0"
 description = "Python library for generating nginx reverse proxy configurations for Docker applications."
 readme = "README.md"
 license = "AGPL-3.0-or-later"

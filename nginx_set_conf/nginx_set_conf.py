@@ -195,6 +195,10 @@ Configuration Management Options:
     help="Backend IP for proxy_pass (default: 127.0.0.1)",
 )
 @click.option(
+    "--root_path",
+    help="Document root for static-serving templates like 'static_ssl' (default: /opt/www)",
+)
+@click.option(
     "--disable_domain_listen",
     is_flag=True,
     help=(
@@ -292,6 +296,7 @@ def start_nginx_set_conf(
     auth_file,
     allowed_ips,
     backend_ip,
+    root_path,
     disable_domain_listen,
     enable_http3,
     config_path,
@@ -395,6 +400,7 @@ def start_nginx_set_conf(
                 auth_file = str(yaml_config.get("auth_file", ""))
                 allowed_ips = str(yaml_config.get("allowed_ips", ""))
                 yaml_backend_ip = str(yaml_config.get("backend_ip", ""))
+                yaml_root_path = str(yaml_config.get("root_path", ""))
                 yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
                 yaml_enable_http3 = yaml_config.get("enable_http3", False)
                 yaml_target_path = str(yaml_config.get("target_path", ""))
@@ -424,8 +430,9 @@ def start_nginx_set_conf(
                     yaml_disable_domain_listen,
                     backend_ip=yaml_backend_ip or None,
                     enable_http3=yaml_enable_http3,
+                    root_path=yaml_root_path or None,
                 )
-    elif config_template and ip and domain and port and cert_name:
+    elif config_template and ip and domain and cert_name and (port or root_path):
         logger.info(
             "Generating configuration for %s using template %s",
             domain,
@@ -449,6 +456,7 @@ def start_nginx_set_conf(
             disable_domain_listen,
             backend_ip=backend_ip,
             enable_http3=enable_http3,
+            root_path=root_path,
         )
     else:
         config_template = retrieve_valid_input(eq_config_support + "\n")
@@ -476,6 +484,7 @@ def start_nginx_set_conf(
         enable_http3 = (
             enable_http3_input.lower() in ["yes", "y", "true", "1"] if enable_http3_input else False
         )
+        root_path = retrieve_optional_input("Document root for static templates (leave empty for default /opt/www)\n")
         custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)\n")
         target_path = custom_target_path if custom_target_path else target_path
 
@@ -495,6 +504,7 @@ def start_nginx_set_conf(
             grpcport,
             disable_domain_listen,
             enable_http3=enable_http3,
+            root_path=root_path or None,
         )
 
     if not dry_run:

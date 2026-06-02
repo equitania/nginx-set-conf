@@ -53,6 +53,7 @@ VALID_TEMPLATES = {
     "qdrant",
     "redirect",
     "redirect_ssl",
+    "static_ssl",
     "supabase",
 }
 
@@ -349,6 +350,37 @@ def validate_redirect_domain(redirect_domain: str) -> str:
     return validate_domain(redirect_domain)
 
 
+def validate_root_path(root_path: str) -> str:
+    """Validate a static document root path.
+
+    The value is written verbatim into the nginx config as ``root <value>;``.
+    An absolute path is required (nginx resolves a relative root against its
+    prefix, which is rarely intended for a hosted document root). Path-traversal
+    components are rejected, and the character set is constrained.
+
+    Args:
+        root_path: Filesystem path to the static document root.
+
+    Returns:
+        The validated root path.
+
+    Raises:
+        ValidationError: If root_path is relative, escapes via ``..``, or
+            contains characters outside the permitted set.
+    """
+    if not root_path:
+        return root_path
+    if not _CERT_PATH_RE.match(root_path):
+        raise ValidationError(
+            f"Invalid root path: '{root_path}'. "
+            "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
+        )
+    _reject_path_traversal(root_path, "root_path")
+    if not root_path.startswith("/"):
+        raise ValidationError(f"Root path must be absolute (start with '/'). Got: '{root_path}'")
+    return root_path
+
+
 def validate_all_inputs(
     config_template: str,
     domain: str,
@@ -364,6 +396,7 @@ def validate_all_inputs(
     target_path: str = "",
     backend_ip: str = "",
     enable_http3: bool = False,
+    root_path: str = "",
 ) -> None:
     """Validate all input parameters at once.
 
@@ -408,3 +441,5 @@ def validate_all_inputs(
         validate_target_path(target_path)
     if backend_ip:
         validate_ip(backend_ip)
+    if root_path:
+        validate_root_path(root_path)

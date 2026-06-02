@@ -236,3 +236,17 @@ Flowise with IP restrictions:
   #backend_ip: "192.168.1.50"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #allowed_ips: "192.168.1.0/24,10.0.0.50,203.0.113.100"
   #disable_domain_listen: true  # For intranet systems without domain prefix in listen directives
+
+# Static website / file-download hosting (no upstream backend, serves files from a local root)
+Static Download Site:
+  config_template: static_ssl
+  ip:
+  domain: dl.
+  cert_name: dl.
+  root_path: /opt/www  # Document root for the static files (default: /opt/www)
+  # No 'port' needed — static_ssl serves files directly, it does not proxy to a backend.
+  #enable_http3: true  # Optional: QUIC/HTTP/3 (requires nginx >= 1.25.0 and UDP/443 open)
+  #auth_file: authfile  # Optional: protect downloads with HTTP basic auth
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"  # Optional: restrict access by IP
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key

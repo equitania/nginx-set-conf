@@ -63,12 +63,14 @@ $ nginx-set-conf --help
 - `nextcloud` - NextCloud with SSL
 - `odoo_http` - Odoo HTTP only
 - `odoo_ssl` - Odoo with SSL
+- `patchmon` - Patch monitoring with SSL/HTTP2
 - `pgadmin` - pgAdmin4 with SSL
 - `portainer` - Portainer with SSL
 - `pwa` - Progressive Web App with SSL
 - `qdrant` - Qdrant vector database with SSL/HTTP2 and gRPC
 - `redirect` - Domain redirect without SSL
 - `redirect_ssl` - Domain redirect with SSL
+- `static_ssl` - Static website / file-download hosting with SSL/HTTP2 (serves files from a local document root, no upstream backend; configure the root with `--root_path`, default `/opt/www`)
 - `supabase` - Supabase database server with SSL/HTTP2
 
 #### Configuration Management Options
@@ -240,6 +242,9 @@ nginx-set-conf --config_template flowise --ip 1.2.3.4 --domain flowise.example.c
 
 # Supabase database server
 nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example.com --port 8000 --cert_name supabase.example.com
+
+# Static website / file-download hosting (no --port; serves files from --root_path)
+nginx-set-conf --config_template static_ssl --ip 1.2.3.4 --domain dl.example.com --cert_name dl.example.com --root_path /opt/www
 ```
 
 #### IPv6 Support
@@ -426,7 +431,7 @@ certificates via SNI fallback. Deploy `--setup_default` first.
 ## HTTP/3 / QUIC (--enable_http3)
 
 HTTP/3 opt-in support is available since v1.14.0. The `--enable_http3` flag adds QUIC + HTTP/3
-listen directives to 12 browser-facing SSL templates. By default the flag is **off** — existing
+listen directives to 14 browser-facing SSL templates. By default the flag is **off** — existing
 operators see no change until they explicitly set it. When HTTP/3 is unavailable (wrong nginx
 version, firewall closed), browsers automatically fall back to HTTP/2 over TCP and the feature
 degrades silently.
@@ -446,6 +451,12 @@ Before enabling HTTP/3 on any vhost, verify all five of the following:
    > must open UDP port 443 in your host firewall (`ufw allow 443/udp` or equivalent) separately
    > from TCP/443. Without this, QUIC connections are silently dropped and browsers fall back to
    > HTTP/2 — the Alt-Svc header is effectively dead.
+
+   Since v1.15.0 the tool performs a best-effort advisory check when `--enable_http3` is set:
+   if `ufw` is active but carries no inbound rule for UDP/443, it prints a yellow warning (it
+   does **not** abort — the firewall may be managed externally, e.g. a cloud security group, so
+   the check cannot be authoritative). Only `ufw` is inspected; on other firewalls the check is
+   skipped with a short note and you must verify UDP/443 yourself.
 
 - **TLS 1.3 for QUIC** — QUIC negotiates TLS 1.3 at the protocol level, so **no** server-scope `ssl_protocols` directive is injected. The shared TCP/443 (HTTP/2) listener keeps its http-scope `ssl_protocols TLSv1.2 TLSv1.3;`, preserving TLSv1.2 fallback (ROADMAP SC-1)
    block. Clients that cannot negotiate TLS 1.3 fall back to the TCP/HTTP/2 block which keeps
@@ -483,7 +494,7 @@ Both the CLI flag and the YAML key produce identical output.
 
 ### Supported templates
 
-The following 12 browser-facing templates support `--enable_http3`:
+The following 14 browser-facing templates support `--enable_http3`:
 
 | Template | Rationale |
 |----------|-----------|
@@ -498,6 +509,8 @@ The following 12 browser-facing templates support `--enable_http3`:
 | `pwa` | Generic PWA shell (HTTP/3 is ideal for PWAs) |
 | `code_server` | VSCode in browser, developer UX |
 | `supabase` | Backend-as-a-service, mixed API + browser |
+| `patchmon` | Patch-monitoring web UI |
+| `static_ssl` | Static sites / file downloads — HTTP/3 lowers latency |
 | `qdrant` | REST port only — gRPC port stays HTTP/2 |
 
 ### Excluded templates

@@ -23,6 +23,7 @@ from nginx_set_conf.templates.pwa import TEMPLATE as PWA_TEMPLATE
 from nginx_set_conf.templates.qdrant import TEMPLATE as QDRANT_TEMPLATE
 from nginx_set_conf.templates.redirect import TEMPLATE as REDIRECT_TEMPLATE
 from nginx_set_conf.templates.redirect_ssl import TEMPLATE as REDIRECT_SSL_TEMPLATE
+from nginx_set_conf.templates.static_ssl import TEMPLATE as STATIC_SSL_TEMPLATE
 from nginx_set_conf.templates.supabase import TEMPLATE as SUPABASE_TEMPLATE
 
 # Sentinel string used as the raw cache-path placeholder in every template that
@@ -110,6 +111,9 @@ TEMPLATES = {
     "mailpit": MAILPIT_TEMPLATE,
     "redirect": REDIRECT_TEMPLATE,
     "redirect_ssl": REDIRECT_SSL_TEMPLATE,
+    # static_ssl serves files from a local document root — no proxy_cache_path /
+    # limit_req_zone, registered verbatim like default_ssl_reject.
+    "static_ssl": STATIC_SSL_TEMPLATE,
     "n8n": N8N_TEMPLATE,
     "kasm": KASM_TEMPLATE,
     "qdrant": QDRANT_TEMPLATE,

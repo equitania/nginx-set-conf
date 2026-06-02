@@ -14,6 +14,7 @@ from nginx_set_conf.validators import (
     validate_domain,
     validate_ip,
     validate_port,
+    validate_root_path,
     validate_target_path,
 )
 
@@ -464,4 +465,51 @@ class TestHttp3Exclusion:
             port="8080",
             cert_name="example.com",
             enable_http3=False,
+        )
+
+    def test_static_ssl_is_http3_capable(self):
+        """static_ssl must NOT be excluded — it is browser-facing and HTTP/3-capable."""
+        assert "static_ssl" not in HTTP3_EXCLUDED_TEMPLATES
+        validate_all_inputs(
+            config_template="static_ssl",
+            domain="dl.example.com",
+            ip="1.2.3.4",
+            port="",
+            cert_name="dl.example.com",
+            root_path="/opt/www",
+            enable_http3=True,
+        )
+
+
+class TestValidateRootPath:
+    """validate_root_path: absolute path, no traversal, constrained charset."""
+
+    def test_empty_allowed(self):
+        assert validate_root_path("") == ""
+
+    def test_valid_absolute_path(self):
+        assert validate_root_path("/opt/www") == "/opt/www"
+        assert validate_root_path("/srv/files/downloads") == "/srv/files/downloads"
+
+    def test_relative_path_rejected(self):
+        with pytest.raises(ValidationError, match="absolute"):
+            validate_root_path("opt/www")
+
+    def test_traversal_rejected(self):
+        with pytest.raises(ValidationError, match="traversal"):
+            validate_root_path("/opt/www/../../etc")
+
+    def test_invalid_characters_rejected(self):
+        with pytest.raises(ValidationError):
+            validate_root_path("/opt/www; rm -rf /")
+
+    def test_static_ssl_accepts_empty_port_with_root(self):
+        """static_ssl has no upstream port — empty port + root_path must validate."""
+        validate_all_inputs(
+            config_template="static_ssl",
+            domain="dl.example.com",
+            ip="1.2.3.4",
+            port="",
+            cert_name="dl.example.com",
+            root_path="/opt/www",
         )
