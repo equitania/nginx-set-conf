@@ -250,3 +250,14 @@ Static Download Site:
   #allowed_ips: "192.168.1.0/24,10.0.0.50"  # Optional: restrict access by IP
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
+
+# Static website hosting — fully filled-in example (copy & adapt)
+Company Website:
+  config_template: static_ssl
+  ip: 203.0.113.10
+  domain: www.example.com
+  cert_name: www.example.com
+  root_path: /opt/www/example.com
+  enable_http3: true
+  allowed_ips: "192.168.1.0/24,10.0.0.50"
+  auth_file: example_htpasswd
