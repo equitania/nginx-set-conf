@@ -356,6 +356,29 @@ nginx-set-conf --backup_config
 - Recursive backup of `nginxconfig.io/` directory
 - Logging of all backup operations
 
+#### 4. Automatic Pre-flight Check (v1.16.0)
+
+Every real deployment (single domain, YAML batch, or interactive) now runs an
+automatic **pre-flight check** before the new vhost is written. It verifies the
+three managed base configs (`nginx.conf`, `general.conf`, `security.conf`)
+against the embedded templates and auto-repairs any drift:
+
+1. Detects drift via SHA256 comparison
+2. Backs up the current state
+3. Re-syncs only the divergent file(s) from the embedded templates
+4. Validates with `nginx -t` — on failure it rolls back from the backup and
+   aborts the deploy (atomic: no net change)
+
+This guarantees a new domain is never deployed on top of a broken base. The
+check is **always on** (no opt-out) and is skipped only for `--dry_run`.
+
+> **Why this matters for Odoo 19:** A `security.conf` carrying a
+> Content-Security-Policy that restricts scripts **without `'unsafe-eval'`**
+> blocks Odoo 19's OWL template compilation, rendering the login/website page
+> blank. The embedded template ships that CSP line commented out, so the
+> pre-flight self-heals a drifted server on the next domain deploy. If you ever
+> re-enable an nginx-level CSP, it MUST include `'unsafe-eval'` for Odoo.
+
 ### Intranet Configuration (disable_domain_listen)
 
 For intranet systems that need a wildcard listen socket instead of the
@@ -1049,6 +1072,31 @@ nginx-set-conf --backup_config
 - Vollständige Sicherung von `/etc/nginx/nginx.conf`
 - Rekursive Sicherung des `nginxconfig.io/` Verzeichnisses
 - Logging aller Backup-Operationen
+
+#### 4. Automatische Pre-Flight-Prüfung (v1.16.0)
+
+Jedes echte Deployment (einzelne Domain, YAML-Batch oder interaktiv) führt nun
+vor dem Schreiben des neuen vhosts automatisch eine **Pre-Flight-Prüfung** durch.
+Sie vergleicht die drei verwalteten Basis-Dateien (`nginx.conf`, `general.conf`,
+`security.conf`) mit den eingebetteten Templates und korrigiert Abweichungen
+selbsttätig:
+
+1. Erkennt Abweichungen per SHA256-Vergleich
+2. Legt ein Backup des aktuellen Stands an
+3. Synchronisiert nur die abweichende(n) Datei(en) aus den Embedded-Templates
+4. Validiert mit `nginx -t` — bei Fehler Rollback aus dem Backup und Abbruch des
+   Deployments (atomar: keine Netto-Änderung)
+
+Damit wird nie eine neue Domain auf einer kaputten Basis ausgerollt. Die Prüfung
+ist **immer aktiv** (kein Opt-out) und wird nur bei `--dry_run` übersprungen.
+
+> **Warum das für Odoo 19 wichtig ist:** Eine `security.conf` mit einer
+> Content-Security-Policy, die Skripte **ohne `'unsafe-eval'`** einschränkt,
+> blockiert die OWL-Template-Kompilierung von Odoo 19 — die Login-/Website-Seite
+> bleibt leer. Das eingebettete Template liefert diese CSP-Zeile auskommentiert
+> aus; die Pre-Flight-Prüfung heilt einen abgedrifteten Server beim nächsten
+> Domain-Deploy von selbst. Wird je wieder eine nginx-CSP aktiviert, MUSS sie für
+> Odoo `'unsafe-eval'` enthalten.
 
 ### Praktische Anwendungsszenarien
 

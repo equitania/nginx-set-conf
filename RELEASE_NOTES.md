@@ -1,6 +1,24 @@
 # RELEASE NOTES
 
-## Version 1.15.0 (02.06.2026)
+## Version 1.16.0 (08.06.2026)
+
+### Added
+
+- **[ADD]** **Pre-flight base-config check + auto-repair before every vhost deploy** — every real
+  `nginx-set-conf` deployment (single, YAML batch, or interactive) now runs a one-time pre-flight
+  that verifies the three managed base configs (`nginx.conf`, `general.conf`,
+  `nginxconfig.io/security.conf`) against the embedded templates *before* the new vhost is written.
+  On drift it auto-repairs: it backs up the current state, re-syncs the divergent file(s) from the
+  embedded templates, and validates with `nginx -t`. If the re-sync or `nginx -t` fails, the
+  previous state is restored from the backup (atomic — the pre-flight then makes no net change) and
+  the deploy aborts. The corrected base files are activated by the deploy's final nginx reload.
+  This guarantees a new domain is never deployed on top of a broken base — and it self-heals a
+  server `security.conf` that still carries the old, Odoo-incompatible Content-Security-Policy
+  (a CSP restricting scripts without `'unsafe-eval'` blocks Odoo 19's OWL template compilation,
+  which renders the login/website page blank). The check has **no opt-out** and is skipped only for
+  `--dry_run`. Implemented as `ConfigVerification.preflight_check_and_repair()` with a new
+  `restore_configuration()` rollback helper; `backup_configuration()` now returns the backup path
+  (`str`) instead of a bare `bool` (truthiness unchanged for existing callers).
 
 ### Added
 

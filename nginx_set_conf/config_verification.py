@@ -351,9 +351,7 @@ class ConfigVerification:
                 click.echo(f"  - {file_name}")
 
             if not force:
-                click.echo(
-                    "\nAborting. Pass --force to proceed with overwriting these files."
-                )
+                click.echo("\nAborting. Pass --force to proceed with overwriting these files.")
                 return False
 
             # force=True: continue after the warning notice
@@ -417,7 +415,7 @@ class ConfigVerification:
         backup_dir: str = "/var/backups/nginx_set_conf",
         nginx_conf_path: str = "/etc/nginx/nginx.conf",
         nginxconfig_dir: str = "/etc/nginx/nginxconfig.io",
-    ) -> bool:
+    ) -> "str | None":
         """
         Create a backup of current server configuration.
 
@@ -435,7 +433,9 @@ class ConfigVerification:
                 Defaults to /etc/nginx/nginxconfig.io. Injectable for testing.
 
         Returns:
-            True if backup was successful, False otherwise
+            The backup directory path (str) on success, None on failure.
+            Callers that only need a boolean can rely on the truthiness of
+            the return value (a path is truthy, None is falsy).
         """
         try:
             import shutil
@@ -450,7 +450,7 @@ class ConfigVerification:
             backup_root.mkdir(mode=0o700, parents=True, exist_ok=True)
             if backup_path.exists() or backup_path.is_symlink():
                 logger.error(f"Backup target already exists or is a symlink: {backup_path}")
-                return False
+                return None
             backup_path.mkdir(mode=0o700, parents=False, exist_ok=False)
 
             # Backup main nginx.conf
@@ -459,7 +459,7 @@ class ConfigVerification:
                 target = backup_path / "nginx.conf"
                 if target.is_symlink():
                     logger.error(f"Refusing to follow symlink at backup target: {target}")
-                    return False
+                    return None
                 shutil.copy2(server_nginx_conf, target)
 
             # Backup nginxconfig.io directory
@@ -470,7 +470,7 @@ class ConfigVerification:
                         "Refusing to backup symlinked source directory: %s",
                         server_nginxconfig_dir,
                     )
-                    return False
+                    return None
                 shutil.copytree(
                     server_nginxconfig_dir,
                     backup_path / "nginxconfig.io",
@@ -479,8 +479,127 @@ class ConfigVerification:
 
             logger.info(f"Configuration backup created at: {backup_path}")
             click.echo(f"Backup created: {backup_path}")
-            return True
+            return str(backup_path)
 
         except Exception as e:
             logger.error(f"Error creating backup: {e}")
+            return None
+
+    def restore_configuration(
+        self,
+        backup_path: str,
+        nginx_conf_path: str = "/etc/nginx/nginx.conf",
+        nginxconfig_dir: str = "/etc/nginx/nginxconfig.io",
+    ) -> bool:
+        """
+        Restore server configuration from a backup created by
+        backup_configuration().
+
+        Used as the rollback step of the pre-flight repair: if `nginx -t`
+        fails after a resync, the previous state is copied back so the
+        pre-flight makes no net change. Mirrors the symlink-refusal guards
+        of backup_configuration().
+
+        Args:
+            backup_path: Backup directory returned by backup_configuration().
+            nginx_conf_path: Target path for the main nginx.conf. Injectable
+                for testing.
+            nginxconfig_dir: Target nginxconfig.io directory. Injectable for
+                testing.
+
+        Returns:
+            True if the restore succeeded, False otherwise.
+        """
+        try:
+            import shutil
+
+            backup_root = Path(backup_path)
+            if not backup_root.is_dir():
+                logger.error(f"Backup path is not a directory: {backup_root}")
+                return False
+
+            # Restore main nginx.conf
+            backup_nginx_conf = backup_root / "nginx.conf"
+            if backup_nginx_conf.exists() and not backup_nginx_conf.is_symlink():
+                target = Path(nginx_conf_path)
+                if target.is_symlink():
+                    logger.error(f"Refusing to restore over a symlink: {target}")
+                    return False
+                shutil.copy2(backup_nginx_conf, target)
+
+            # Restore nginxconfig.io directory
+            backup_nginxconfig_dir = backup_root / "nginxconfig.io"
+            if backup_nginxconfig_dir.is_dir() and not backup_nginxconfig_dir.is_symlink():
+                target_dir = Path(nginxconfig_dir)
+                if target_dir.is_symlink():
+                    logger.error("Refusing to restore over a symlinked directory: %s", target_dir)
+                    return False
+                if target_dir.exists():
+                    shutil.rmtree(target_dir)
+                shutil.copytree(
+                    backup_nginxconfig_dir,
+                    target_dir,
+                    symlinks=False,
+                )
+
+            logger.info(f"Configuration restored from backup: {backup_root}")
+            click.echo(f"Configuration restored from backup: {backup_root}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error restoring backup: {e}")
             return False
+
+    def preflight_check_and_repair(self) -> bool:
+        """
+        Pre-flight gate run before every real vhost deployment.
+
+        Verifies the three managed base config files (nginx.conf,
+        general.conf, security.conf) against the embedded templates and
+        auto-repairs any drift before a new domain is deployed — so a vhost
+        is never written on top of a broken base (e.g. an Odoo-breaking CSP
+        in security.conf that lacks 'unsafe-eval').
+
+        On drift: back up, resync the divergent files from the embedded
+        templates, then validate with `nginx -t`. If the resync or
+        validation fails, the previous state is restored from the backup
+        (atomic: the pre-flight then made no net change) and False is
+        returned so the caller aborts the deploy. The corrected base files
+        are activated by the deploy's final nginx reload.
+
+        Returns:
+            True if the base config is consistent (already, or after a
+            successful repair); False if a repair was needed but failed.
+        """
+        # Local import to avoid any import cycle at module load time.
+        from .utils import _run_command
+
+        results = self.verify_configuration_consistency()
+        divergent = [name for name, result in results.items() if result["needs_update"]]
+
+        if not divergent:
+            click.echo("[pre-flight] Base nginx configs are consistent.")
+            return True
+
+        click.secho(
+            "[pre-flight] Drift detected in: " + ", ".join(divergent) + " — auto-repairing.",
+            fg="yellow",
+        )
+
+        backup_path = self.backup_configuration()
+        if not backup_path:
+            click.secho("[pre-flight] Backup failed — aborting deploy.", fg="red")
+            return False
+
+        if not self._perform_sync(results, divergent):
+            click.secho("[pre-flight] Resync failed — rolling back.", fg="red")
+            self.restore_configuration(backup_path)
+            return False
+
+        if not _run_command(["nginx", "-t"]):
+            click.secho("[pre-flight] nginx -t failed after repair — rolling back.", fg="red")
+            self.restore_configuration(backup_path)
+            return False
+
+        click.secho("[pre-flight] Base configs repaired and validated.", fg="green")
+        return True

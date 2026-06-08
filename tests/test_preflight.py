@@ -1,0 +1,99 @@
+"""
+Tests for the pre-flight base-config check (preflight_check_and_repair).
+
+The pre-flight runs before every real vhost deploy and brings the three
+managed base configs (nginx.conf, general.conf, security.conf) back in line
+with the embedded templates — fixing e.g. an Odoo-breaking CSP in security.conf
+that lacks 'unsafe-eval'. These tests mock the underlying building blocks
+(verify/backup/sync/restore and nginx -t) to assert the orchestration logic.
+"""
+
+from unittest.mock import patch
+
+from nginx_set_conf.config_verification import ConfigVerification
+
+
+def _results(drift: bool):
+    """Synthetic verify_configuration_consistency() result."""
+    return {
+        "nginx.conf": {"needs_update": False},
+        "nginxconfig.io/general.conf": {"needs_update": False},
+        "nginxconfig.io/security.conf": {"needs_update": drift},
+    }
+
+
+class TestPreflightCheckAndRepair:
+    def test_no_drift_is_noop(self):
+        """Consistent base configs: no backup, no sync, returns True."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(False)),
+            patch.object(cv, "backup_configuration") as mock_backup,
+            patch.object(cv, "_perform_sync") as mock_sync,
+        ):
+            assert cv.preflight_check_and_repair() is True
+        mock_backup.assert_not_called()
+        mock_sync.assert_not_called()
+
+    def test_drift_repaired_and_validated(self):
+        """Drift + backup + sync + nginx -t ok: returns True, no rollback."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True) as mock_sync,
+            patch.object(cv, "restore_configuration") as mock_restore,
+            patch("nginx_set_conf.utils._run_command", return_value=True),
+        ):
+            assert cv.preflight_check_and_repair() is True
+        mock_sync.assert_called_once()
+        mock_restore.assert_not_called()
+
+    def test_drift_only_syncs_divergent_files(self):
+        """_perform_sync must receive exactly the divergent file names."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True) as mock_sync,
+            patch("nginx_set_conf.utils._run_command", return_value=True),
+        ):
+            cv.preflight_check_and_repair()
+        _, divergent = mock_sync.call_args.args
+        assert divergent == ["nginxconfig.io/security.conf"]
+
+    def test_nginx_test_failure_rolls_back(self):
+        """nginx -t fails after repair: restore from backup, returns False."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True),
+            patch.object(cv, "restore_configuration", return_value=True) as mock_restore,
+            patch("nginx_set_conf.utils._run_command", return_value=False),
+        ):
+            assert cv.preflight_check_and_repair() is False
+        mock_restore.assert_called_once_with("/var/backups/x")
+
+    def test_backup_failure_aborts_without_sync(self):
+        """Backup fails: no sync attempted, returns False."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value=None),
+            patch.object(cv, "_perform_sync") as mock_sync,
+        ):
+            assert cv.preflight_check_and_repair() is False
+        mock_sync.assert_not_called()
+
+    def test_sync_failure_rolls_back(self):
+        """Resync fails: restore from backup, returns False."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=False),
+            patch.object(cv, "restore_configuration", return_value=True) as mock_restore,
+        ):
+            assert cv.preflight_check_and_repair() is False
+        mock_restore.assert_called_once_with("/var/backups/x")

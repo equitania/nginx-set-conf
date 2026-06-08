@@ -23,8 +23,8 @@ from logging.handlers import RotatingFileHandler
 import click
 
 from . import __version__
-from .templates.all_templates import get_config_template
 from .config_verification import ConfigVerification
+from .templates.all_templates import get_config_template
 from .utils import (
     execute_commands,
     migrate_configs_to_wildcard,
@@ -384,6 +384,17 @@ def start_nginx_set_conf(
         logger.info("Starting nginx service")
         _run_service_command(["systemctl", "start", "nginx.service"])
 
+    # Pre-flight: ensure the three managed base configs (nginx.conf,
+    # general.conf, security.conf) match the embedded templates before
+    # deploying any vhost. Auto-repairs drift (e.g. an Odoo-breaking CSP in
+    # security.conf that lacks 'unsafe-eval') so new domains never deploy on a
+    # broken base. Runs exactly once per invocation and is idempotent.
+    # Skipped for --dry_run (no server writes).
+    if not dry_run:
+        if not ConfigVerification().preflight_check_and_repair():
+            logger.error("Pre-flight base-config check failed — aborting deploy.")
+            return
+
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
@@ -478,12 +489,8 @@ def start_nginx_set_conf(
         disable_domain_listen = (
             disable_domain_listen_input.lower() in ["yes", "y", "true", "1"] if disable_domain_listen_input else False
         )
-        enable_http3_input = retrieve_valid_input(
-            "Enable HTTP/3 QUIC directives? (yes/no, optional)\n"
-        )
-        enable_http3 = (
-            enable_http3_input.lower() in ["yes", "y", "true", "1"] if enable_http3_input else False
-        )
+        enable_http3_input = retrieve_valid_input("Enable HTTP/3 QUIC directives? (yes/no, optional)\n")
+        enable_http3 = enable_http3_input.lower() in ["yes", "y", "true", "1"] if enable_http3_input else False
         root_path = retrieve_optional_input("Document root for static templates (leave empty for default /opt/www)\n")
         custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)\n")
         target_path = custom_target_path if custom_target_path else target_path
