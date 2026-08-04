@@ -43,7 +43,7 @@ class TestPreflightCheckAndRepair:
             patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
             patch.object(cv, "_perform_sync", return_value=True) as mock_sync,
             patch.object(cv, "restore_configuration") as mock_restore,
-            patch("nginx_set_conf.utils._run_command", return_value=True),
+            patch.object(cv, "_nginx_test", return_value=(True, "")),
         ):
             assert cv.preflight_check_and_repair() is True
         mock_sync.assert_called_once()
@@ -56,24 +56,59 @@ class TestPreflightCheckAndRepair:
             patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
             patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
             patch.object(cv, "_perform_sync", return_value=True) as mock_sync,
-            patch("nginx_set_conf.utils._run_command", return_value=True),
+            patch.object(cv, "_nginx_test", return_value=(True, "")),
         ):
             cv.preflight_check_and_repair()
         _, divergent = mock_sync.call_args.args
         assert divergent == ["nginxconfig.io/security.conf"]
 
-    def test_nginx_test_failure_rolls_back(self):
-        """nginx -t fails after repair: restore from backup, returns False."""
+    def test_repair_breaks_config_but_rollback_is_valid_continues(self):
+        """The host is simply not on this version's templates.
+
+        nginx -t fails with the templates applied, but the rolled-back config
+        validates on its own — that is a server whose base config is newer or
+        locally extended (e.g. an extra load_module), not a broken one. It must
+        stay deployable, otherwise this gate locks out every host ahead of the
+        package.
+        """
         cv = ConfigVerification()
         with (
             patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
             patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
             patch.object(cv, "_perform_sync", return_value=True),
             patch.object(cv, "restore_configuration", return_value=True) as mock_restore,
-            patch("nginx_set_conf.utils._run_command", return_value=False),
+            patch.object(cv, "_nginx_test", side_effect=[(False, 'unknown directive "js_periodic"'),
+                                                         (True, "syntax is ok")]),
+        ):
+            assert cv.preflight_check_and_repair() is True
+        mock_restore.assert_called_once_with("/var/backups/x")
+
+    def test_config_broken_after_rollback_aborts(self):
+        """Invalid even after the rollback: the fault predates the repair."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True),
+            patch.object(cv, "restore_configuration", return_value=True) as mock_restore,
+            patch.object(cv, "_nginx_test", return_value=(False, "host not found in upstream")),
         ):
             assert cv.preflight_check_and_repair() is False
         mock_restore.assert_called_once_with("/var/backups/x")
+
+    def test_nginx_test_output_is_shown(self, capsys):
+        """The nginx -t message must reach the operator, not just logger.debug."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True),
+            patch.object(cv, "restore_configuration", return_value=True),
+            patch.object(cv, "_nginx_test", side_effect=[(False, 'unknown directive "js_periodic"'),
+                                                         (True, "syntax is ok")]),
+        ):
+            cv.preflight_check_and_repair()
+        assert "js_periodic" in capsys.readouterr().out
 
     def test_backup_failure_aborts_without_sync(self):
         """Backup fails: no sync attempted, returns False."""

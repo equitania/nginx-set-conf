@@ -1,5 +1,57 @@
 # RELEASE NOTES
 
+## Version 1.17.0 (04.08.2026)
+
+### Fixed
+
+- **[FIX]** **The pre-flight could lock a server out of every deploy.** On a host whose vhosts use
+  njs (`js_periodic`) or the `limit_req`/`proxy_cache`/`fastcgi_cache` zones, the v1.16.0 pre-flight
+  overwrote a working `nginx.conf` with the embedded template, `nginx -t` failed, the rollback
+  restored the original — and the deploy aborted. Every run, with no way to opt out. Three causes,
+  all addressed:
+  - The embedded `nginx.conf` was **two revisions behind** the file myodoo-docker actually ships
+    (v1.2 vs v1.5) and lacked `limit_req_zone one`, `limit_conn_zone addr`, `proxy_cache_path
+    my_cache` and `fastcgi_cache_path fastcgi_cache`. A vhost referencing any of them cannot pass
+    `nginx -t` once the base config has been "repaired" to the older version.
+  - Host-specific `load_module` lines were dropped on every sync. Dynamic modules (njs, brotli,
+    geoip2) are installed per host, so an embedded template cannot know them —
+    `_preserve_load_modules()` now carries them from the existing `nginx.conf` into the template,
+    deduplicated by module path so repeated syncs do not stack them.
+  - **The verdict after a failed repair now depends on what the rollback restored.** A base config
+    that validates on its own is merely *different* from this version's templates — typically a
+    host running ahead of the package — and the deploy continues with a warning. Only a config that
+    is still invalid after the rollback aborts, because then the fault predates the repair. This is
+    what keeps servers deployable during a staged rollout.
+- **[FIX]** **The `nginx -t` failure message is shown.** `utils._run_command()` returns only a bool
+  and puts the output on `logger.debug`, so an operator running at INFO saw `nginx -t failed after
+  repair — rolling back` and nothing else: the one piece of information needed to fix it was
+  swallowed. The new `_nginx_test()` returns `(ok, output)` and the pre-flight prints it.
+
+### Changed
+
+- **[CHG]** **One source for the three base config files.** myodoo-docker's `scripts/nginx/` is now
+  authoritative — those files are what `deploy-nginx-base.sh` writes to servers — and
+  `tools/sync_base_templates.py` generates the embedded constants from them. They are
+  **byte-identical**, which is what ends the ping-pong: previously each tool declared the other's
+  work "drift" and overwrote it on every run. The templates remain embedded constants; the package
+  never depends on myodoo-docker at runtime. `tests/test_base_template_source.py` fails on any
+  future drift (and skips where the sibling checkout is absent).
+- **[CHG]** Two fixes that came out of merging the two versions, each caught by the other side's
+  tests: the myodoo-docker `nginx.conf` gained `http2 on;` (since nginx 1.25.1 the only way to
+  enable HTTP/2 — without it every vhost silently served HTTP/1.1), and its `security.conf` CSP
+  gained `'unsafe-eval'`, without which Odoo 17+ renders a blank login page. The latter had already
+  been deployed to servers by `deploy-nginx-base.sh`; the embedded template had the CSP commented
+  out, which is why the pre-flight was written in the first place.
+
+### Upgrade notes
+
+- A server still on **1.16.0** with newer myodoo-docker base files stays blocked until this version
+  is installed — the old pre-flight aborts before the new logic can apply. Install this version, or
+  `nginx-set-conf==1.15.0` as a stopgap, to unblock it.
+- **1.17.0 against an older server** is safe: the base files are repaired forward, host
+  `load_module` lines survive, and a host whose config the templates would break keeps deploying
+  with a warning instead of being locked out.
+
 ## Version 1.16.0 (08.06.2026)
 
 ### Added

@@ -7,15 +7,23 @@ using embedded templates.
 
 import hashlib
 import logging
+import re
+import subprocess
 from pathlib import Path
 
 import click
 
 logger = logging.getLogger(__name__)
 
+# Dynamic modules (njs, brotli, geoip2, ...) are installed per host, so an
+# embedded template can never know which ones a given server loads. These lines
+# are carried over from the existing nginx.conf on every sync — dropping one
+# makes every vhost using that module's directives fail `nginx -t`.
+LOAD_MODULE_PATTERN = re.compile(r"^[ \t]*load_module[ \t]+[^;]+;", re.MULTILINE)
+
 # Embedded template files
-NGINX_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.24.1
-# Version 1.2 from 28.05.2026
+NGINX_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.26.2
+# Version 1.5 from 04.08.2026
 user  nginx;
 worker_processes  auto;
 worker_rlimit_nofile 65535;
@@ -42,6 +50,10 @@ http {
     sendfile               on;
     tcp_nopush             on;
     tcp_nodelay            on;
+    # Since nginx 1.25.1 this directive is the ONLY way to enable HTTP/2 — the
+    # old `listen ... http2` parameter is deprecated and ignored. The vhost
+    # templates emit a plain `listen <ip>:443 ssl;`, so without this line every
+    # vhost silently serves HTTP/1.1 only.
     http2                  on;
     server_tokens          off;
     log_not_found          off;
@@ -49,9 +61,72 @@ http {
     types_hash_bucket_size 64;
     client_max_body_size   16M;
 
+    ##
+    # Buffer Size Settings
+    ##
+    
+    client_body_buffer_size 16k;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 4 8k;
+
+    ##
+    # Timeout Settings
+    ##
+    
+    client_body_timeout 12;
+    client_header_timeout 12;
+    keepalive_timeout 15;
+    send_timeout 10;
+
+    ##
+    # Rate Limiting
+    ##
+    
+    limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+    limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+    ##
+    # Gzip Settings
+    ##
+    
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
+    ##
+    # Cache Settings
+    ##
+    
+    # Proxy Cache
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m inactive=60m use_temp_path=off;
+    proxy_cache_key "$scheme$request_method$host$request_uri";
+
+    # FastCGI Cache
+    fastcgi_cache_path /var/cache/nginx/fastcgi levels=1:2 keys_zone=fastcgi_cache:10m max_size=10g inactive=60m use_temp_path=off;
+    fastcgi_cache_key "$request_method$request_uri";
+    fastcgi_cache_use_stale error timeout http_500 http_503;
+    fastcgi_cache_valid 200 60m;
+
+    # Open File Cache
+    open_file_cache max=1000 inactive=20s;
+    open_file_cache_valid 30s;
+    open_file_cache_min_uses 2;
+    open_file_cache_errors on;
+
     # MIME
     include                mime.types;
     default_type           application/octet-stream;
+
+    ##
+    # Security Headers
+    ##
+    #
+    # Security headers are NOT set here. nginx does not inherit add_header into a
+    # server/location block that defines its own add_header, so duplicating them
+    # here only created a divergent, dead set. They live in
+    # nginxconfig.io/security.conf, which every vhost includes (single source).
 
     ##
     # SSL Settings
@@ -65,11 +140,15 @@ http {
     ssl_protocols          TLSv1.2 TLSv1.3;
     ssl_ciphers            ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
 
-    # OCSP Stapling - DISABLED by default due to Let's Encrypt issues
-    # ssl_stapling           on;
-    # ssl_stapling_verify    on;
-    # resolver               1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220 valid=60s;
-    # resolver_timeout       2s;
+    # OCSP Stapling — disabled.
+    # Let's Encrypt retired OCSP in May 2025; renewed certificates no longer
+    # carry an OCSP responder URL, so nginx logs a warning per cert at startup
+    # and stapling does nothing useful. Re-enable only if you switch to a CA
+    # that still issues OCSP-bearing certs.
+    ssl_stapling           off;
+    ssl_stapling_verify    off;
+    resolver               1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220 valid=60s;
+    resolver_timeout       2s;
 
     ##
     # Logging Settings
@@ -78,36 +157,75 @@ http {
     access_log             off;
     error_log              /var/log/nginx/error.log warn;
 
+    ##
+    # Error Pages
+    ##
+    #
+    # Error pages are defined per vhost (nginx-set-conf templates set
+    # `error_page 500 502 503 504 /custom_50x.html;` + a serving location with
+    # root /etc/nginx/html/). The previous global `/404.html` / `/50x.html` had no
+    # serving location and did not match the deployed custom_50x.html — removed.
+
+    ##
+    # Server Blocks
+    ##
+    
+    # Default server block with common location settings
+    server {
+        # Browser cache settings
+        location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
+            expires 1y;
+            add_header Cache-Control "public, no-transform";
+        }
+
+        # Deny access to hidden files
+        location ~ /\. {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+    }
+
     include /etc/nginx/conf.d/*.conf;
 }
 """
 
-GENERAL_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.24.1
-# Version 1.1 from 17.07.2025
+GENERAL_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.26.2
+# Version 1.1 from 27.05.2026
 
 # favicon.ico
 location = /favicon.ico {
     log_not_found off;
 }
 
-# gzip
-gzip            on;
-gzip_vary       on;
-gzip_proxied    any;
-gzip_comp_level 6;
-gzip_types      text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+# gzip removed in v1.1: it is configured globally in the http{} block of
+# nginx.conf, so repeating it per vhost here was redundant.
 """
 
-SECURITY_CONF_TEMPLATE = r"""# nginx incl. SSL/http2 1.24.1
-# Version 1.2 from 17.07.2025
+SECURITY_CONF_TEMPLATE = r"""# nginx incl. SSL/http2 1.26.2
+# Version 1.4 from 04.08.2026
+#
+# Single source of truth for security headers — included by every vhost
+# (nginx does NOT inherit add_header into blocks that set their own, so headers
+# are kept here rather than duplicated in the http{} block of nginx.conf).
 
 # security headers
-add_header X-XSS-Protection          "1; mode=block" always;
+add_header X-Frame-Options           "SAMEORIGIN" always;
+# X-XSS-Protection removed in v1.3: deprecated and ignored by modern browsers
+# (can even introduce side-channels); CSP frame-ancestors covers the intent.
 add_header X-Content-Type-Options    "nosniff" always;
-add_header Referrer-Policy           "no-referrer-when-downgrade" always;
-#add_header Content-Security-Policy   "default-src 'self' http: https: ws: wss: data: blob: 'unsafe-inline'; frame-ancestors 'self';" always;
+add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+# CSP tuned for Odoo: ws/wss for longpolling, unsafe-inline for Odoo's inline
+# assets, data/blob for images; frame-ancestors 'self' backs up X-Frame-Options.
+#
+# 'unsafe-eval' is REQUIRED from Odoo 17 on and non-negotiable for Odoo 19: OWL
+# compiles its templates at runtime via new Function(). Without it the browser
+# blocks that call and the login page renders blank — with nothing in the nginx
+# log, because the block happens client-side. Never drop it while Odoo is
+# served from this vhost.
+add_header Content-Security-Policy    "default-src 'self' http: https: ws: wss: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self';" always;
 add_header Permissions-Policy        "interest-cohort=()" always;
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
 
 # . files
 location ~ /\.(?!well-known) {
@@ -374,6 +492,55 @@ class ConfigVerification:
 
         return self._perform_sync(results, files_to_update + missing_files)
 
+    @staticmethod
+    def _preserve_load_modules(
+        file_name: str, template_content: str, server_path: Path
+    ) -> str:
+        """Carry host-specific ``load_module`` lines into the template.
+
+        Only nginx.conf can hold them (``load_module`` is a main-context
+        directive). Deduplicated by the module path, so repeated syncs do not
+        stack them up.
+        """
+        if file_name != "nginx.conf" or not server_path.is_file():
+            return template_content
+        try:
+            existing = server_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return template_content
+
+        carried = []
+        for line in LOAD_MODULE_PATTERN.findall(existing):
+            module_path = line.split("load_module", 1)[1].split(";")[0]
+            module_path = module_path.strip().strip("\"'")
+            if module_path and module_path not in template_content:
+                carried.append(line.strip())
+                logger.info("Carrying over host module: %s", module_path)
+        if not carried:
+            return template_content
+        click.echo(f"  ↳ kept {len(carried)} host-specific load_module line(s)")
+        return "\n".join(carried) + "\n\n" + template_content
+
+    @staticmethod
+    def _nginx_test() -> "tuple[bool, str]":
+        """Run ``nginx -t`` and return (ok, combined output).
+
+        utils._run_command() returns only a bool and puts the output on
+        logger.debug, so an operator running at INFO never learns *why* a
+        validation failed — which is the one thing needed to fix it.
+        """
+        try:
+            result = subprocess.run(
+                ["nginx", "-t"], capture_output=True, text=True, timeout=30
+            )
+            return result.returncode == 0, f"{result.stdout}{result.stderr}".strip()
+        except FileNotFoundError:
+            return False, "nginx binary not found"
+        except subprocess.TimeoutExpired:
+            return False, "nginx -t timed out"
+        except OSError as exc:
+            return False, str(exc)
+
     def _perform_sync(self, results: dict[str, dict], files_to_sync: list) -> bool:
         """
         Perform the actual file synchronization.
@@ -390,7 +557,9 @@ class ConfigVerification:
         for file_name in files_to_sync:
             result = results[file_name]
             server_path = Path(result["server"]["path"])
-            template_content = self.templates[file_name]
+            template_content = self._preserve_load_modules(
+                file_name, self.templates[file_name], server_path
+            )
 
             try:
                 # Create server directory if it doesn't exist
@@ -563,17 +732,21 @@ class ConfigVerification:
         On drift: back up, resync the divergent files from the embedded
         templates, then validate with `nginx -t`. If the resync or
         validation fails, the previous state is restored from the backup
-        (atomic: the pre-flight then made no net change) and False is
-        returned so the caller aborts the deploy. The corrected base files
-        are activated by the deploy's final nginx reload.
+        (atomic: the pre-flight then made no net change). The corrected base
+        files are activated by the deploy's final nginx reload.
+
+        After a failed repair the verdict depends on what the rollback
+        restored: a base config that validates on its own is merely *different*
+        from this version's templates — typically a host running a newer
+        nginx.conf than the package ships — and the deploy continues with a
+        warning. Only a base that is still invalid after the rollback aborts
+        the deploy, because then the fault predates this repair.
 
         Returns:
-            True if the base config is consistent (already, or after a
-            successful repair); False if a repair was needed but failed.
+            True if the base config is consistent (already, after a successful
+            repair, or after a rollback that restored a valid config); False
+            only if the config is invalid independently of this repair.
         """
-        # Local import to avoid any import cycle at module load time.
-        from .utils import _run_command
-
         results = self.verify_configuration_consistency()
         divergent = [name for name, result in results.items() if result["needs_update"]]
 
@@ -596,9 +769,35 @@ class ConfigVerification:
             self.restore_configuration(backup_path)
             return False
 
-        if not _run_command(["nginx", "-t"]):
+        ok, output = self._nginx_test()
+        if not ok:
             click.secho("[pre-flight] nginx -t failed after repair — rolling back.", fg="red")
+            for line in output.splitlines():
+                click.secho(f"    {line}", fg="red")
             self.restore_configuration(backup_path)
+
+            # Whether this aborts the deploy depends on what the rollback
+            # restored. A base config that validates fine on its own is simply
+            # not identical to the embedded template — a server carrying a
+            # newer or locally extended nginx.conf must stay deployable, or
+            # this gate would lock out every host that is ahead of the package.
+            # Only a base that is broken *independently* of this repair is a
+            # real reason to stop.
+            restored_ok, restored_output = self._nginx_test()
+            if restored_ok:
+                click.secho(
+                    "[pre-flight] Rollback restored a valid config — continuing. "
+                    "The base files differ from this version's templates; see above "
+                    "for what the templates would break.",
+                    fg="yellow",
+                )
+                return True
+
+            click.secho(
+                "[pre-flight] Config is invalid even after rollback — the fault is "
+                "not (only) in the base files:", fg="red")
+            for line in restored_output.splitlines():
+                click.secho(f"    {line}", fg="red")
             return False
 
         click.secho("[pre-flight] Base configs repaired and validated.", fg="green")
