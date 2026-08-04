@@ -87,7 +87,7 @@ def compare() -> "list[str]":
 
 def write() -> "list[str]":
     """Rewrite the constants from the source files. Returns what changed."""
-    target_text = TARGET.read_text(encoding="utf-8")
+    original_text = target_text = TARGET.read_text(encoding="utf-8")
     changed = []
     for constant, content in read_sources().items():
         pattern = _constant_pattern(constant)
@@ -103,7 +103,18 @@ def write() -> "list[str]":
         start, end = match.span(2)
         target_text = target_text[:start] + content + target_text[end:]
         changed.append(constant)
-    if changed:
+
+    # All three must be raw strings. nginx configs are full of regex escapes
+    # (`location ~* \.(jpg|...)$`), and in a normal string `\.` raises a
+    # SyntaxWarning today and a SyntaxError from Python 3.14 on — the module
+    # would stop importing. Normalising here means a future sync cannot
+    # reintroduce it.
+    for constant in MANAGED:
+        target_text = target_text.replace(f'{constant} = """', f'{constant} = r"""')
+
+    # Compare against the original rather than `changed`: the raw-prefix
+    # normalisation above can be the only edit in a run.
+    if target_text != original_text:
         TARGET.write_text(target_text, encoding="utf-8")
     return changed
 

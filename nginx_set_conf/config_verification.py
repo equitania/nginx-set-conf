@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 LOAD_MODULE_PATTERN = re.compile(r"^[ \t]*load_module[ \t]+[^;]+;", re.MULTILINE)
 
 # Embedded template files
-NGINX_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.26.2
-# Version 1.5 from 04.08.2026
+NGINX_CONF_TEMPLATE = r"""# nginx incl. SSL/http2 1.26.2
+# Version 1.6 from 04.08.2026
 user  nginx;
 worker_processes  auto;
 worker_rlimit_nofile 65535;
@@ -186,11 +186,24 @@ http {
         }
     }
 
+    # Host-specific http-level directives: js_import for njs, custom maps,
+    # upstreams, extra cache zones — anything this shared template cannot know
+    # about. Neither deploy-nginx-base.sh nor nginx-set-conf writes into this
+    # directory, so whatever is placed here survives every base-config sync.
+    #
+    # Why it exists: load_module lines are carried over automatically, but a
+    # matching `js_import` lives in the http block and used to be lost on every
+    # sync — leaving a vhost with `js_access` that could no longer resolve it
+    # ("no imports defined for ..."). Put the js_import in a file here.
+    #
+    # A missing directory is not an error for a wildcard include.
+    include /etc/nginx/conf.local.d/*.conf;
+
     include /etc/nginx/conf.d/*.conf;
 }
 """
 
-GENERAL_CONF_TEMPLATE = """# nginx incl. SSL/http2 1.26.2
+GENERAL_CONF_TEMPLATE = r"""# nginx incl. SSL/http2 1.26.2
 # Version 1.1 from 27.05.2026
 
 # favicon.ico

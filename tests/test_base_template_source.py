@@ -60,6 +60,26 @@ def test_nginx_conf_keeps_the_zones_vhosts_reference():
         assert zone in NGINX_CONF_TEMPLATE, f"{zone} missing from nginx.conf template"
 
 
+@pytest.mark.parametrize("constant", sorted(sync.MANAGED))
+def test_templates_are_raw_strings(constant):
+    """nginx configs carry regex escapes (``location ~* \\.(jpg|...)$``). In a
+    normal string literal ``\\.`` raises a SyntaxWarning today and a
+    SyntaxError from Python 3.14 on — the module would stop importing."""
+    source = sync.TARGET.read_text(encoding="utf-8")
+    assert f'{constant} = r"""' in source, (
+        f"{constant} must be a raw string; run tools/sync_base_templates.py --write"
+    )
+
+
+def test_module_imports_without_syntax_warning():
+    import py_compile
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SyntaxWarning)
+        py_compile.compile(str(sync.TARGET), doraise=True)
+
+
 def test_security_conf_csp_allows_unsafe_eval():
     """Odoo 17+ compiles OWL templates via new Function(). A CSP without
     'unsafe-eval' renders the login page blank, client-side, with nothing in

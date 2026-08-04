@@ -1,5 +1,30 @@
 # RELEASE NOTES
 
+## Version 1.17.1 (04.08.2026)
+
+### Fixed
+
+- **[FIX]** **SyntaxWarning on import, introduced by 1.17.0.** The nginx.conf taken over from
+  myodoo-docker contains `location ~* \.(jpg|jpeg|png|gif|ico|css|js)$`, but only
+  `SECURITY_CONF_TEMPLATE` was a raw string. `\.` is not a valid escape sequence, so Python emitted
+  `SyntaxWarning: invalid escape sequence '\.'` on every import — and **from Python 3.14 on that is
+  a SyntaxError**, which would stop the module from importing at all. All three constants are raw
+  strings now, `tools/sync_base_templates.py` normalises the prefix on every write so a future sync
+  cannot undo it, and two tests guard it.
+- **[FIX]** **`js_import` was still lost on a sync.** 1.17.0 carries `load_module` lines over, but
+  njs needs a second directive: the matching `js_import` lives in the `http` block, which the
+  template replaces wholesale. A vhost using `js_access` then failed with
+  `no imports defined for "js_access" ..., use "js_import" directive`. Rather than chase individual
+  directives, the nginx.conf template (myodoo-docker v1.6) now ends with
+  `include /etc/nginx/conf.local.d/*.conf;` — a directory no tool writes to, where host-specific
+  http-level directives (js_import, custom maps, upstreams, extra zones) survive every base-config
+  sync. `deploy-nginx-base.sh` v1.3.0 creates it.
+
+  **Action on affected hosts:** move the `js_import` line out of `/etc/nginx/nginx.conf` into e.g.
+  `/etc/nginx/conf.local.d/njs.conf`, then run the deploy again. Until then the pre-flight keeps
+  rolling back and continuing with a warning — the base config stays as it is, so the CSP and
+  `http2 on;` corrections do not reach that server.
+
 ## Version 1.17.0 (04.08.2026)
 
 ### Fixed
