@@ -1,5 +1,35 @@
 # RELEASE NOTES
 
+## Version 1.18.0 (13.08.2026)
+
+### Fixed
+
+- **[FIX]** **The pre-flight blamed the base configs for a fault nowhere near them — and blocked
+  the deploy that would have fixed the real cause.** On a customer host one A record was repointed
+  to another provider. Ten vhosts still carried the pre-1.11.0 form `listen <hostname>:443`, nginx
+  resolved that name at parse time, and the whole server died with
+  `bind() to 94.130.186.22:443 failed (99: Cannot assign requested address)`. The pre-flight
+  correctly rolled its repair back, then reported *"the fault is not (only) in the base files"* and
+  aborted — every run, including the redeploy that would have rewritten those listens to the host's
+  own IP and ended the outage.
+
+  `_classify_nginx_error()` now recognises the environmental faults the base files can neither
+  cause nor cure. The pre-flight names them and **continues** instead of aborting:
+
+  | `nginx -t` says | reported cause | offered remedy |
+  |---|---|---|
+  | `bind() … Cannot assign requested address` | a vhost listens on an address this host does not have | `nginx-cert-guard.py --reconcile --start`, then redeploy |
+  | `bind() … Address already in use` | another process holds the port | `ss -tlnp \| grep :<port>` |
+  | `host not found in "…" of the "listen"` | the listen hostname no longer resolves | `nginx-cert-guard.py --reconcile --start`, then fix DNS |
+  | `cannot load certificate "…"` | the certificate is missing or unreadable | `certbot certificates` |
+
+  A genuine base-config error (`unknown directive`, syntax faults) is unaffected and still aborts —
+  this is a named exception list, not a blanket "continue anyway". The operator is told explicitly
+  that the vhosts were written but nginx will not reload until the cause is cleared.
+
+  **Companion change:** `myodoo-docker` `nginx-cert-guard.py` v1.2.0 detects this class of fault
+  proactively, so a host is quarantined and kept up before a deploy ever runs into it.
+
 ## Version 1.17.1 (04.08.2026)
 
 ### Fixed

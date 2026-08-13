@@ -554,6 +554,52 @@ class ConfigVerification:
         except OSError as exc:
             return False, str(exc)
 
+    @staticmethod
+    def _classify_nginx_error(output: str) -> "tuple[str, str] | None":
+        """Name the environmental fault behind an ``nginx -t`` failure, if any.
+
+        The pre-flight can only repair the three base config files it owns. Not
+        every failure lives there, and a few common ones live nowhere near it:
+
+        * ``bind() to <ip>:443 failed (99: Cannot assign requested address)``
+          — a vhost binds an address this machine does not have. Either a
+          hardcoded IP outlived a server move, or a ``listen <hostname>``
+          resolved to somebody else's server after a DNS change.
+        * ``host not found in "..." of the "listen" directive`` — same family,
+          with the name no longer resolving at all.
+        * a missing certificate file, or a port already held by another process.
+
+        Telling the operator "the fault is in your base files" in those cases
+        is not merely unhelpful, it is wrong — and it stops the very deploy
+        that would rewrite hostname-bound listens into IP-bound ones, which is
+        how a host recovers from the DNS case. So: classify, explain, continue.
+
+        Returns:
+            (cause, remedy) for a recognised environmental fault, else None.
+        """
+        patterns = (
+            (r"bind\(\) to \[?([0-9a-fA-F.:]+)\]?:\d+ failed .*Cannot assign",
+             "a vhost listens on {0}, which is not an address of this host",
+             "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, "
+             "then re-deploy so listen binds this host's IP"),
+            (r"bind\(\) to \[?([0-9a-fA-F.:]+)\]?:(\d+) failed .*Address already in use",
+             "another process already holds {0}:{1}",
+             "ss -tlnp | grep :{1}   # find and stop the process holding the port"),
+            (r'host not found in "([^"]+)" of the "listen"',
+             "the listen hostname {0} no longer resolves",
+             "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, "
+             "then fix the DNS record"),
+            (r'cannot load certificate "([^"]+)"',
+             "the certificate {0} is missing or unreadable",
+             "certbot certificates   # re-issue, then re-run this deploy"),
+        )
+        for pattern, cause_tmpl, remedy_tmpl in patterns:
+            match = re.search(pattern, output)
+            if match:
+                groups = match.groups()
+                return cause_tmpl.format(*groups), remedy_tmpl.format(*groups)
+        return None
+
     def _perform_sync(self, results: dict[str, dict], files_to_sync: list) -> bool:
         """
         Perform the actual file synchronization.
@@ -804,6 +850,25 @@ class ConfigVerification:
                     "for what the templates would break.",
                     fg="yellow",
                 )
+                return True
+
+            # An environmental fault (unbindable listen address, dead listen
+            # hostname, missing certificate, occupied port) is not something
+            # the base files can cause or cure. Blocking here would also block
+            # the deploy that rewrites hostname-bound listens into IP-bound
+            # ones — the exact repair for the DNS case. Name it and continue.
+            classified = self._classify_nginx_error(restored_output)
+            if classified:
+                cause, remedy = classified
+                click.secho(
+                    "[pre-flight] The config is invalid for a reason outside the "
+                    "base files — continuing.", fg="yellow")
+                click.secho(f"    Cause:  {cause}", fg="yellow")
+                click.secho(f"    Remedy: {remedy}", fg="yellow")
+                click.secho(
+                    "    The vhosts are written, but nginx will not reload until "
+                    "the cause is cleared.", fg="yellow")
+                logger.warning("Pre-flight: environmental fault — %s", cause)
                 return True
 
             click.secho(

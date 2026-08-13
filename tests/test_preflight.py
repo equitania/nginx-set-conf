@@ -96,6 +96,41 @@ class TestPreflightCheckAndRepair:
             assert cv.preflight_check_and_repair() is False
         mock_restore.assert_called_once_with("/var/backups/x")
 
+    def test_unbindable_listen_address_continues_with_a_diagnosis(self, capsys):
+        """The 13.08.2026 case: a customer's DNS change, not a base-config fault.
+
+        Aborting here would block the very deploy that rewrites hostname-bound
+        listens into IP-bound ones — the repair for exactly this situation.
+        """
+        emerg = ("nginx: [emerg] bind() to 94.130.186.22:443 failed "
+                 "(99: Cannot assign requested address)")
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True),
+            patch.object(cv, "restore_configuration", return_value=True),
+            patch.object(cv, "_nginx_test", return_value=(False, emerg)),
+        ):
+            assert cv.preflight_check_and_repair() is True
+        out = capsys.readouterr().out
+        assert "94.130.186.22" in out
+        assert "not an address of this host" in out
+        assert "nginx-cert-guard.py" in out
+
+    def test_genuine_base_config_error_still_aborts(self):
+        """Classification must not become a blanket 'continue anyway'."""
+        cv = ConfigVerification()
+        with (
+            patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
+            patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
+            patch.object(cv, "_perform_sync", return_value=True),
+            patch.object(cv, "restore_configuration", return_value=True),
+            patch.object(cv, "_nginx_test",
+                         return_value=(False, 'nginx: [emerg] unknown directive "blah"')),
+        ):
+            assert cv.preflight_check_and_repair() is False
+
     def test_nginx_test_output_is_shown(self, capsys):
         """The nginx -t message must reach the operator, not just logger.debug."""
         cv = ConfigVerification()
