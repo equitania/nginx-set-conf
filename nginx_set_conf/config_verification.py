@@ -487,8 +487,7 @@ class ConfigVerification:
 
             # force=True: continue after the warning notice
             click.secho(
-                "\nNOTICE: --force specified. Proceeding with overwrite.\n"
-                "Operator-local customisations will be lost.",
+                "\nNOTICE: --force specified. Proceeding with overwrite.\nOperator-local customisations will be lost.",
                 fg="yellow",
                 err=False,
             )
@@ -506,9 +505,7 @@ class ConfigVerification:
         return self._perform_sync(results, files_to_update + missing_files)
 
     @staticmethod
-    def _preserve_load_modules(
-        file_name: str, template_content: str, server_path: Path
-    ) -> str:
+    def _preserve_load_modules(file_name: str, template_content: str, server_path: Path) -> str:
         """Carry host-specific ``load_module`` lines into the template.
 
         Only nginx.conf can hold them (``load_module`` is a main-context
@@ -543,9 +540,7 @@ class ConfigVerification:
         validation failed — which is the one thing needed to fix it.
         """
         try:
-            result = subprocess.run(
-                ["nginx", "-t"], capture_output=True, text=True, timeout=30
-            )
+            result = subprocess.run(["nginx", "-t"], capture_output=True, text=True, timeout=30)
             return result.returncode == 0, f"{result.stdout}{result.stderr}".strip()
         except FileNotFoundError:
             return False, "nginx binary not found"
@@ -578,20 +573,27 @@ class ConfigVerification:
             (cause, remedy) for a recognised environmental fault, else None.
         """
         patterns = (
-            (r"bind\(\) to \[?([0-9a-fA-F.:]+)\]?:\d+ failed .*Cannot assign",
-             "a vhost listens on {0}, which is not an address of this host",
-             "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, "
-             "then re-deploy so listen binds this host's IP"),
-            (r"bind\(\) to \[?([0-9a-fA-F.:]+)\]?:(\d+) failed .*Address already in use",
-             "another process already holds {0}:{1}",
-             "ss -tlnp | grep :{1}   # find and stop the process holding the port"),
-            (r'host not found in "([^"]+)" of the "listen"',
-             "the listen hostname {0} no longer resolves",
-             "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, "
-             "then fix the DNS record"),
-            (r'cannot load certificate "([^"]+)"',
-             "the certificate {0} is missing or unreadable",
-             "certbot certificates   # re-issue, then re-run this deploy"),
+            (
+                r"bind\(\) to \[?([0-9a-fA-F.:]+)\]?:\d+ failed .*Cannot assign",
+                "a vhost listens on {0}, which is not an address of this host",
+                "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, "
+                "then re-deploy so listen binds this host's IP",
+            ),
+            (
+                r"bind\(\) to \[?([0-9a-fA-F.:]+)\]?:(\d+) failed .*Address already in use",
+                "another process already holds {0}:{1}",
+                "ss -tlnp | grep :{1}   # find and stop the process holding the port",
+            ),
+            (
+                r'host not found in "([^"]+)" of the "listen"',
+                "the listen hostname {0} no longer resolves",
+                "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, then fix the DNS record",
+            ),
+            (
+                r'cannot load certificate "([^"]+)"',
+                "the certificate {0} is missing or unreadable",
+                "certbot certificates   # re-issue, then re-run this deploy",
+            ),
         )
         for pattern, cause_tmpl, remedy_tmpl in patterns:
             match = re.search(pattern, output)
@@ -616,9 +618,7 @@ class ConfigVerification:
         for file_name in files_to_sync:
             result = results[file_name]
             server_path = Path(result["server"]["path"])
-            template_content = self._preserve_load_modules(
-                file_name, self.templates[file_name], server_path
-            )
+            template_content = self._preserve_load_modules(file_name, self.templates[file_name], server_path)
 
             try:
                 # Create server directory if it doesn't exist
@@ -861,19 +861,20 @@ class ConfigVerification:
             if classified:
                 cause, remedy = classified
                 click.secho(
-                    "[pre-flight] The config is invalid for a reason outside the "
-                    "base files — continuing.", fg="yellow")
+                    "[pre-flight] The config is invalid for a reason outside the base files — continuing.", fg="yellow"
+                )
                 click.secho(f"    Cause:  {cause}", fg="yellow")
                 click.secho(f"    Remedy: {remedy}", fg="yellow")
                 click.secho(
-                    "    The vhosts are written, but nginx will not reload until "
-                    "the cause is cleared.", fg="yellow")
+                    "    The vhosts are written, but nginx will not reload until the cause is cleared.", fg="yellow"
+                )
                 logger.warning("Pre-flight: environmental fault — %s", cause)
                 return True
 
             click.secho(
-                "[pre-flight] Config is invalid even after rollback — the fault is "
-                "not (only) in the base files:", fg="red")
+                "[pre-flight] Config is invalid even after rollback — the fault is not (only) in the base files:",
+                fg="red",
+            )
             for line in restored_output.splitlines():
                 click.secho(f"    {line}", fg="red")
             return False

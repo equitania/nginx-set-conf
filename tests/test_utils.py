@@ -7,8 +7,6 @@ import os
 import pytest
 
 from nginx_set_conf.utils import (
-    retrieve_optional_input,
-    retrieve_valid_input,
     _format_ip_for_nginx,
     _insert_after_marker,
     _replace_placeholder,
@@ -18,6 +16,8 @@ from nginx_set_conf.utils import (
     get_default_vars,
     parse_yaml,
     parse_yaml_folder,
+    retrieve_optional_input,
+    retrieve_valid_input,
     self_clean,
 )
 
@@ -551,10 +551,7 @@ class TestRetrieveValidInput:
         assert len(result) == 4096
 
     def test_eof_raises_system_exit(self, monkeypatch):
-        monkeypatch.setattr(
-            builtins, "input",
-            lambda _: (_ for _ in ()).throw(EOFError())
-        )
+        monkeypatch.setattr(builtins, "input", lambda _: (_ for _ in ()).throw(EOFError()))
         with pytest.raises(SystemExit):
             retrieve_valid_input("prompt: ")
 
@@ -590,9 +587,6 @@ class TestRetrieveOptionalInput:
         assert len(retrieve_optional_input("prompt: ")) == 4096
 
     def test_eof_raises_system_exit(self, monkeypatch):
-        monkeypatch.setattr(
-            builtins, "input",
-            lambda _: (_ for _ in ()).throw(EOFError())
-        )
+        monkeypatch.setattr(builtins, "input", lambda _: (_ for _ in ()).throw(EOFError()))
         with pytest.raises(SystemExit):
             retrieve_optional_input("prompt: ")

@@ -10,8 +10,6 @@ Covers:
 import shutil
 from pathlib import Path
 
-import pytest
-
 from nginx_set_conf.config_verification import ConfigVerification
 
 

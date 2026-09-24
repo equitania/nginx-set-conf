@@ -53,6 +53,7 @@ VALID_TEMPLATES = {
     "qdrant",
     "redirect",
     "redirect_ssl",
+    "static_public_ssl",
     "static_ssl",
     "supabase",
 }
@@ -70,14 +71,16 @@ VALID_TEMPLATES_COMPAT = {f"ngx_{t}" for t in VALID_TEMPLATES}
 #   redirect_ssl     — trivial 301 response, QUIC overhead not worth it
 #   default_ssl_reject — SNI catch-all returns 444, no useful response
 #   odoo_http        — HTTP-only, no TLS
-HTTP3_EXCLUDED_TEMPLATES = frozenset({
-    "fast_report",
-    "mailpit",
-    "redirect",
-    "redirect_ssl",
-    "default_ssl_reject",
-    "odoo_http",
-})
+HTTP3_EXCLUDED_TEMPLATES = frozenset(
+    {
+        "fast_report",
+        "mailpit",
+        "redirect",
+        "redirect_ssl",
+        "default_ssl_reject",
+        "odoo_http",
+    }
+)
 
 
 class ValidationError(ValueError):
@@ -411,16 +414,13 @@ def validate_all_inputs(
     # COR-02: redirect_domain is required for redirect and redirect_ssl templates.
     # Without it, the literal sentinel "target.domain.de" leaks into nginx log paths.
     if "redirect" in config_template and not redirect_domain.strip():
-        raise ValidationError(
-            f"'redirect_domain' is required for template '{config_template}'"
-        )
+        raise ValidationError(f"'redirect_domain' is required for template '{config_template}'")
     # HTTP/3 exclusion guard: reject --enable_http3 for templates that have no TLS
     # or serve non-browser traffic where QUIC provides no benefit.
     if enable_http3 and config_template in HTTP3_EXCLUDED_TEMPLATES:
         http3_capable = ", ".join(sorted(VALID_TEMPLATES - HTTP3_EXCLUDED_TEMPLATES))
         raise ValidationError(
-            f"Template '{config_template}' does not support --enable_http3. "
-            f"HTTP/3-capable templates: {http3_capable}"
+            f"Template '{config_template}' does not support --enable_http3. HTTP/3-capable templates: {http3_capable}"
         )
     validate_domain(domain)
     validate_ip(ip)

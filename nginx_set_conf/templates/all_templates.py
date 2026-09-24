@@ -23,6 +23,7 @@ from nginx_set_conf.templates.pwa import TEMPLATE as PWA_TEMPLATE
 from nginx_set_conf.templates.qdrant import TEMPLATE as QDRANT_TEMPLATE
 from nginx_set_conf.templates.redirect import TEMPLATE as REDIRECT_TEMPLATE
 from nginx_set_conf.templates.redirect_ssl import TEMPLATE as REDIRECT_SSL_TEMPLATE
+from nginx_set_conf.templates.static_public_ssl import TEMPLATE as STATIC_PUBLIC_SSL_TEMPLATE
 from nginx_set_conf.templates.static_ssl import TEMPLATE as STATIC_SSL_TEMPLATE
 from nginx_set_conf.templates.supabase import TEMPLATE as SUPABASE_TEMPLATE
 
@@ -114,6 +115,8 @@ TEMPLATES = {
     # static_ssl serves files from a local document root — no proxy_cache_path /
     # limit_req_zone, registered verbatim like default_ssl_reject.
     "static_ssl": STATIC_SSL_TEMPLATE,
+    # static_public_ssl: same verbatim registration; indexable and markdown-aware.
+    "static_public_ssl": STATIC_PUBLIC_SSL_TEMPLATE,
     "n8n": N8N_TEMPLATE,
     "kasm": KASM_TEMPLATE,
     "qdrant": QDRANT_TEMPLATE,
@@ -122,6 +125,33 @@ TEMPLATES = {
     "guacamole": GUACAMOLE_TEMPLATE,
     "patchmon": PATCHMON_TEMPLATE,
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
+}
+
+# One-line description per template, shown by `nginx-set-conf templates` and the
+# interactive prompt. Every key of TEMPLATES needs an entry (enforced by a test),
+# so the list in the help can no longer drift from the registry.
+TEMPLATE_DESCRIPTIONS = {
+    "code_server": "code-server with ssl",
+    "default_ssl_reject": "Catch-all for unknown SNI (installed by 'setup-default')",
+    "fast_report": "FastReport with ssl",
+    "flowise": "Flowise AI with ssl/http2",
+    "guacamole": "Apache Guacamole with ssl/http2 and WebSocket",
+    "kasm": "Kasm Workspaces with ssl/http2",
+    "mailpit": "Mailpit with ssl/http2",
+    "n8n": "n8n with ssl/http2",
+    "nextcloud": "NextCloud with ssl",
+    "odoo_http": "Odoo only http",
+    "odoo_ssl": "Odoo with ssl",
+    "patchmon": "PatchMon with ssl/http2 and WebSocket",
+    "pgadmin": "pgAdmin4 with ssl",
+    "portainer": "Portainer with ssl",
+    "pwa": "Progressive Web App with ssl",
+    "qdrant": "Qdrant vector database with ssl/http2 and gRPC",
+    "redirect": "Redirect domain without ssl",
+    "redirect_ssl": "Redirect domain with ssl",
+    "static_public_ssl": "Static site with ssl, indexable and markdown-aware",
+    "static_ssl": "Static files with ssl, not indexed (noindex)",
+    "supabase": "Supabase database server with ssl/http2",
 }
 
 

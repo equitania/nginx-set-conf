@@ -1,5 +1,90 @@
 # RELEASE NOTES
 
+## Version 1.19.0 (24.09.2026)
+
+### Added
+
+- **[ADD]** **New `static_public_ssl` template — a static site meant to be found.** `static_ssl`
+  sends `X-Robots-Tag: noindex, nofollow` on every response, which is right for private download
+  servers and exactly wrong for product documentation that search engines and AI agents should
+  read. The new template serves a document root (`--root_path`) with:
+
+  | Request | Response |
+  |---|---|
+  | `/page` | `page.html` (clean URLs) |
+  | `/page` with `Accept: text/markdown` | `page.md`, `Vary: Accept` |
+  | `/page.md`, `/llms.txt`, `/llms-full.txt` | `text/markdown; charset=utf-8`, gzip, `Access-Control-Allow-Origin: *` |
+  | `/page.html`, `/page.md` | `Link: <https://domain/page>; rel="canonical"` |
+  | `/pdf/page.pdf` | `Link` to `/page.md` (alternate) and `/page` (describedby), CORS |
+
+  **No location block sets `add_header`.** A location-level `add_header` cancels header inheritance,
+  so the HSTS/CSP/X-Frame headers from `nginxconfig.io/security.conf` would silently disappear for
+  that location. Per-file headers are `set` as variables in the locations and emitted by
+  server-level `add_header`; nginx drops a header whose value is empty. A test walks every
+  location block of the rendered config and fails on any `add_header` inside one.
+
+  Verified against nginx 1.31.6 (nginx:alpine) with the embedded `nginx.conf`, `security.conf` and
+  `general.conf`: `nginx -t` clean, security headers present on every response type, gzip on
+  markdown, dotfiles still denied. HTTP/3 injection works as for `static_ssl`.
+
+- **[ADD]** **Subcommands and a short help.** `nginx-set-conf --help` was one wall of 26 options.
+  It now lists eight commands — `deploy`, `show`, `templates`, `verify`, `sync`, `backup`,
+  `setup-default`, `migrate` — and the standard server run
+  `nginx-set-conf --config_path=/root/docker-builds/ngx-conf` on a single line, ready to copy.
+  `nginx-set-conf COMMAND --help` shows the details; `deploy --help` groups its options under
+  YAML batch, single vhost, certificate, access, listen and run. Option names are unchanged.
+
+  **The flag-only form keeps working.** A call whose first argument is an option is routed to a
+  hidden command with the original option set and precedence, so existing scripts and copied
+  one-liners (`--config_path=…`, `--sync_config --force`, `--setup_default`, …) behave as before.
+  One behaviour change: `nginx-set-conf` with no argument now prints the overview instead of
+  starting the interactive prompt — that is `nginx-set-conf deploy` now. Subcommands exit with
+  status 1 when their action fails; the flag-only form keeps exiting 0 as before.
+
+  The template list in the help was maintained by hand and had fallen behind (`static_ssl` and
+  `static_public_ssl` were missing). `nginx-set-conf templates` and the interactive prompt now
+  read it from `TEMPLATE_DESCRIPTIONS` next to the registry, and a test fails when a registered
+  template has no description. The `--disable_domain_listen` help still described the pre-1.11
+  hostname-bound listens; it now describes the IP-bound default. New `tests/test_cli.py` (21
+  tests) covers the help, every subcommand and the legacy routing.
+
+### Changed
+
+- **[CHG]** **CI runs on the `2026` branch.** Pushes and pull requests to `2026` were not built at
+  all, which is how the lint failures below went unnoticed.
+
+- **[CHG]** **Dependencies raised.** Runtime: `click>=8.5.0`, `PyYAML>=6.0.3`. Dev: `pytest>=9.1`,
+  `ruff>=0.16`, `mypy>=2.3` (major jump from 1.20 — no new findings), `bump-my-version>=1.5`,
+  `bandit>=1.9`; `uv.lock` re-resolved. Pre-commit hooks were more than a year behind and now
+  match the dev tooling: pre-commit-hooks v6.0.0, ruff v0.16.8, mypy v2.3.1, bandit 1.9.4.
+  bump-my-version 1.5 reads only `[tool.bumpversion]` and silently ignored the old
+  `[tool.bump-my-version]` table — it then took the version from the last git tag and updated no
+  file. The table is renamed. ruff 0.16 also formats code blocks in Markdown, so `.planning/` is
+  excluded from ruff to keep the planning records unchanged.
+- **[CHG]** **Python 3.14 supported.** Added to the classifiers and the CI test matrix; the suite
+  and mypy pass on 3.10 and 3.14.
+- **[CHG]** **mypy now gates CI.** The type-check step no longer runs with `continue-on-error`, so
+  a type error fails the build like a lint or test failure.
+
+### Fixed
+
+- **[FIX]** **CI was red on lint, format and types.** `ruff check .` covers the tests too and
+  reported 11 findings (unused imports, unsorted import blocks, an ambiguous variable name, two
+  `raise` inside `except` without `from`); `ruff format --check .` flagged 15 files. All fixed —
+  formatting does not touch the content of any template string. `parse_yaml()` was annotated
+  `-> dict` but returns `False` on a YAML error; it is now typed `dict[str, Any] | Literal[False]`
+  with unchanged behaviour.
+- **[FIX]** **README no longer documents `--create_dirs`.** The option never existed in the CLI.
+  Its sections and scenario steps are removed in both languages; where it stood for "fresh nginx
+  install", the step is now `--sync_config`, which writes the missing base configs and creates
+  `/etc/nginx/nginxconfig.io/` itself. Two more stale statements next to it are corrected: backups
+  live in `/var/backups/nginx_set_conf/` (not `/tmp/nginx_backup/`), and `--verify_config`
+  compares three files (`nginx.conf`, `general.conf`, `security.conf` — not `ssl_stapling.conf`)
+  by content and reports `CONSISTENT` / `INCONSISTENT`, not `EXISTS` / `MISSING`.
+- **[FIX]** **A real address from the 13.08.2026 incident replaced by a documentation address.**
+  The 1.18.0 notes and `tests/test_preflight.py` quoted the affected host's IP; both now use
+  `203.0.113.22` (RFC 5737).
+
 ## Version 1.18.0 (13.08.2026)
 
 ### Fixed
@@ -8,7 +93,7 @@
   the deploy that would have fixed the real cause.** On a customer host one A record was repointed
   to another provider. Ten vhosts still carried the pre-1.11.0 form `listen <hostname>:443`, nginx
   resolved that name at parse time, and the whole server died with
-  `bind() to 94.130.186.22:443 failed (99: Cannot assign requested address)`. The pre-flight
+  `bind() to 203.0.113.22:443 failed (99: Cannot assign requested address)`. The pre-flight
   correctly rolled its repair back, then reported *"the fault is not (only) in the base files"* and
   aborted — every run, including the redeploy that would have rewritten those listens to the host's
   own IP and ended the outage.

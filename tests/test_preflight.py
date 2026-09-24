@@ -77,8 +77,9 @@ class TestPreflightCheckAndRepair:
             patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
             patch.object(cv, "_perform_sync", return_value=True),
             patch.object(cv, "restore_configuration", return_value=True) as mock_restore,
-            patch.object(cv, "_nginx_test", side_effect=[(False, 'unknown directive "js_periodic"'),
-                                                         (True, "syntax is ok")]),
+            patch.object(
+                cv, "_nginx_test", side_effect=[(False, 'unknown directive "js_periodic"'), (True, "syntax is ok")]
+            ),
         ):
             assert cv.preflight_check_and_repair() is True
         mock_restore.assert_called_once_with("/var/backups/x")
@@ -102,8 +103,7 @@ class TestPreflightCheckAndRepair:
         Aborting here would block the very deploy that rewrites hostname-bound
         listens into IP-bound ones — the repair for exactly this situation.
         """
-        emerg = ("nginx: [emerg] bind() to 94.130.186.22:443 failed "
-                 "(99: Cannot assign requested address)")
+        emerg = "nginx: [emerg] bind() to 203.0.113.22:443 failed (99: Cannot assign requested address)"
         cv = ConfigVerification()
         with (
             patch.object(cv, "verify_configuration_consistency", return_value=_results(True)),
@@ -114,7 +114,7 @@ class TestPreflightCheckAndRepair:
         ):
             assert cv.preflight_check_and_repair() is True
         out = capsys.readouterr().out
-        assert "94.130.186.22" in out
+        assert "203.0.113.22" in out
         assert "not an address of this host" in out
         assert "nginx-cert-guard.py" in out
 
@@ -126,8 +126,7 @@ class TestPreflightCheckAndRepair:
             patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
             patch.object(cv, "_perform_sync", return_value=True),
             patch.object(cv, "restore_configuration", return_value=True),
-            patch.object(cv, "_nginx_test",
-                         return_value=(False, 'nginx: [emerg] unknown directive "blah"')),
+            patch.object(cv, "_nginx_test", return_value=(False, 'nginx: [emerg] unknown directive "blah"')),
         ):
             assert cv.preflight_check_and_repair() is False
 
@@ -139,8 +138,9 @@ class TestPreflightCheckAndRepair:
             patch.object(cv, "backup_configuration", return_value="/var/backups/x"),
             patch.object(cv, "_perform_sync", return_value=True),
             patch.object(cv, "restore_configuration", return_value=True),
-            patch.object(cv, "_nginx_test", side_effect=[(False, 'unknown directive "js_periodic"'),
-                                                         (True, "syntax is ok")]),
+            patch.object(
+                cv, "_nginx_test", side_effect=[(False, 'unknown directive "js_periodic"'), (True, "syntax is ok")]
+            ),
         ):
             cv.preflight_check_and_repair()
         assert "js_periodic" in capsys.readouterr().out

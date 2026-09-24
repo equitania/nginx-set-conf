@@ -46,9 +46,26 @@ uv pip install nginx-set-conf
 
 #### Basic Usage
 
+Since v1.19.0 the tool is organised in subcommands. `nginx-set-conf --help` shows only the commands; `nginx-set-conf COMMAND --help` shows the options of one command.
+
 ```bash
-$ nginx-set-conf --help
+nginx-set-conf --help                 # overview of the commands
+nginx-set-conf deploy --help          # all deploy options, grouped
+nginx-set-conf --config_path=/root/docker-builds/ngx-conf   # standard server run
 ```
+
+| Command | Purpose |
+|---|---|
+| `deploy` | Generate vhost configs (YAML folder or options), `nginx -t`, reload |
+| `show TEMPLATE` | Print a template without applying it |
+| `templates` | List the available templates |
+| `verify` | Compare the base configs on the server with the embedded ones |
+| `sync [--force]` | Write the embedded base configs to the server (with backup) |
+| `backup` | Back up the current nginx configuration |
+| `setup-default` | Install the catch-all for unknown SNI (`00-default.conf`) |
+| `migrate` | Rewrite hostname-bound listen directives to wildcard |
+
+The flag-only form of earlier versions keeps working unchanged: `--config_path=…`, `--verify_config`, `--sync_config --force`, `--backup_config`, `--setup_default`, `--migrate_to_wildcard` and `--show_template` are routed to the matching command. The one change: `nginx-set-conf` without any argument now prints the overview; the interactive prompt is started with `nginx-set-conf deploy`.
 
 #### Supported Templates
 
@@ -70,13 +87,13 @@ $ nginx-set-conf --help
 - `qdrant` - Qdrant vector database with SSL/HTTP2 and gRPC
 - `redirect` - Domain redirect without SSL
 - `redirect_ssl` - Domain redirect with SSL
-- `static_ssl` - Static website / file-download hosting with SSL/HTTP2 (serves files from a local document root, no upstream backend; configure the root with `--root_path`, default `/opt/www`)
+- `static_public_ssl` - Public static site meant to be found by search engines and AI agents: clean URLs (`/page` serves `page.html`), markdown served as `text/markdown` (gzip, CORS, and the `.md` variant of a page for `Accept: text/markdown`), canonical `Link` headers, and for `/pdf/<name>.pdf` a `Link` to `/<name>.md`. Document root via `--root_path`
+- `static_ssl` - Static website / file-download hosting with SSL/HTTP2 (serves files from a local document root, no upstream backend; configure the root with `--root_path`, default `/opt/www`). Sends `X-Robots-Tag: noindex` — use `static_public_ssl` for sites that should be indexed
 - `supabase` - Supabase database server with SSL/HTTP2
 
 #### Configuration Management Options
 
 - `--verify_config` - Check consistency between local and server config files
-- `--create_dirs` - Create missing nginx configuration directories
 - `--backup_config` - Create backup of current server configuration
 - `--migrate_to_wildcard` - Atomically rewrite hostname-bound listen directives (see below)
 - `--setup_default` - Install default_server catch-all for unknown SNI (see below)
@@ -245,6 +262,9 @@ nginx-set-conf --config_template supabase --ip 1.2.3.4 --domain supabase.example
 
 # Static website / file-download hosting (no --port; serves files from --root_path)
 nginx-set-conf --config_template static_ssl --ip 1.2.3.4 --domain dl.example.com --cert_name dl.example.com --root_path /opt/www
+
+# Public static site for search engines and AI agents (indexable, markdown-aware)
+nginx-set-conf --config_template static_public_ssl --ip 1.2.3.4 --domain docs.example.com --cert_name docs.example.com --root_path /var/www/docs.example.com
 ```
 
 #### IPv6 Support
@@ -307,7 +327,7 @@ My IPv6 Service:
 
 #### 1. Configuration File Check (`--verify_config`)
 
-Check if required nginx configuration files exist on the server:
+Compare the three base configuration files on the server with the versions embedded in the tool (SHA256). Changes nothing:
 
 ```bash
 nginx-set-conf --verify_config
@@ -317,32 +337,13 @@ nginx-set-conf --verify_config
 - `/etc/nginx/nginx.conf`
 - `/etc/nginx/nginxconfig.io/general.conf`
 - `/etc/nginx/nginxconfig.io/security.conf`
-- `/etc/nginx/nginxconfig.io/ssl_stapling.conf`
 
 **Output:**
-- ✓ EXISTS: File is present on the server
-- ✗ MISSING: File not found
-- Shows file path and size for existing files
+- ✓ CONSISTENT: server file matches the embedded version
+- ✗ INCONSISTENT: file differs or is missing, with the reason
+- Server path and size, embedded size, and a summary (`n/3 files consistent`)
 
-#### 2. Create Missing Directories (`--create_dirs`)
-
-Create missing nginx configuration directories if needed:
-
-```bash
-nginx-set-conf --create_dirs
-```
-
-**What it does:**
-- Checks for missing files
-- Creates `/etc/nginx/nginxconfig.io/` directory if missing
-- Useful after fresh nginx installation
-
-**Security Features:**
-- Confirmation before overwriting files
-- Automatic directory creation
-- Error handling for access problems
-
-#### 3. Configuration Backup (`--backup_config`)
+#### 2. Configuration Backup (`--backup_config`)
 
 Create automatic backups of current server configuration:
 
@@ -351,12 +352,12 @@ nginx-set-conf --backup_config
 ```
 
 **Backup Features:**
-- Timestamp-based backup folders: `/tmp/nginx_backup/nginx_config_backup_YYYYMMDD_HHMMSS`
+- Timestamp-based backup folders: `/var/backups/nginx_set_conf/nginx_config_backup_YYYYMMDD_HHMMSS` (mode 0700, symlinks refused)
 - Complete backup of `/etc/nginx/nginx.conf`
 - Recursive backup of `nginxconfig.io/` directory
 - Logging of all backup operations
 
-#### 4. Automatic Pre-flight Check (v1.16.0)
+#### 3. Automatic Pre-flight Check (v1.16.0)
 
 Every real deployment (single domain, YAML batch, or interactive) now runs an
 automatic **pre-flight check** before the new vhost is written. It verifies the
@@ -534,6 +535,7 @@ The following 14 browser-facing templates support `--enable_http3`:
 | `supabase` | Backend-as-a-service, mixed API + browser |
 | `patchmon` | Patch-monitoring web UI |
 | `static_ssl` | Static sites / file downloads — HTTP/3 lowers latency |
+| `static_public_ssl` | Public static sites — HTTP/3 lowers latency |
 | `qdrant` | REST port only — gRPC port stays HTTP/2 |
 
 ### Excluded templates
@@ -662,9 +664,6 @@ nginx-set-conf --verify_config
 
 # If inconsistencies found: Create backup
 nginx-set-conf --backup_config
-
-# If directories missing, create them
-nginx-set-conf --create_dirs
 ```
 
 #### Scenario 2: Server Setup Adoption
@@ -672,9 +671,6 @@ nginx-set-conf --create_dirs
 ```bash
 # Backup current server configuration
 nginx-set-conf --backup_config
-
-# Create missing directories if needed
-nginx-set-conf --create_dirs
 
 # Verify result
 nginx-set-conf --verify_config
@@ -686,8 +682,8 @@ nginx-set-conf --verify_config
 # Check if all required files exist
 nginx-set-conf --verify_config
 
-# If directories are missing, create them
-nginx-set-conf --create_dirs
+# Write missing base configs (creates /etc/nginx/nginxconfig.io/ if needed)
+nginx-set-conf --sync_config
 ```
 
 ### SSL Certificate Management
@@ -758,7 +754,7 @@ nginx-set-conf --verify_config --dry_run
 
 1. **Permission denied**: Ensure user has write permissions for `/etc/nginx/`
 2. **Missing directories**: Tool automatically creates missing directories
-3. **Backup storage full**: Remove old backups from `/tmp/nginx_backup/`
+3. **Backup storage full**: Remove old backups from `/var/backups/nginx_set_conf/`
 
 #### Logging
 All operations are logged to:
@@ -835,9 +831,26 @@ uv pip install nginx-set-conf
 
 #### Grundlegende Verwendung
 
+Seit v1.19.0 ist das Tool in Unterkommandos gegliedert. `nginx-set-conf --help` zeigt nur die Befehle, `nginx-set-conf BEFEHL --help` die Optionen eines Befehls.
+
 ```bash
-$ nginx-set-conf --help
+nginx-set-conf --help                 # Übersicht der Befehle
+nginx-set-conf deploy --help          # alle Deploy-Optionen, gruppiert
+nginx-set-conf --config_path=/root/docker-builds/ngx-conf   # Standardaufruf auf dem Server
 ```
+
+| Befehl | Zweck |
+|---|---|
+| `deploy` | vHost-Konfigurationen erzeugen (YAML-Ordner oder Optionen), `nginx -t`, reload |
+| `show TEMPLATE` | Template anzeigen, ohne es anzuwenden |
+| `templates` | Verfügbare Templates auflisten |
+| `verify` | Basis-Konfigurationen auf dem Server mit den eingebetteten vergleichen |
+| `sync [--force]` | Eingebettete Basis-Konfigurationen auf den Server schreiben (mit Backup) |
+| `backup` | Aktuelle nginx-Konfiguration sichern |
+| `setup-default` | Catch-all für unbekannte SNI installieren (`00-default.conf`) |
+| `migrate` | Hostname-gebundene listen-Direktiven auf Wildcard umschreiben |
+
+Die reine Flag-Form früherer Versionen funktioniert unverändert weiter: `--config_path=…`, `--verify_config`, `--sync_config --force`, `--backup_config`, `--setup_default`, `--migrate_to_wildcard` und `--show_template` werden an den passenden Befehl weitergeleitet. Einzige Änderung: `nginx-set-conf` ohne Argument zeigt jetzt die Übersicht; die interaktive Abfrage startet mit `nginx-set-conf deploy`.
 
 #### Unterstützte Templates
 
@@ -863,7 +876,6 @@ $ nginx-set-conf --help
 #### Konfigurationsverwaltungsoptionen
 
 - `--verify_config` - Prüfen ob benötigte nginx Konfigurationsdateien existieren
-- `--create_dirs` - Fehlende nginx Konfigurationsverzeichnisse erstellen
 - `--backup_config` - Backup der aktuellen Server-Konfiguration erstellen
 - `--migrate_to_wildcard` - Atomische Umschreibung hostname-gebundener listen-Direktiven (siehe unten)
 - `--setup_default` - Default_server-Catch-all für unbekannte SNI installieren (siehe unten)
@@ -1029,7 +1041,7 @@ Mein IPv6 Service:
 
 #### 1. Konfigurationsdatei-Prüfung (`--verify_config`)
 
-Prüfen ob benötigte nginx Konfigurationsdateien auf dem Server existieren:
+Die drei Basis-Konfigurationsdateien auf dem Server mit den im Tool eingebetteten Versionen vergleichen (SHA256). Ändert nichts:
 
 ```bash
 nginx-set-conf --verify_config
@@ -1039,27 +1051,13 @@ nginx-set-conf --verify_config
 - `/etc/nginx/nginx.conf`
 - `/etc/nginx/nginxconfig.io/general.conf`
 - `/etc/nginx/nginxconfig.io/security.conf`
-- `/etc/nginx/nginxconfig.io/ssl_stapling.conf`
 
 **Ausgabe:**
-- ✓ EXISTS: Datei ist auf dem Server vorhanden
-- ✗ MISSING: Datei nicht gefunden
-- Zeigt Dateipfad und Größe für existierende Dateien
+- ✓ CONSISTENT: Datei auf dem Server entspricht der eingebetteten Version
+- ✗ INCONSISTENT: Datei weicht ab oder fehlt, mit Begründung
+- Serverpfad und Größe, eingebettete Größe sowie eine Zusammenfassung (`n/3 files consistent`)
 
-#### 2. Fehlende Verzeichnisse erstellen (`--create_dirs`)
-
-Fehlende nginx Konfigurationsverzeichnisse bei Bedarf erstellen:
-
-```bash
-nginx-set-conf --create_dirs
-```
-
-**Was es tut:**
-- Prüft auf fehlende Dateien
-- Erstellt `/etc/nginx/nginxconfig.io/` Verzeichnis falls fehlend
-- Nützlich nach frischer nginx Installation
-
-#### 3. Konfigurationsbackup (`--backup_config`)
+#### 2. Konfigurationsbackup (`--backup_config`)
 
 Automatische Backups der aktuellen Server-Konfiguration erstellen:
 
@@ -1068,12 +1066,12 @@ nginx-set-conf --backup_config
 ```
 
 **Backup-Funktionen:**
-- Zeitstempel-basierte Backup-Ordner: `/tmp/nginx_backup/nginx_config_backup_YYYYMMDD_HHMMSS`
+- Zeitstempel-basierte Backup-Ordner: `/var/backups/nginx_set_conf/nginx_config_backup_YYYYMMDD_HHMMSS` (Rechte 0700, Symlinks werden abgelehnt)
 - Vollständige Sicherung von `/etc/nginx/nginx.conf`
 - Rekursive Sicherung des `nginxconfig.io/` Verzeichnisses
 - Logging aller Backup-Operationen
 
-#### 4. Automatische Pre-Flight-Prüfung (v1.16.0)
+#### 3. Automatische Pre-Flight-Prüfung (v1.16.0)
 
 Jedes echte Deployment (einzelne Domain, YAML-Batch oder interaktiv) führt nun
 vor dem Schreiben des neuen vhosts automatisch eine **Pre-Flight-Prüfung** durch.
@@ -1108,9 +1106,6 @@ nginx-set-conf --verify_config
 
 # Bei Inconsistenzen: Backup erstellen
 nginx-set-conf --backup_config
-
-# Bei fehlenden Verzeichnissen erstellen
-nginx-set-conf --create_dirs
 ```
 
 #### Szenario 2: Server-Setup übernehmen
@@ -1118,10 +1113,6 @@ nginx-set-conf --create_dirs
 ```bash
 # Aktuelle Server-Konfiguration sichern
 nginx-set-conf --backup_config
-
-# Fehlende Verzeichnisse erstellen falls nötig
-nginx-set-conf --create_dirs
-# Option 1 wählen: Local → Server
 
 # Ergebnis überprüfen
 nginx-set-conf --verify_config
@@ -1133,8 +1124,8 @@ nginx-set-conf --verify_config
 # Prüfen ob alle Dateien vorhanden sind
 nginx-set-conf --verify_config
 
-# Falls Verzeichnisse fehlen, diese erstellen
-nginx-set-conf --create_dirs
+# Fehlende Basis-Konfigurationen schreiben (legt /etc/nginx/nginxconfig.io/ bei Bedarf an)
+nginx-set-conf --sync_config
 ```
 
 ### SSL-Zertifikatsverwaltung
@@ -1205,7 +1196,7 @@ nginx-set-conf --verify_config --dry_run
 
 1. **Berechtigung verweigert**: Sicherstellen, dass der Benutzer Schreibrechte für `/etc/nginx/` hat
 2. **Verzeichnisse fehlen**: Tool erstellt automatisch fehlende Verzeichnisse
-3. **Backup-Speicher voll**: Alte Backups aus `/tmp/nginx_backup/` entfernen
+3. **Backup-Speicher voll**: Alte Backups aus `/var/backups/nginx_set_conf/` entfernen
 
 #### Logging
 Alle Operationen werden geloggt in:

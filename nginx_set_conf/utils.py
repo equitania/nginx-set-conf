@@ -23,11 +23,12 @@ import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Literal
 
 import click
 import yaml
 
-from .templates.all_templates import get_config_template, CACHE_PATH_SENTINEL
+from .templates.all_templates import CACHE_PATH_SENTINEL, get_config_template
 from .validators import ValidationError, validate_all_inputs
 
 # Matches `listen <hostname>:<port>[ ssl];` — i.e. hostname-bound listen
@@ -95,7 +96,7 @@ def self_clean(input_dictionary: dict) -> dict:
     return return_dict
 
 
-def parse_yaml(yaml_file: str) -> dict:
+def parse_yaml(yaml_file: str) -> dict[str, Any] | Literal[False]:
     """Parses a YAML file into a Python dictionary.
 
     Args:
@@ -110,7 +111,8 @@ def parse_yaml(yaml_file: str) -> dict:
     """
     with open(yaml_file) as stream:
         try:
-            return yaml.safe_load(stream)
+            data: dict[str, Any] = yaml.safe_load(stream)
+            return data
         except yaml.YAMLError as exc:
             logger.error("YAML parse error: %s", exc)
             return False
@@ -183,7 +185,7 @@ def retrieve_valid_input(message: str) -> str:
             user_input = input(message)
         except EOFError:
             click.echo("\nNo input received (EOF). Exiting.")
-            raise SystemExit(1)
+            raise SystemExit(1) from None
         user_input = user_input[:_MAX_INPUT_LENGTH]
         if user_input:
             return user_input
@@ -207,7 +209,7 @@ def retrieve_optional_input(message: str) -> str:
         user_input = input(message)
     except EOFError:
         click.echo("\nNo input received (EOF). Exiting.")
-        raise SystemExit(1)
+        raise SystemExit(1) from None
     return user_input[:_MAX_INPUT_LENGTH]
 
 
@@ -419,9 +421,7 @@ def _quic_reuseport_already_claimed(conf_dir: str, ip: str, port: int = 443) -> 
     # wildcard ``listen 443 quic ... reuseport;`` with no IP prefix.  The scanner
     # MUST match both forms or vhosts would double-claim reuseport on UDP/443
     # and break nginx reload (Phase 5 BLOCKER 3).
-    pattern = re.compile(
-        rf"listen\s+(?:{re.escape(ip)}:)?{port}\s+quic\b.*\breuseport"
-    )
+    pattern = re.compile(rf"listen\s+(?:{re.escape(ip)}:)?{port}\s+quic\b.*\breuseport")
     try:
         for fname in os.listdir(conf_dir):
             if not fname.endswith(".conf"):
@@ -493,8 +493,7 @@ def _inject_http3_directives(
 
     if result == content:
         logger.warning(
-            "_inject_http3_directives: marker '%s' not found in content — "
-            "no HTTP/3 directives injected",
+            "_inject_http3_directives: marker '%s' not found in content — no HTTP/3 directives injected",
             marker,
         )
 

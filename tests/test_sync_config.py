@@ -11,10 +11,7 @@ Covers:
 
 from unittest.mock import patch
 
-import pytest
-
 from nginx_set_conf.config_verification import ConfigVerification
-
 
 # ---------------------------------------------------------------------------
 # Helpers

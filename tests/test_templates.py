@@ -44,6 +44,7 @@ class TestTemplateRegistry:
             "qdrant",
             "redirect",
             "redirect_ssl",
+            "static_public_ssl",
             "static_ssl",
             "supabase",
         }
@@ -302,27 +303,19 @@ class TestRedirectTemplateSlimDown:
 
     def test_redirect_no_proxy_cache_path(self):
         content = get_config_template("redirect")
-        assert "proxy_cache_path" not in content, (
-            "redirect template must not contain proxy_cache_path directive"
-        )
+        assert "proxy_cache_path" not in content, "redirect template must not contain proxy_cache_path directive"
 
     def test_redirect_no_limit_req_zone(self):
         content = get_config_template("redirect")
-        assert "limit_req_zone" not in content, (
-            "redirect template must not contain limit_req_zone directive"
-        )
+        assert "limit_req_zone" not in content, "redirect template must not contain limit_req_zone directive"
 
     def test_redirect_ssl_no_proxy_cache_path(self):
         content = get_config_template("redirect_ssl")
-        assert "proxy_cache_path" not in content, (
-            "redirect_ssl template must not contain proxy_cache_path directive"
-        )
+        assert "proxy_cache_path" not in content, "redirect_ssl template must not contain proxy_cache_path directive"
 
     def test_redirect_ssl_no_limit_req_zone(self):
         content = get_config_template("redirect_ssl")
-        assert "limit_req_zone" not in content, (
-            "redirect_ssl template must not contain limit_req_zone directive"
-        )
+        assert "limit_req_zone" not in content, "redirect_ssl template must not contain limit_req_zone directive"
 
     def test_redirect_core_functionality_intact(self):
         """The rewrite directive is the core purpose of a redirect vhost."""
@@ -333,9 +326,7 @@ class TestRedirectTemplateSlimDown:
     def test_redirect_ssl_core_functionality_intact(self):
         """SSL redirect must still terminate TLS and perform the rewrite."""
         content = get_config_template("redirect_ssl")
-        assert "ssl_certificate" in content, (
-            "redirect_ssl template must still contain 'ssl_certificate' directive"
-        )
+        assert "ssl_certificate" in content, "redirect_ssl template must still contain 'ssl_certificate' directive"
         assert "rewrite" in content, "redirect_ssl template must still contain 'rewrite' directive"
 
 
@@ -354,7 +345,8 @@ class TestHttp2Enabled:
         )
         # Accept any whitespace between http2 and on; (alignment-padded variant)
         import re
-        assert re.search(r'http2\s+on;', NGINX_CONF_TEMPLATE), (
+
+        assert re.search(r"http2\s+on;", NGINX_CONF_TEMPLATE), (
             "NGINX_CONF_TEMPLATE missing http2 on; directive — run --sync_config to propagate to operator nginx.conf"
         )
 
@@ -362,7 +354,8 @@ class TestHttp2Enabled:
         http_block_start = NGINX_CONF_TEMPLATE.index("http {")
         http_block = NGINX_CONF_TEMPLATE[http_block_start : NGINX_CONF_TEMPLATE.rfind("}")]
         import re
-        assert re.search(r'http2\s+on;', http_block), (
+
+        assert re.search(r"http2\s+on;", http_block), (
             "http2 on; found in template but not inside the http {} block — check scope"
         )
 
@@ -442,17 +435,25 @@ class TestHttp3DirectiveInjection:
 
     def test_http3_false_leaves_output_unchanged(self):
         """When enable_http3=False, execute_commands output must contain no quic/http3."""
-        from nginx_set_conf.utils import execute_commands
-        import io
-        import contextlib
 
         # Capture result by using dry_run; execute_commands doesn't return content
         # directly, so we verify via _inject_http3_directives is never called:
         # Run injection with enable_http3=False by calling the helper directly
         # on representative template content to confirm the no-flag path is clean.
-        for tmpl_name in ("odoo_ssl", "flowise", "n8n", "nextcloud", "guacamole",
-                          "kasm", "pgadmin", "portainer", "pwa", "code_server",
-                          "supabase", "qdrant"):
+        for tmpl_name in (
+            "odoo_ssl",
+            "flowise",
+            "n8n",
+            "nextcloud",
+            "guacamole",
+            "kasm",
+            "pgadmin",
+            "portainer",
+            "pwa",
+            "code_server",
+            "supabase",
+            "qdrant",
+        ):
             content = TEMPLATES[tmpl_name]
             # Replace placeholder so it looks like substituted content
             content = content.replace("ip.ip.ip.ip", "1.2.3.4")
@@ -464,9 +465,7 @@ class TestHttp3DirectiveInjection:
                 f"Template '{tmpl_name}' already contains 'quic' before HTTP/3 injection — "
                 "this indicates a template was wrongly modified"
             )
-            assert "http3" not in content, (
-                f"Template '{tmpl_name}' already contains 'http3' before HTTP/3 injection"
-            )
+            assert "http3" not in content, f"Template '{tmpl_name}' already contains 'http3' before HTTP/3 injection"
 
 
 class TestHttp3DisableDomainListenMutex:
@@ -496,9 +495,7 @@ class TestHttp3DisableDomainListenMutex:
         # get_nginx_version stub is needed. Combining the flags would otherwise
         # silently emit a config with zero HTTP/3 directives.
         kwargs = self._kwargs(tmp_path)
-        with pytest.raises(
-            click.ClickException, match="cannot be combined with --disable_domain_listen"
-        ):
+        with pytest.raises(click.ClickException, match="cannot be combined with --disable_domain_listen"):
             execute_commands(**kwargs)
 
     def test_no_config_written_on_rejection(self, tmp_path):
@@ -531,6 +528,7 @@ class TestNginxVersionParsing:
     def test_returns_none_when_nginx_missing(self, monkeypatch):
         def raise_fnf(*a, **kw):
             raise FileNotFoundError
+
         monkeypatch.setattr("nginx_set_conf.utils.subprocess.run", raise_fnf)
         assert get_nginx_version() is None
 
@@ -804,6 +802,118 @@ class TestStaticSslTemplate:
 
 
 # ---------------------------------------------------------------------------
+# static_public_ssl template (public, indexable, markdown-aware static site)
+# ---------------------------------------------------------------------------
+
+
+def _render_static_public_ssl(tmp_path, root_path=None, enable_http3=False):
+    """Render static_public_ssl via execute_commands and return the written .conf content."""
+    execute_commands(
+        config_template="static_public_ssl",
+        domain="docs.example.com",
+        ip="1.2.3.4",
+        cert_name="docs.example.com",
+        cert_key="/etc/ssl/docs.key",
+        port="",
+        pollport="",
+        redirect_domain="",
+        auth_file="",
+        allowed_ips="",
+        target_path=str(tmp_path),
+        dry_run=False,
+        root_path=root_path,
+        enable_http3=enable_http3,
+    )
+    confs = list(tmp_path.glob("*.conf"))
+    assert len(confs) == 1, f"expected exactly one .conf, got {confs}"
+    return confs[0].read_text(encoding="utf-8")
+
+
+def _location_bodies(content):
+    """Return the text of every location block (brace-balanced)."""
+    bodies, depth, current = [], 0, None
+    for line in content.splitlines():
+        stripped = line.strip()
+        if current is None and stripped.startswith("location ") and stripped.endswith("{"):
+            current, depth = [], 1
+            continue
+        if current is not None:
+            depth += stripped.count("{") - stripped.count("}")
+            if depth <= 0:
+                bodies.append("\n".join(current))
+                current = None
+            else:
+                current.append(stripped)
+    return bodies
+
+
+class TestStaticPublicSslTemplate:
+    """static_public_ssl: a static site meant to be indexed by search engines and AI agents."""
+
+    def test_default_root_path(self, tmp_path):
+        assert "root /opt/www;" in _render_static_public_ssl(tmp_path)
+
+    def test_custom_root_path(self, tmp_path):
+        content = _render_static_public_ssl(tmp_path, root_path="/srv/site")
+        assert "root /srv/site;" in content
+        assert "{{ROOT_PATH}}" not in content
+
+    def test_indexable(self, tmp_path):
+        """The whole point versus static_ssl: no noindex anywhere."""
+        content = _render_static_public_ssl(tmp_path)
+        assert "X-Robots-Tag" not in content
+        assert "noindex" not in content
+
+    def test_no_add_header_inside_locations(self, tmp_path):
+        """A location-level add_header would silently drop the security.conf headers there."""
+        content = _render_static_public_ssl(tmp_path)
+        bodies = _location_bodies(content)
+        assert len(bodies) >= 5
+        for body in bodies:
+            assert "add_header" not in body, body
+
+    def test_markdown_support(self, tmp_path):
+        content = _render_static_public_ssl(tmp_path)
+        assert "types { text/markdown md; }" in content
+        assert "default_type text/markdown;" in content
+        assert "text/markdown" in content.split("gzip_types", 1)[1].splitlines()[0]
+        assert 'if ($http_accept ~* "text/markdown")' in content
+        assert "try_files $uri $uri$static_variant $uri.html $uri/ =404;" in content
+
+    def test_link_headers_use_domain(self, tmp_path):
+        content = _render_static_public_ssl(tmp_path)
+        assert 'set $static_link "<https://docs.example.com/$static_page>; rel=\\"canonical\\"";' in content
+        assert "<https://docs.example.com/$static_page.md>" in content
+        assert "server.domain.de" not in content
+
+    def test_regex_escapes_survive(self, tmp_path):
+        """TEMPLATE is a plain string: its doubled backslash must render as a single one."""
+        content = _render_static_public_ssl(tmp_path)
+        assert "location ~ ^/pdf/(?<static_page>[A-Za-z0-9._-]+)\\.pdf$ {" in content
+
+    def test_no_proxy(self, tmp_path):
+        content = _render_static_public_ssl(tmp_path)
+        assert "proxy_pass" not in content
+        assert "{{PORT}}" not in content
+
+    def test_ip_bound_listen_and_certificate(self, tmp_path):
+        content = _render_static_public_ssl(tmp_path)
+        assert "listen 1.2.3.4:80;" in content
+        assert "listen 1.2.3.4:443 ssl;" in content
+        assert "ssl_certificate docs.example.com;" in content
+        assert "zertifikat" not in content
+
+    def test_http3_injection(self, tmp_path, monkeypatch):
+        from nginx_set_conf.validators import HTTP3_EXCLUDED_TEMPLATES
+
+        assert "static_public_ssl" not in HTTP3_EXCLUDED_TEMPLATES
+        monkeypatch.setattr("nginx_set_conf.utils.get_nginx_version", lambda: (1, 27, 2))
+        content = _render_static_public_ssl(tmp_path, enable_http3=True)
+        assert "listen 1.2.3.4:443 quic" in content
+        assert "http3 on;" in content
+
+
+# ---------------------------------------------------------------------------
 # COR-01 / COR-03 golden-output snapshot and raw-sentinel regression tests
 # ---------------------------------------------------------------------------
 
@@ -912,8 +1022,7 @@ class TestRawSentinelStorage:
                 continue
             if "proxy_cache_path" in content:
                 assert "/tmp" in content, (
-                    f"Template '{name}' does not contain /tmp sentinel — "
-                    "was it pre-processed at import time?"
+                    f"Template '{name}' does not contain /tmp sentinel — was it pre-processed at import time?"
                 )
                 assert "/var/cache/nginx" not in content, (
                     f"Template '{name}' contains a pre-processed /var/cache/nginx path — "
@@ -924,7 +1033,8 @@ class TestRawSentinelStorage:
     def test_sentinel_constant_matches_template_literals(self):
         """CACHE_PATH_SENTINEL must be importable and its path component (/tmp)
         must appear in every template that carries a proxy_cache_path directive."""
-        from nginx_set_conf.templates.all_templates import CACHE_PATH_SENTINEL, TEMPLATES as T
+        from nginx_set_conf.templates.all_templates import CACHE_PATH_SENTINEL
+        from nginx_set_conf.templates.all_templates import TEMPLATES as T
 
         sentinel_path = CACHE_PATH_SENTINEL.split()[1]
         for name, content in T.items():

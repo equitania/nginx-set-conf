@@ -54,9 +54,7 @@ class TestPreserveLoadModules:
         to an include file, where it would be a syntax error."""
         server = tmp_path / "security.conf"
         server.write_text(f"{NJS}\n", encoding="utf-8")
-        result = ConfigVerification._preserve_load_modules(
-            "nginxconfig.io/security.conf", TEMPLATE, server
-        )
+        result = ConfigVerification._preserve_load_modules("nginxconfig.io/security.conf", TEMPLATE, server)
         assert result == TEMPLATE
 
     def test_indented_and_quoted_forms_are_matched(self, tmp_path: Path):

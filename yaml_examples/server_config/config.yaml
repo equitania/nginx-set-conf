@@ -251,6 +251,16 @@ Static Download Site:
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
+# Public static site for search engines and AI agents (indexable, markdown-aware).
+# Layout: /<name>.html, /<name>.md, /pdf/<name>.pdf, /llms.txt, /robots.txt, /sitemap.xml
+Public Documentation Site:
+  config_template: static_public_ssl
+  ip: 203.0.113.10
+  domain: docs.example.com
+  cert_name: docs.example.com
+  root_path: /var/www/docs.example.com
+  #enable_http3: true  # Optional: QUIC/HTTP/3 (requires nginx >= 1.25.0 and UDP/443 open)
+
 # Static website hosting — fully filled-in example (copy & adapt)
 Company Website:
   config_template: static_ssl

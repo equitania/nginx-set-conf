@@ -435,14 +435,17 @@ class TestHttp3Exclusion:
             enable_http3=True,
         )
 
-    @pytest.mark.parametrize("template", [
-        "fast_report",
-        "mailpit",
-        "redirect",
-        "redirect_ssl",
-        "default_ssl_reject",
-        "odoo_http",
-    ])
+    @pytest.mark.parametrize(
+        "template",
+        [
+            "fast_report",
+            "mailpit",
+            "redirect",
+            "redirect_ssl",
+            "default_ssl_reject",
+            "odoo_http",
+        ],
+    )
     def test_all_excluded_templates_reject_http3(self, template):
         """Each of the 6 excluded templates must raise ValidationError with enable_http3=True."""
         with pytest.raises(ValidationError):
