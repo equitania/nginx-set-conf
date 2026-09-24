@@ -44,26 +44,48 @@ from .utils import (
 logger = logging.getLogger("nginx_set_conf")
 logger.setLevel(logging.INFO)
 
+LOG_FILE_MODE = 0o600
+
+
+class PrivateRotatingFileHandler(RotatingFileHandler):
+    """RotatingFileHandler whose log files are readable by the owner only.
+
+    The log records every domain, IP, certificate path and executed command.
+    The file is created with 0600 regardless of the umask — also after each
+    rollover, which opens a fresh file — and a file left behind by an older
+    version with wider permissions is tightened when it is opened.
+    """
+
+    def _open(self):
+        fd = os.open(self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_APPEND, LOG_FILE_MODE)
+        try:
+            os.fchmod(fd, LOG_FILE_MODE)
+        except OSError:
+            # Not the owner: the file stays as it is; writing still works.
+            pass
+        return open(fd, self.mode, encoding=self.encoding, errors=self.errors)
+
+
 # Create handlers
 console_handler = logging.StreamHandler()
 
 # Use /var/log path when running as root, otherwise current directory
 _log_dir = "/var/log/nginx_set_conf"
 if os.getuid() == 0:
-    os.makedirs(_log_dir, exist_ok=True)
+    os.makedirs(_log_dir, mode=0o700, exist_ok=True)
     _log_path = os.path.join(_log_dir, "nginx_set_conf.log")
 else:
     _log_path = "nginx_set_conf.log"
 
 try:
-    file_handler = RotatingFileHandler(
+    file_handler = PrivateRotatingFileHandler(
         _log_path,
         maxBytes=1024 * 1024,  # 1MB
         backupCount=3,
     )
 except (PermissionError, OSError):
     # Fallback to current directory if log dir is not writable
-    file_handler = RotatingFileHandler(
+    file_handler = PrivateRotatingFileHandler(
         "nginx_set_conf.log",
         maxBytes=1024 * 1024,
         backupCount=3,

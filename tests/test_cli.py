@@ -1,5 +1,6 @@
 """Tests for the subcommand CLI and the flag-only legacy call form."""
 
+import os
 from unittest.mock import patch
 
 from click.testing import CliRunner
@@ -133,6 +134,54 @@ class TestLegacyCallForm:
         result = _invoke("--show_template", "--config_template", "odoo_ssl")
         assert result.exit_code == 0
         assert TEMPLATES["odoo_ssl"] in result.output
+
+
+class TestPrivateLogFile:
+    """The log holds domains, IPs and commands — owner-only, whatever the umask."""
+
+    @staticmethod
+    def _mode(path):
+        return path.stat().st_mode & 0o777
+
+    def _handler(self, path, **kwargs):
+        handler = cli.PrivateRotatingFileHandler(str(path), **kwargs)
+        handler.setFormatter(cli.logging.Formatter("%(message)s"))
+        return handler
+
+    def _emit(self, handler, text):
+        handler.emit(cli.logging.LogRecord("t", cli.logging.INFO, __file__, 0, text, None, None))
+
+    def test_new_file_is_0600_despite_permissive_umask(self, tmp_path):
+        path = tmp_path / "nginx_set_conf.log"
+        old = os.umask(0o022)
+        try:
+            handler = self._handler(path)
+            self._emit(handler, "domain example.com")
+            handler.close()
+        finally:
+            os.umask(old)
+        assert self._mode(path) == 0o600
+        assert "domain example.com" in path.read_text()
+
+    def test_existing_world_readable_file_is_tightened(self, tmp_path):
+        path = tmp_path / "nginx_set_conf.log"
+        path.write_text("old entry\n")
+        path.chmod(0o644)
+        handler = self._handler(path)
+        self._emit(handler, "new entry")
+        handler.close()
+        assert self._mode(path) == 0o600
+        assert path.read_text() == "old entry\nnew entry\n"
+
+    def test_file_after_rollover_is_0600(self, tmp_path):
+        path = tmp_path / "nginx_set_conf.log"
+        handler = self._handler(path, maxBytes=50, backupCount=2)
+        for i in range(10):
+            self._emit(handler, f"entry {i} " + "x" * 20)
+        handler.close()
+        assert (tmp_path / "nginx_set_conf.log.1").exists()
+        for file in tmp_path.iterdir():
+            assert self._mode(file) == 0o600, file.name
 
 
 def test_every_template_has_a_description():

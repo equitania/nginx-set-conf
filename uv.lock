@@ -634,7 +634,7 @@ wheels = [
 
 [[package]]
 name = "nginx-set-conf"
-version = "1.19.0"
+version = "1.19.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

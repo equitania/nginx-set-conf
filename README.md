@@ -759,7 +759,7 @@ nginx-set-conf --verify_config --dry_run
 #### Logging
 All operations are logged to:
 - Console: INFO level
-- File: `nginx_set_conf.log` (with rotation)
+- File: `/var/log/nginx_set_conf/nginx_set_conf.log` when run as root, else `./nginx_set_conf.log` — 1 MB rotation, 3 backups, **mode 0600** (owner only; the log holds domains, IPs and executed commands)
 
 ### Development & Testing
 
@@ -1201,7 +1201,7 @@ nginx-set-conf --verify_config --dry_run
 #### Logging
 Alle Operationen werden geloggt in:
 - Konsole: INFO-Level
-- Datei: `nginx_set_conf.log` (mit Rotation)
+- Datei: `/var/log/nginx_set_conf/nginx_set_conf.log` bei Ausführung als root, sonst `./nginx_set_conf.log` — Rotation bei 1 MB, 3 Sicherungen, **Rechte 0600** (nur Besitzer; das Log enthält Domains, IPs und ausgeführte Befehle)
 
 ### Entwicklung & Tests
 

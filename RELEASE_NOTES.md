@@ -1,5 +1,22 @@
 # RELEASE NOTES
 
+## Version 1.19.1 (24.09.2026)
+
+### Fixed
+
+- **[FIX]** **The log file was world-readable.** It records every domain, IP, certificate path and
+  executed command, and was created with the process umask — `0644` on a typical host, so any local
+  user could read `/var/log/nginx_set_conf/nginx_set_conf.log`. A new `PrivateRotatingFileHandler`
+  opens every log file with `0600`, also the fresh file after each rollover, and tightens a file an
+  older version left with wider permissions when it opens it. A new log directory is created with
+  `0700`; an existing one keeps its mode, which is harmless now that the files inside are private.
+  Three tests cover a new file under umask `022`, an existing `0644` file and a rollover.
+
+### Changed
+
+- **[CHG]** **Leaner source distribution.** The sdist no longer ships the `.planning/` records,
+  `CLAUDE.md` and `.project-tips` (401 KB → 206 KB); the wheel is unchanged.
+
 ## Version 1.19.0 (24.09.2026)
 
 ### Added

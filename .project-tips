@@ -2,6 +2,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ▸ Setup:   uv venv && venv+ && uvpip
 ▸ Dev:     uv pip install -e .
-▸ Run:     nginx-set-conf --help
+▸ Run:     nginx-set-conf --help   (deploy|show|templates|verify|sync|backup|setup-default|migrate)
+▸ Server:  nginx-set-conf --config_path=/root/docker-builds/ngx-conf
 ▸ Build:   uv build
-▸ Test:    pytest
+▸ Test:    uv run pytest -q
