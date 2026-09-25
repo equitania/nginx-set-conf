@@ -28,7 +28,7 @@ uv pip install -e ".[dev]"
   hidden `legacy` command. Keep it on one line in `--help`.
 - **Base-config source of truth is myodoo-docker**, not `yaml_examples/`. Update the embedded
   constants in `config_verification.py` only via `python3 tools/sync_base_templates.py --write`;
-  `--check` runs in the test suite. The copies under `yaml_examples/nginxconfig.io/` are stale.
+  `--check` runs in the test suite. Do not add local copies of these files to the repo.
 - **New template:** module in `templates/`, entry in `TEMPLATES` **and** `TEMPLATE_DESCRIPTIONS`
   (`all_templates.py`), name in `VALID_TEMPLATES` (`validators.py`), test in `tests/test_templates.py`,
   example in `yaml_examples/server_config/config.yaml`. `ip.ip.ip.ip` is for `listen` lines only;
