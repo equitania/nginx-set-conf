@@ -29,6 +29,7 @@ from logging.handlers import RotatingFileHandler
 import click
 
 from . import __version__
+from .capability_card import capability_card
 from .config_verification import ConfigVerification
 from .templates.all_templates import TEMPLATE_DESCRIPTIONS, get_config_template
 from .utils import (
@@ -673,6 +674,9 @@ def migrate_command(target_path: str | None, dry_run: bool) -> None:
     first vhost."""
     if not _run_migrate(target_path, dry_run):
         raise SystemExit(1)
+
+
+start_nginx_set_conf.add_command(capability_card)
 
 
 @start_nginx_set_conf.command("legacy", hidden=True, context_settings=CONTEXT_SETTINGS)

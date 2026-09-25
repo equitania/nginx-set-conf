@@ -2,6 +2,13 @@
 
 ## Version 1.19.2 (25.09.2026)
 
+### Added
+
+- **[ADD]** **Agent capability card.** `usage/AGENT.md` describes every command, the templates,
+  recipes and guardrails in a dense English form for LLM agents. `nginx-set-conf capability-card`
+  prints it from the installed tool with the live version; the wheel bundles it as
+  `nginx_set_conf/data/AGENT.md`, an editable install reads it from the repo.
+
 ### Fixed
 
 - **[FIX]** **`static_public_ssl`: basic auth left direct file URLs open.** With `auth_file` set,

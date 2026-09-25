@@ -58,6 +58,9 @@ Issues = "https://github.com/equitania/nginx-set-conf/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["nginx_set_conf"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"usage/AGENT.md" = "nginx_set_conf/data/AGENT.md"
+
 # Planning records and assistant notes are for the repository, not for PyPI.
 [tool.hatch.build.targets.sdist]
 exclude = [".planning", "CLAUDE.md", ".project-tips"]
