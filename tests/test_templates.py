@@ -806,7 +806,7 @@ class TestStaticSslTemplate:
 # ---------------------------------------------------------------------------
 
 
-def _render_static_public_ssl(tmp_path, root_path=None, enable_http3=False):
+def _render_static_public_ssl(tmp_path, root_path=None, enable_http3=False, auth_file=""):
     """Render static_public_ssl via execute_commands and return the written .conf content."""
     execute_commands(
         config_template="static_public_ssl",
@@ -817,7 +817,7 @@ def _render_static_public_ssl(tmp_path, root_path=None, enable_http3=False):
         port="",
         pollport="",
         redirect_domain="",
-        auth_file="",
+        auth_file=auth_file,
         allowed_ips="",
         target_path=str(tmp_path),
         dry_run=False,
@@ -871,6 +871,16 @@ class TestStaticPublicSslTemplate:
         assert len(bodies) >= 5
         for body in bodies:
             assert "add_header" not in body, body
+
+    def test_auth_covers_every_location(self, tmp_path):
+        """Basic auth must sit at server level: the regex locations (.html, .md, /pdf/, llms.txt)
+        do not inherit from location /, so auth there would leave direct file URLs open."""
+        content = _render_static_public_ssl(tmp_path, auth_file="/etc/nginx/.htaccess/.htpasswd-docs")
+        assert "auth_basic_user_file  /etc/nginx/.htaccess/.htpasswd-docs;" in content
+        for body in _location_bodies(content):
+            assert "auth_basic" not in body, body
+        https_server = content.split("listen 1.2.3.4:443", 1)[1]
+        assert https_server.index("auth_basic") < https_server.index("\n    location ")
 
     def test_markdown_support(self, tmp_path):
         content = _render_static_public_ssl(tmp_path)

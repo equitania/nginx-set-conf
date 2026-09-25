@@ -19,7 +19,7 @@ nginx omits a header whose value is empty.
 """
 
 TEMPLATE = """# Template for a public static site (indexable, markdown-aware) nginx incl. SSL/HTTP2 support
-# 24.09.2026
+# 25.09.2026
 
 server {
     listen ip.ip.ip.ip:80;
@@ -45,6 +45,9 @@ server {
     keepalive_timeout    60;
 
     #ip_restrictions
+
+    # Basic auth is server-wide here: the regex locations below do not inherit from location /.
+    #authentication
 
     # static document root
     root {{ROOT_PATH}};
@@ -75,7 +78,6 @@ server {
     include                 nginxconfig.io/general.conf;
 
     location / {
-        #authentication
         # try_files serves the matched file inside this location, so .md needs its type here.
         include mime.types;
         types { text/markdown md; }

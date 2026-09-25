@@ -1,5 +1,18 @@
 # RELEASE NOTES
 
+## Version 1.19.2 (25.09.2026)
+
+### Fixed
+
+- **[FIX]** **`static_public_ssl`: basic auth left direct file URLs open.** With `auth_file` set,
+  the `auth_basic` lines were placed inside `location /` only. The template's regex locations for
+  `*.html`, `*.md`, `/pdf/*.pdf`, `/index.html` and `llms(-full).txt` do not inherit from
+  `location /`, so only clean URLs such as `/page` asked for a password — `/page.html` or
+  `/page.md` were served without one. The `#authentication` marker now sits at server level in the
+  HTTPS block, so the credentials apply to every location. Regenerate affected vhosts after
+  updating. A new test asserts that no location carries its own `auth_basic` and that the
+  directive precedes the first location.
+
 ## Version 1.19.1 (24.09.2026)
 
 ### Fixed
