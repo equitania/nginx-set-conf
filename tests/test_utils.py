@@ -53,15 +53,37 @@ class TestParseYaml:
 
 class TestParseYamlFolder:
     def test_parses_yaml_files(self, tmp_path):
-        (tmp_path / "a.yaml").write_text("key: a\n")
-        (tmp_path / "b.yml").write_text("key: b\n")
-        (tmp_path / "c.txt").write_text("key: c\n")
+        (tmp_path / "a.yaml").write_text("a:\n  config_template: odoo_ssl\n")
+        (tmp_path / "b.yml").write_text("b:\n  config_template: odoo_ssl\n")
+        (tmp_path / "c.txt").write_text("c:\n  config_template: odoo_ssl\n")
         results = parse_yaml_folder(str(tmp_path))
         assert len(results) == 2
 
     def test_empty_folder(self, tmp_path):
         results = parse_yaml_folder(str(tmp_path))
         assert results == []
+
+    def test_skips_foreign_yaml(self, tmp_path, caplog):
+        """A home directory holds other tools' YAMLs (docker2update.yaml,
+        container2backup.yaml). Their sections are lists or scalars, not vhost
+        mappings; reading them as vhosts crashed with
+        ``TypeError: list indices must be integers or slices, not str``."""
+        (tmp_path / "vhosts.yaml").write_text("erp:\n  config_template: odoo_ssl\n  domain: erp.example.com\n")
+        (tmp_path / "container2backup.yaml").write_text("defaults:\n  keep: 7\nservices:\n  - name: live-odoo\n")
+        (tmp_path / "list.yaml").write_text("- one\n- two\n")
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            results = parse_yaml_folder(str(tmp_path))
+        assert results == [{"erp": {"config_template": "odoo_ssl", "domain": "erp.example.com"}}]
+        assert "container2backup.yaml" in caplog.text
+        assert "list.yaml" in caplog.text
+
+    def test_keeps_vhosts_next_to_foreign_sections(self, tmp_path, caplog):
+        """Within one file, only the entries without config_template are dropped."""
+        (tmp_path / "mixed.yaml").write_text("erp:\n  config_template: odoo_ssl\nnotes:\n  - x\n")
+        with caplog.at_level(logging.WARNING, logger="nginx_set_conf"):
+            results = parse_yaml_folder(str(tmp_path))
+        assert results == [{"erp": {"config_template": "odoo_ssl"}}]
+        assert "notes" in caplog.text
 
 
 class TestGetDefaultVars:

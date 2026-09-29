@@ -122,20 +122,36 @@ def parse_yaml_folder(path: str) -> list:
     """Parses all YAML files in a directory.
 
     Searches for files with .yaml or .yml extensions in the specified directory
-    and parses each one into a Python object.
+    and parses each one into a Python object. Only vhost entries — mappings
+    that carry a ``config_template`` — are kept. Other tools' YAMLs often share
+    the folder (a home directory holds docker2update.yaml and
+    container2backup.yaml); their sections are skipped with a warning instead
+    of crashing the deploy.
 
     Args:
         path: Directory path containing YAML files.
 
     Returns:
-        List of parsed YAML objects.
+        List of dicts mapping entry name to vhost settings, one per file that
+        holds at least one vhost entry.
     """
     yaml_objects = []
     for file in os.listdir(path):
         if file.endswith(".yaml") or file.endswith(".yml"):
             yaml_object = parse_yaml(os.path.join(path, file))
-            if yaml_object:
-                yaml_objects.append(yaml_object)
+            if not yaml_object:
+                continue
+            if not isinstance(yaml_object, dict):
+                logger.warning("Skipping %s: not a vhost file (top level is not a mapping)", file)
+                continue
+            vhosts = {}
+            for name, entry in yaml_object.items():
+                if isinstance(entry, dict) and "config_template" in entry:
+                    vhosts[name] = entry
+                else:
+                    logger.warning("Skipping %s in %s: no config_template, not a vhost entry", name, file)
+            if vhosts:
+                yaml_objects.append(vhosts)
     return yaml_objects
 
 

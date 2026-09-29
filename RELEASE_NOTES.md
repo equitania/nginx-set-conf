@@ -1,5 +1,21 @@
 # RELEASE NOTES
 
+## Version 1.19.3 (29.09.2026)
+
+### Fixed
+
+- **[FIX]** **`--config_path` crashed on folders holding other tools' YAMLs.** Pointed at a home
+  directory, the batch deploy read `docker2update.yaml` or `container2backup.yaml` as vhost
+  definitions and aborted with `TypeError: list indices must be integers or slices, not str`.
+  Only entries that are mappings with a `config_template` are deployed now; every other file or
+  key is skipped with a warning that names it.
+- **[FIX]** **Pre-flight failed on hosts running Debian's own nginx package.** The embedded
+  `nginx.conf` sets `user nginx;`, a user only the nginx.org package creates. On Debian 13 with
+  the distro package, `nginx -t` failed with `getpwnam("nginx") failed` and the pre-flight rolled
+  back on every deploy. When `nginx` is missing and `www-data` exists, the template is written
+  and verified with `user www-data;`. With neither user present the template stays unchanged, and
+  the pre-flight now names the missing user and the `useradd` command that creates it.
+
 ## Version 1.19.2 (25.09.2026)
 
 ### Added

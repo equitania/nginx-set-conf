@@ -7,6 +7,7 @@ using embedded templates.
 
 import hashlib
 import logging
+import pwd
 import re
 import subprocess
 from pathlib import Path
@@ -20,6 +21,35 @@ logger = logging.getLogger(__name__)
 # are carried over from the existing nginx.conf on every sync — dropping one
 # makes every vhost using that module's directives fail `nginx -t`.
 LOAD_MODULE_PATTERN = re.compile(r"^[ \t]*load_module[ \t]+[^;]+;", re.MULTILINE)
+
+# The embedded nginx.conf follows the nginx.org package, whose workers run as
+# "nginx". Debian's and Ubuntu's own package creates no such user and runs as
+# "www-data"; "user nginx;" there fails nginx -t with getpwnam("nginx").
+TEMPLATE_WORKER_USER_LINE = "user  nginx;"
+DISTRO_WORKER_USER_LINE = "user  www-data;"
+
+
+def _user_exists(name: str) -> bool:
+    try:
+        pwd.getpwnam(name)
+        return True
+    except KeyError:
+        return False
+
+
+def adapt_worker_user(template_content: str) -> str:
+    """Point the worker ``user`` line at the account this host actually has.
+
+    Only switches to www-data when ``nginx`` is missing and ``www-data``
+    exists. With neither present the template stays as is, so ``nginx -t``
+    names the missing user instead of this function guessing one.
+    """
+    if TEMPLATE_WORKER_USER_LINE not in template_content or _user_exists("nginx"):
+        return template_content
+    if not _user_exists("www-data"):
+        return template_content
+    return template_content.replace(TEMPLATE_WORKER_USER_LINE, DISTRO_WORKER_USER_LINE, 1)
+
 
 # Embedded template files
 NGINX_CONF_TEMPLATE = r"""# nginx incl. SSL/http2 1.26.2
@@ -325,7 +355,7 @@ class ConfigVerification:
         Returns:
             SHA256 hash of template content
         """
-        template_content = self.templates.get(file_name, "")
+        template_content = adapt_worker_user(self.templates.get(file_name, ""))
         return hashlib.sha256(template_content.encode("utf-8")).hexdigest()
 
     def verify_configuration_consistency(self) -> dict[str, dict]:
@@ -590,6 +620,11 @@ class ConfigVerification:
                 "nginx-cert-guard.py --reconcile --start   # quarantine the vhost, then fix the DNS record",
             ),
             (
+                r'getpwnam\("([^"]+)"\) failed',
+                "the nginx worker user {0} does not exist on this host",
+                "useradd --system --no-create-home --shell /usr/sbin/nologin {0}   # then re-run this deploy",
+            ),
+            (
                 r'cannot load certificate "([^"]+)"',
                 "the certificate {0} is missing or unreadable",
                 "certbot certificates   # re-issue, then re-run this deploy",
@@ -618,7 +653,9 @@ class ConfigVerification:
         for file_name in files_to_sync:
             result = results[file_name]
             server_path = Path(result["server"]["path"])
-            template_content = self._preserve_load_modules(file_name, self.templates[file_name], server_path)
+            template_content = self._preserve_load_modules(
+                file_name, adapt_worker_user(self.templates[file_name]), server_path
+            )
 
             try:
                 # Create server directory if it doesn't exist

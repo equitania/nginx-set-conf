@@ -11,7 +11,7 @@
 
 - **Invoke:** `nginx-set-conf <command> [options]` (runs as root on the nginx host)
 - **Install:** `uv tool install nginx-set-conf` (or `pip install nginx-set-conf`)
-- **Version:** 1.19.2
+- **Version:** 1.19.3
 - **Self-serve:** `nginx-set-conf capability-card` prints this card from the installed tool (live version injected)
 - **Framework:** Python / Click  ·  **Human docs:** `README.md` (EN/DE), `RELEASE_NOTES.md`
 
@@ -64,7 +64,8 @@ but installed only via `setup-default`. Authoritative list: `nginx-set-conf temp
 nginx-set-conf --config_path=/root/docker-builds/ngx-conf
 ```
 Flag-only legacy form, identical to `nginx-set-conf deploy --config_path=…`. Reads every
-`*.yaml`/`*.yml` in the folder; each top-level key is one vhost.
+`*.yaml`/`*.yml` in the folder; each top-level key with a `config_template` is one vhost.
+Other keys and files (e.g. `docker2update.yaml` in a home directory) are skipped with a warning.
 
 ### YAML vhost entry
 ```yaml
@@ -120,7 +121,7 @@ nginx-set-conf migrate
 - **Overwrites without asking:** `deploy` writes `<target_path>/<domain>.conf` and silently replaces an existing file of that name, including hand edits. Keep customisations in the YAML, not in the generated file.
 - **Downtime on new certificates:** if `/etc/letsencrypt/live/<cert_name>/` is missing, `deploy` **stops nginx** and runs `certbot certonly --standalone` (needs port 80 free and DNS pointing at the host), then continues. Existing certificates are reused.
 - **Own certificate:** `--cert_name` = full path to the `.crt`, `--cert_key` = full path to the key. Omit `--cert_key` for Let's Encrypt.
-- **Pre-flight on every deploy:** the three base configs are checked and auto-repaired before the first vhost is written; a failing repair aborts the deploy. Skipped with `--dry_run`.
+- **Pre-flight on every deploy:** the three base configs are checked and auto-repaired before the first vhost is written; a failing repair aborts the deploy. Skipped with `--dry_run`. The embedded `nginx.conf` runs workers as `nginx`; on a host without that user but with `www-data` (Debian/Ubuntu distro package) it writes `user www-data;` instead.
 - **Safe reload:** `nginx -t` runs before `systemctl reload`; on failure the running nginx keeps the old config and the command exits non-zero — but the new `.conf` file is already on disk. Fix or remove it before the next reload.
 - **Interactive fallback:** `deploy` without `--config_path` and without the required single-vhost options (`config_template`, `ip`, `domain`, `cert_name`, and `port` or `root_path`) prompts for every value — it blocks an unattended agent. Always pass the flags or `--config_path`.
 - **`--auth_file`:** absolute path must be under `/etc/nginx/` and not under `/etc/nginx/conf.d/`. The file must be readable by the nginx worker user (`user` in `nginx.conf`: `www-data` on Debian packages, `nginx` on nginx.org packages) — otherwise every request fails with **500** and the error log shows `(13: Permission denied)`. nginx ignores `.htaccess`; use htpasswd.
