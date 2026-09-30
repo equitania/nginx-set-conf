@@ -1047,9 +1047,13 @@ def execute_commands(
     # Handle authentication
     if auth_file:
         logger.info("Set auth file to %s", auth_file)
+        # Indent like the marker: it sits inside a location in most templates
+        # and at server level where the credentials have to cover every location.
+        marker_line = next((line for line in content.split("\n") if "#authentication" in line), "")
+        indent = marker_line[: len(marker_line) - len(marker_line.lstrip())] or "        "
         auth_lines = [
-            '        auth_basic       "Restricted Area";',
-            f"        auth_basic_user_file  {auth_file};",
+            f'{indent}auth_basic       "Restricted Area";',
+            f"{indent}auth_basic_user_file  {auth_file};",
         ]
         content = _insert_after_marker(content, "#authentication", auth_lines)
 

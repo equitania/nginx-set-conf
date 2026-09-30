@@ -1,5 +1,23 @@
 # RELEASE NOTES
 
+## Version 1.19.4 (30.09.2026)
+
+### Fixed
+
+- **[FIX]** **`odoo_ssl` / `odoo_http`: basic auth left most of the vhost open.** With `auth_file`
+  set, the `auth_basic` lines were placed inside `location /` only. The templates' other locations
+  do not inherit from it, so `/web/static/`, `/web/image/` and every URL ending in `.pdf`
+  (attachments under `/web/content/…`) were proxied to Odoo without the password prompt — the
+  same defect 1.19.2 fixed in `static_public_ssl`. The `#authentication` marker now sits at server
+  level, so the credentials apply to the whole vhost. **Regenerate affected vhosts after updating**
+  (`nginx-set-conf --config_path=…`); a vhost generated before 1.19.4 keeps the gap until then.
+- **`/websocket` is deliberately exempt** (`auth_basic off;`). Safari does not send basic
+  credentials on a WebSocket handshake, so Odoo's bus (notifications, discuss) would fail there;
+  the endpoint only answers a valid Odoo session. The line is harmless on vhosts without
+  `auth_file`.
+- The inserted `auth_basic` lines follow the indentation of the `#authentication` marker instead
+  of a fixed eight spaces.
+
 ## Version 1.19.3 (29.09.2026)
 
 ### Fixed

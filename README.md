@@ -708,6 +708,16 @@ apt-get install apache2-utils
 htpasswd -c /etc/nginx/.htaccess/.htpasswd-user USER
 ```
 
+Set `auth_file` to that path. The file must be readable by the nginx worker.
+
+**What the prompt covers on an Odoo vhost (since 1.19.4):** the whole vhost — `odoo_ssl` and
+`odoo_http` place the directives at server level. Before 1.19.4 they sat in `location /` only, so
+`/web/static/`, `/web/image/` and every URL ending in `.pdf` skipped the prompt; regenerate such a
+vhost after updating. `/websocket` is exempt on purpose: Safari sends no basic credentials on a
+WebSocket handshake, and the endpoint needs a valid Odoo session anyway. Basic auth in front of
+Odoo also locks out everything that calls it without a browser — payment callbacks, webhooks, API
+clients, the mobile app.
+
 ### Nginx Template Settings
 
 You can download our optimized settings:
@@ -1149,6 +1159,16 @@ apt-get install certbot
 apt-get install apache2-utils
 htpasswd -c /etc/nginx/.htaccess/.htpasswd-user USER
 ```
+
+Diesen Pfad als `auth_file` eintragen. Die Datei muss für den nginx-Worker lesbar sein.
+
+**Was die Abfrage bei einem Odoo-vHost abdeckt (seit 1.19.4):** den ganzen vHost — `odoo_ssl` und
+`odoo_http` setzen die Anweisungen auf Server-Ebene. Vor 1.19.4 standen sie nur in `location /`,
+sodass `/web/static/`, `/web/image/` und jede Adresse auf `.pdf` ohne Abfrage erreichbar waren;
+einen solchen vHost nach dem Update neu erzeugen. `/websocket` ist absichtlich ausgenommen: Safari
+schickt beim WebSocket-Aufbau keine Basic-Zugangsdaten, und der Endpunkt verlangt ohnehin eine
+gültige Odoo-Sitzung. Basic Auth vor Odoo sperrt außerdem alles aus, was es ohne Browser aufruft —
+Rückrufe von Zahlungsanbietern, Webhooks, API-Clients, die mobile App.
 
 ### Nginx-Template-Einstellungen
 

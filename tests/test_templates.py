@@ -1053,3 +1053,70 @@ class TestRawSentinelStorage:
                     f"Template '{name}' does not contain sentinel path '{sentinel_path}' "
                     f"from CACHE_PATH_SENTINEL='{CACHE_PATH_SENTINEL}'"
                 )
+
+
+def _render_odoo(tmp_path, template, auth_file=""):
+    """Render an Odoo template via execute_commands and return the written .conf content."""
+    execute_commands(
+        config_template=template,
+        domain="erp.example.com",
+        ip="1.2.3.4",
+        cert_name="erp.example.com",
+        cert_key="",
+        port="11000",
+        pollport="12000",
+        redirect_domain="",
+        auth_file=auth_file,
+        allowed_ips="",
+        target_path=str(tmp_path),
+        dry_run=False,
+    )
+    confs = list(tmp_path.glob("*.conf"))
+    assert len(confs) == 1, f"expected exactly one .conf, got {confs}"
+    return confs[0].read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("template", ["odoo_ssl", "odoo_http"])
+class TestOdooBasicAuthScope:
+    """Basic auth on an Odoo vhost has to cover the whole vhost.
+
+    Until 1.19.4 the directives went into ``location /`` only. The template's
+    other locations do not inherit from it, so ``/web/static/``, ``/web/image/``
+    and every URL ending in ``.pdf`` (attachments under ``/web/content/``) were
+    proxied to Odoo without the password prompt.
+    """
+
+    AUTH = "/etc/nginx/.htpasswd"
+
+    def _served_block(self, content, template):
+        return content.split("listen 1.2.3.4:443", 1)[1] if template == "odoo_ssl" else content
+
+    def test_auth_sits_at_server_level(self, tmp_path, template):
+        content = _render_odoo(tmp_path, template, auth_file=self.AUTH)
+        assert content.count(f"auth_basic_user_file  {self.AUTH};") == 1
+        block = self._served_block(content, template)
+        assert block.index("auth_basic_user_file") < block.index("\n    location ")
+        # server level means server indentation, not the eight spaces of a location body
+        assert f"\n    auth_basic_user_file  {self.AUTH};" in content
+
+    def test_no_location_carries_its_own_credentials(self, tmp_path, template):
+        content = _render_odoo(tmp_path, template, auth_file=self.AUTH)
+        bodies = _location_bodies(content)
+        assert len(bodies) >= 5
+        for body in bodies:
+            assert "auth_basic_user_file" not in body, body
+
+    def test_only_the_websocket_is_exempt(self, tmp_path, template):
+        """Safari does not send basic credentials on a WebSocket handshake; the endpoint
+        needs a valid Odoo session anyway. Every other location must stay protected."""
+        content = _render_odoo(tmp_path, template, auth_file=self.AUTH)
+        exempt = [body for body in _location_bodies(content) if "auth_basic off;" in body]
+        assert len(exempt) == 1
+        assert "$http_upgrade" in exempt[0]
+        assert ":12000" in exempt[0]
+
+    def test_without_auth_file_nothing_asks_for_a_password(self, tmp_path, template):
+        content = _render_odoo(tmp_path, template)
+        assert "auth_basic_user_file" not in content
+        assert "Restricted Area" not in content
+        assert "#authentication" in content

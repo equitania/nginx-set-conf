@@ -3,7 +3,7 @@ Template for Odoo NGINX configuration with SSL/HTTP2 support.
 """
 
 TEMPLATE = """# Template for Odoo configuration nginx incl. SSL/HTTP2 support
-# 22.04.2026
+# 30.09.2026
 
 map $http_upgrade $connection_upgrade {
   default upgrade;
@@ -38,6 +38,10 @@ server {
     ssl_prefer_server_ciphers on;
     
     #ip_restrictions
+
+    # Basic auth is server-wide here: the regex locations below (/web/static/,
+    # /web/image/, *.pdf) do not inherit from location /.
+    #authentication
     
     # increase proxy buffer to handle some Odoo web requests
     proxy_buffers 16 64k;
@@ -79,11 +83,13 @@ server {
 
         # HSTS header is set in nginxconfig.io/security.conf
         proxy_cookie_flags session_id samesite=lax secure; 
-        #authentication
     }
 
     # Chat Odoo
     location /websocket {
+        # No password prompt on the WebSocket: Safari does not send basic
+        # credentials on the handshake, and the endpoint needs an Odoo session.
+        auth_basic off;
         proxy_pass http://{{BACKEND_IP}}:{{POLL_PORT}};
 
         proxy_set_header Upgrade $http_upgrade;
