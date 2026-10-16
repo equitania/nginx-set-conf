@@ -238,6 +238,12 @@ nginx-set-conf --config_template flowise --ip 192.168.1.10 --domain secure-flowi
 nginx-set-conf --config_template odoo_ssl --ip 192.168.1.100 --domain dev01-a.intra.company.local --port 8069 --cert_name dev01-a.intra.company.local --disable_domain_listen
 ```
 
+**An invalid entry in the YAML folder is skipped, not fatal (since 1.19.6).** If an entry lacks
+`domain`, `ip` or `config_template`, or carries a malformed value (a port like `80 `, a trailing
+line break), it is skipped with an `ERROR:` line. The other entries are deployed and nginx is
+reloaded as usual. The exit code stays 0, so read the output after a batch run. Before 1.19.6 such
+an entry aborted the run after the earlier vhosts were already written.
+
 #### Template Preview
 
 ```bash
@@ -967,6 +973,13 @@ nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com 
 # Dry-Run-Modus
 nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com --port 8069 --cert_name www.example.com --dry_run
 ```
+
+**Ein ungültiger Eintrag im YAML-Ordner wird übersprungen, statt den Lauf abzubrechen (seit 1.19.6).**
+Fehlt einem Eintrag `domain`, `ip` oder `config_template` oder enthält er einen fehlerhaften Wert
+(etwa einen Port wie `80 ` oder einen Zeilenumbruch am Ende), wird er mit einer `ERROR:`-Zeile
+übersprungen. Die übrigen Einträge werden ausgerollt und nginx wird wie gewohnt neu geladen. Der
+Exit-Code bleibt 0 – nach einem Batch-Lauf also die Ausgabe lesen. Vor 1.19.6 brach ein solcher
+Eintrag den Lauf ab, nachdem die vorherigen vHosts bereits geschrieben waren.
 
 #### Template-Vorschau
 
