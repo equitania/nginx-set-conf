@@ -859,6 +859,11 @@ def execute_commands(
         backend_ip: Backend IP for proxy_pass/grpc_pass (default: 127.0.0.1).
         enable_http3: If True, emit QUIC/HTTP/3 listen directives and Alt-Svc header.
         root_path: Document root for static-serving templates (default: /opt/www).
+
+    Returns:
+        True if the vhost was written (or would be, with dry_run); False if it
+        was skipped because of invalid input, a missing template or a failed
+        certificate. The caller turns any False into a non-zero exit code.
     """
     # Validate all inputs
     try:
@@ -882,7 +887,7 @@ def execute_commands(
     except ValidationError as e:
         logger.error("Input validation failed: %s", e)
         print(f"ERROR: {e}")
-        return
+        return False
 
     # Mutual exclusion (CR-01): --disable_domain_listen rewrites
     # `listen <ip>:443` to the wildcard `listen 443`, which destroys the
@@ -980,7 +985,7 @@ def execute_commands(
     if not content:
         logger.error("No valid config template found for: %s", config_template)
         print("No valid config template")
-        return
+        return False
 
     # Apply cache path fix with regex (domain-specific unique IDs).
     # _SENTINEL_PATH: derive the path segment from the constant so the regex
@@ -1131,7 +1136,7 @@ def execute_commands(
         cert_ok = _create_cert_if_needed(redirect_domain, dry_run)
     if not cert_ok:
         logger.error("Skipping %s: no certificate, the vhost was not written", domain)
-        return
+        return False
 
     # Write final configuration to target. `_safe_conf_filename` strips any
     # wildcard glob (`*.foo` → `_wildcard.foo`) so the on-disk filename is
@@ -1142,3 +1147,4 @@ def execute_commands(
         atomic_write_text(target_file, content)
     else:
         logger.info("[DRY RUN] Would write configuration to %s", target_file)
+    return True

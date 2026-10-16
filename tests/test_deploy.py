@@ -42,9 +42,10 @@ def _deploy_params(**overrides):
 class _Recorder:
     """Stands in for the system: service commands, pre-flight, vhost writes."""
 
-    def __init__(self, monkeypatch, preflight_ok=True, nginx_test_rc=0):
+    def __init__(self, monkeypatch, preflight_ok=True, nginx_test_rc=0, failing_domains=()):
         self.service_calls = []
         self.deployed = []
+        self.failing_domains = set(failing_domains)
         self.preflight_ok = preflight_ok
         self.nginx_test_rc = nginx_test_rc
         monkeypatch.setattr(cli, "_run_service_command", self._service)
@@ -66,6 +67,8 @@ class _Recorder:
     def _execute(self, config_template, domain, ip, *args, **kwargs):
         self.service_calls.append(f"deploy {domain}")
         self.deployed.append({"config_template": config_template, "domain": domain, "ip": ip, "args": args, **kwargs})
+        # Like the real execute_commands: an empty domain fails validation.
+        return bool(domain) and domain not in self.failing_domains
 
 
 class TestDeployOrder:
@@ -93,7 +96,8 @@ class TestDeployOrder:
 
     def test_failed_preflight_aborts_before_any_vhost(self, monkeypatch):
         rec = _Recorder(monkeypatch, preflight_ok=False)
-        cli._run_deploy(**_deploy_params())
+        with pytest.raises(click.ClickException, match="Pre-flight"):
+            cli._run_deploy(**_deploy_params())
         assert rec.deployed == []
         assert rec.service_calls == ["systemctl start nginx.service", "preflight"]
 
@@ -148,13 +152,106 @@ class TestYamlBatch:
             "  port: 8069\n"
             "  cert_name: example.com\n",
         )
-        cli._run_deploy(**_deploy_params(config_path=config_path))
+        with pytest.raises(click.ClickException, match=r"1 vhost\(s\) skipped: broken \(no domain\)"):
+            cli._run_deploy(**_deploy_params(config_path=config_path))
         assert [e["domain"] for e in rec.deployed] == ["", "example.com"]
+        # The good vhost still goes live before the run reports the failure.
         assert rec.service_calls[-3:] == [
             "systemctl reload-or-restart nginx.service",
             "systemctl status nginx.service",
             "nginx -V",
         ]
+
+    def _flag_yaml(self, tmp_path, value):
+        return self._write_yaml(
+            tmp_path,
+            "site:\n"
+            "  config_template: odoo_ssl\n"
+            "  ip: 1.2.3.4\n"
+            "  domain: example.com\n"
+            "  port: 8069\n"
+            "  cert_name: example.com\n"
+            f"  enable_http3: {value}\n"
+            f"  disable_domain_listen: {value}\n",
+        )
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ('"false"', False),
+            ("'False'", False),
+            ('"no"', False),
+            ('""', False),
+            ("false", False),
+            ("0", False),
+            ('"true"', True),
+            ("yes", True),
+            ("true", True),
+            ("1", True),
+        ],
+    )
+    def test_quoted_flag_words(self, monkeypatch, tmp_path, value, expected):
+        rec = _Recorder(monkeypatch)
+        cli._run_deploy(**_deploy_params(config_path=self._flag_yaml(tmp_path, value)))
+        (entry,) = rec.deployed
+        assert entry["enable_http3"] is expected
+        assert entry["args"][-1] is expected  # disable_domain_listen, positional
+
+    def test_unknown_flag_word_skips_the_entry(self, monkeypatch, tmp_path, capsys):
+        rec = _Recorder(monkeypatch)
+        with pytest.raises(click.ClickException, match="skipped: site"):
+            cli._run_deploy(**_deploy_params(config_path=self._flag_yaml(tmp_path, '"maybe"')))
+        assert rec.deployed == []
+        assert "'disable_domain_listen' must be true or false" in capsys.readouterr().out
+
+
+class TestExitCode:
+    """A skipped vhost must reach the shell as exit code 1 — in both call forms."""
+
+    def test_single_call_skip_raises_after_reload(self, monkeypatch):
+        rec = _Recorder(monkeypatch, failing_domains={"example.com"})
+        with pytest.raises(click.ClickException, match="skipped: example.com"):
+            cli._run_deploy(**_deploy_params())
+        assert "systemctl reload-or-restart nginx.service" in rec.service_calls
+
+    def test_dry_run_skip_raises_too(self, monkeypatch):
+        _Recorder(monkeypatch, failing_domains={"example.com"})
+        with pytest.raises(click.ClickException, match="skipped"):
+            cli._run_deploy(**_deploy_params(dry_run=True))
+
+    @pytest.mark.parametrize("form", ["legacy", "subcommand"])
+    def test_cli_exit_code(self, monkeypatch, form):
+        from click.testing import CliRunner
+
+        _Recorder(monkeypatch, failing_domains={"example.com"})
+        args = [
+            "--config_template=odoo_ssl",
+            "--ip=1.2.3.4",
+            "--domain=example.com",
+            "--port=8069",
+            "--cert_name=example.com",
+        ]
+        if form == "subcommand":
+            args = ["deploy", *args]
+        result = CliRunner().invoke(cli.start_nginx_set_conf, args)
+        assert result.exit_code == 1, result.output
+        assert "skipped: example.com" in result.output
+
+    def test_cli_exit_code_zero_when_all_written(self, monkeypatch):
+        from click.testing import CliRunner
+
+        _Recorder(monkeypatch)
+        result = CliRunner().invoke(
+            cli.start_nginx_set_conf,
+            [
+                "--config_template=odoo_ssl",
+                "--ip=1.2.3.4",
+                "--domain=example.com",
+                "--port=8069",
+                "--cert_name=example.com",
+            ],
+        )
+        assert result.exit_code == 0, result.output
 
 
 class TestBadEntryIsSkipped:
@@ -187,6 +284,6 @@ class TestBadEntryIsSkipped:
             "dry_run": False,
         }
         values.update(overrides)
-        execute_commands(**values)
+        assert execute_commands(**values) is False
         assert list(tmp_path.iterdir()) == []
         assert "ERROR:" in capsys.readouterr().out

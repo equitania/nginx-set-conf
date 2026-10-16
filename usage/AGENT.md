@@ -11,7 +11,7 @@
 
 - **Invoke:** `nginx-set-conf <command> [options]` (runs as root on the nginx host)
 - **Install:** `uv tool install nginx-set-conf` (or `pip install nginx-set-conf`)
-- **Version:** 1.19.6
+- **Version:** 1.19.7
 - **Self-serve:** `nginx-set-conf capability-card` prints this card from the installed tool (live version injected)
 - **Framework:** Python / Click  ·  **Human docs:** `README.md` (EN/DE), `RELEASE_NOTES.md`
 
@@ -129,13 +129,14 @@ nginx-set-conf migrate
 - **`static_public_ssl` + `auth_file` before 1.19.2:** auth was set in `location /` only, so direct `.html`/`.md`/`/pdf/`/`llms.txt` URLs stayed public. Upgrade and redeploy.
 - **`--disable_domain_listen` / `migrate`:** wildcard listens let unknown SNI fall through to the first vhost. Run `setup-default` first.
 - **`--enable_http3`:** needs nginx ≥ 1.25.0 and UDP/443 open in the firewall.
+- **YAML on/off keys** (`enable_http3`, `disable_domain_listen`): `true/false`, `yes/no`, `on/off`, `1/0`, quoted or not. Anything else skips the entry. Before 1.19.7 a quoted `"false"` switched the option on.
 - **`sync --force`:** local customisations in the base configs are lost (backup under `/var/backups/nginx_set_conf/`).
-- **Invalid YAML entry is skipped, not fatal:** a vhost with a missing or malformed value (no `domain`, a port like `80 `, a trailing newline) is skipped with `ERROR:` on stdout; the other entries are deployed and nginx is reloaded. The exit code stays 0, so check the output. Before 1.19.6 a missing `domain`/`ip` key or a number as `cert_name` aborted the batch after earlier vhosts were written.
+- **Invalid YAML entry is skipped, not fatal:** a vhost with a missing or malformed value (no `domain`, a port like `80 `, a trailing newline) is skipped with `ERROR:` on stdout; the other entries are deployed and nginx is reloaded, then the run fails with `Error: N vhost(s) skipped: <entry> (<domain>), …` and exit code 1 (≥ 1.19.7; 1.19.6 exited 0). Before 1.19.6 a missing `domain`/`ip` key or a number as `cert_name` aborted the batch after earlier vhosts were written.
 - **Log file:** `/var/log/nginx_set_conf/nginx_set_conf.log` (mode 0600) records domains, IPs and executed commands.
 
 ## Machine-readable outputs
 None. All commands log human-readable text; `show` and `capability-card` print raw text to stdout.
-Exit code is non-zero when `sync`, `backup`, `setup-default`, `migrate` fail or `nginx -t` rejects a deploy.
+Exit code is non-zero when `sync`, `backup`, `setup-default`, `migrate` fail, when `nginx -t` rejects a deploy, when the base-config pre-flight fails, or when any vhost was skipped (≥ 1.19.7, both the `deploy` subcommand and the flag-only form). The other legacy flags (`--sync_config` etc.) still exit 0 on failure.
 
 ## Deeper docs
 - `README.md` — templates in detail, HTTP/3, own certificates, htpasswd setup (EN + DE).

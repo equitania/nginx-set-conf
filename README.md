@@ -241,8 +241,13 @@ nginx-set-conf --config_template odoo_ssl --ip 192.168.1.100 --domain dev01-a.in
 **An invalid entry in the YAML folder is skipped, not fatal (since 1.19.6).** If an entry lacks
 `domain`, `ip` or `config_template`, or carries a malformed value (a port like `80 `, a trailing
 line break), it is skipped with an `ERROR:` line. The other entries are deployed and nginx is
-reloaded as usual. The exit code stays 0, so read the output after a batch run. Before 1.19.6 such
-an entry aborted the run after the earlier vhosts were already written.
+reloaded as usual. The run then ends with `Error: N vhost(s) skipped: …` and exit code 1 (since
+1.19.7; 1.19.6 still exited 0). Before 1.19.6 such an entry aborted the run after the earlier
+vhosts were already written.
+
+**On/off keys accept words, not just YAML booleans (since 1.19.7).** `enable_http3` and
+`disable_domain_listen` take `true`/`false`, `yes`/`no`, `on`/`off` or `1`/`0`, quoted or not. Before
+1.19.7 a quoted `"false"` counted as on. Any other value skips the entry.
 
 #### Template Preview
 
@@ -977,9 +982,15 @@ nginx-set-conf --config_template odoo_ssl --ip 1.2.3.4 --domain www.example.com 
 **Ein ungültiger Eintrag im YAML-Ordner wird übersprungen, statt den Lauf abzubrechen (seit 1.19.6).**
 Fehlt einem Eintrag `domain`, `ip` oder `config_template` oder enthält er einen fehlerhaften Wert
 (etwa einen Port wie `80 ` oder einen Zeilenumbruch am Ende), wird er mit einer `ERROR:`-Zeile
-übersprungen. Die übrigen Einträge werden ausgerollt und nginx wird wie gewohnt neu geladen. Der
-Exit-Code bleibt 0 – nach einem Batch-Lauf also die Ausgabe lesen. Vor 1.19.6 brach ein solcher
-Eintrag den Lauf ab, nachdem die vorherigen vHosts bereits geschrieben waren.
+übersprungen. Die übrigen Einträge werden ausgerollt und nginx wird wie gewohnt neu geladen.
+Danach endet der Lauf mit `Error: N vhost(s) skipped: …` und Exit-Code 1 (seit 1.19.7; 1.19.6 endete
+noch mit 0). Vor 1.19.6 brach ein solcher Eintrag den Lauf ab, nachdem die vorherigen vHosts bereits
+geschrieben waren.
+
+**Ein/Aus-Schlüssel verstehen Wörter, nicht nur YAML-Booleans (seit 1.19.7).** `enable_http3` und
+`disable_domain_listen` nehmen `true`/`false`, `yes`/`no`, `on`/`off` oder `1`/`0` an, mit oder ohne
+Anführungszeichen. Vor 1.19.7 galt ein in Anführungszeichen geschriebenes `"false"` als eingeschaltet.
+Jeder andere Wert überspringt den Eintrag.
 
 #### Template-Vorschau
 

@@ -40,6 +40,7 @@ from .utils import (
     retrieve_valid_input,
     setup_default_server,
 )
+from .validators import ValidationError
 
 # Setup logging
 logger = logging.getLogger("nginx_set_conf")
@@ -239,6 +240,31 @@ def _yaml_text(entry, key):
     return "" if value is None else str(value)
 
 
+_YAML_TRUE_WORDS = {"true", "yes", "y", "on", "1"}
+_YAML_FALSE_WORDS = {"false", "no", "n", "off", "0", ""}
+
+
+def _yaml_flag(entry, key):
+    """Return a YAML on/off field as bool; False when the key is missing or empty.
+
+    An unquoted `enable_http3: false` arrives as a bool, but a quoted "false"
+    arrives as a non-empty string, and plain truthiness would switch the
+    option on. Words are read case-insensitively; anything else raises
+    ValidationError so the entry is skipped instead of guessed.
+    """
+    value = entry.get(key)
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    word = str(value).strip().lower()
+    if word in _YAML_TRUE_WORDS:
+        return True
+    if word in _YAML_FALSE_WORDS:
+        return False
+    raise ValidationError(f"'{key}' must be true or false, got {value!r}")
+
+
 def _run_deploy(
     config_template,
     ip,
@@ -276,7 +302,11 @@ def _run_deploy(
     if not dry_run:
         if not ConfigVerification().preflight_check_and_repair():
             logger.error("Pre-flight base-config check failed — aborting deploy.")
-            return
+            raise click.ClickException("Pre-flight base-config check failed — deploy aborted, no vhost was written.")
+
+    # Every vhost that execute_commands skipped; any entry here makes the run
+    # exit non-zero after the remaining vhosts were deployed and nginx reloaded.
+    skipped = []
 
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
@@ -295,8 +325,15 @@ def _run_deploy(
                 allowed_ips = _yaml_text(yaml_config, "allowed_ips")
                 yaml_backend_ip = _yaml_text(yaml_config, "backend_ip")
                 yaml_root_path = _yaml_text(yaml_config, "root_path")
-                yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
-                yaml_enable_http3 = yaml_config.get("enable_http3", False)
+                entry_label = f"{entry_name} ({domain or 'no domain'})"
+                try:
+                    yaml_disable_domain_listen = _yaml_flag(yaml_config, "disable_domain_listen")
+                    yaml_enable_http3 = _yaml_flag(yaml_config, "enable_http3")
+                except ValidationError as e:
+                    logger.error("Input validation failed: %s", e)
+                    print(f"ERROR: {e}")
+                    skipped.append(entry_label)
+                    continue
                 yaml_target_path = _yaml_text(yaml_config, "target_path")
                 if not yaml_target_path:
                     yaml_target_path = target_path
@@ -308,7 +345,7 @@ def _run_deploy(
                     config_template,
                 )
 
-                execute_commands(
+                if not execute_commands(
                     config_template,
                     domain,
                     ip,
@@ -326,7 +363,8 @@ def _run_deploy(
                     backend_ip=yaml_backend_ip or None,
                     enable_http3=yaml_enable_http3,
                     root_path=yaml_root_path or None,
-                )
+                ):
+                    skipped.append(entry_label)
     elif config_template and ip and domain and cert_name and (port or root_path):
         logger.info(
             "Generating configuration for %s using template %s",
@@ -334,7 +372,7 @@ def _run_deploy(
             config_template,
         )
 
-        execute_commands(
+        if not execute_commands(
             config_template,
             domain,
             ip,
@@ -352,7 +390,8 @@ def _run_deploy(
             backend_ip=backend_ip,
             enable_http3=enable_http3,
             root_path=root_path,
-        )
+        ):
+            skipped.append(domain)
     else:
         config_template = retrieve_valid_input(f"Template name:\n{template_list_text()}\n")
         ip = retrieve_valid_input("IP address of the server\n")
@@ -379,7 +418,7 @@ def _run_deploy(
         custom_target_path = retrieve_valid_input("Target path (leave empty for default /etc/nginx/conf.d)\n")
         target_path = custom_target_path if custom_target_path else target_path
 
-        execute_commands(
+        if not execute_commands(
             config_template,
             domain,
             ip,
@@ -396,7 +435,8 @@ def _run_deploy(
             disable_domain_listen,
             enable_http3=enable_http3,
             root_path=root_path or None,
-        )
+        ):
+            skipped.append(domain)
 
     if not dry_run:
         # Validate the new configuration BEFORE touching the live nginx process.
@@ -421,6 +461,14 @@ def _run_deploy(
     else:
         logger.info("DRY RUN COMPLETED: Configuration would have been generated but not applied")
         logger.info("To apply the configuration, run again without the --dry_run flag")
+
+    # Raised last, so a bad entry never keeps the good ones from going live —
+    # but a script running the batch still sees that something was left out.
+    if skipped:
+        raise click.ClickException(
+            f"{len(skipped)} vhost(s) skipped: {', '.join(skipped)}. "
+            "Every other vhost was processed; fix the entries above and re-run."
+        )
 
 
 # ---------------------------------------------------------------------------

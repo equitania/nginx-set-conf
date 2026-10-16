@@ -1,5 +1,25 @@
 # RELEASE NOTES
 
+## Version 1.19.7 (16.10.2026)
+
+### Fixed
+
+- **[FIX]** **A deploy that skipped vhosts still exited with 0.** Since 1.19.6 an invalid entry is
+  skipped instead of aborting the batch, but a script running
+  `nginx-set-conf --config_path=...` could not tell. After the remaining vhosts are deployed and
+  nginx is reloaded, the run now ends with `Error: N vhost(s) skipped: <entry> (<domain>), …` and
+  exit code 1. This covers invalid input, a missing template and a failed certificate, in the
+  YAML batch, the single call and the interactive prompt, for both the `deploy` subcommand and
+  the flag-only form. A dry run reports skipped entries the same way.
+- **[FIX]** **A failed base-config pre-flight exited with 0.** The deploy was aborted correctly,
+  but the exit code said success. It is now 1, with the message
+  `Pre-flight base-config check failed — deploy aborted, no vhost was written.`
+- **[FIX]** **`enable_http3: "false"` switched HTTP/3 on.** The on/off keys `enable_http3` and
+  `disable_domain_listen` were used as read, so any non-empty string — including a quoted
+  `"false"` or `"no"` — counted as on. They now accept `true`/`false`, `yes`/`no`, `on`/`off` and
+  `1`/`0`, quoted or not and in any case. Any other value skips the entry with an error instead
+  of being guessed.
+
 ## Version 1.19.6 (16.10.2026)
 
 ### Fixed
