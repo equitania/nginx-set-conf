@@ -14,6 +14,8 @@ from pathlib import Path
 
 import click
 
+from .utils import atomic_write_text
+
 logger = logging.getLogger(__name__)
 
 # Dynamic modules (njs, brotli, geoip2, ...) are installed per host, so an
@@ -661,9 +663,9 @@ class ConfigVerification:
                 # Create server directory if it doesn't exist
                 server_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Write template content to server file
-                with open(server_path, "w", encoding="utf-8") as f:
-                    f.write(template_content)
+                # Write template content to server file. Atomic: a crash
+                # mid-write must not leave a truncated nginx.conf behind.
+                atomic_write_text(server_path, template_content)
 
                 click.echo(f"✓ Updated {file_name}")
                 logger.info(f"Updated {server_path} with embedded template")

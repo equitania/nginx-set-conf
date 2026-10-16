@@ -11,7 +11,7 @@
 
 - **Invoke:** `nginx-set-conf <command> [options]` (runs as root on the nginx host)
 - **Install:** `uv tool install nginx-set-conf` (or `pip install nginx-set-conf`)
-- **Version:** 1.19.3
+- **Version:** 1.19.6
 - **Self-serve:** `nginx-set-conf capability-card` prints this card from the installed tool (live version injected)
 - **Framework:** Python / Click  ·  **Human docs:** `README.md` (EN/DE), `RELEASE_NOTES.md`
 
@@ -130,6 +130,7 @@ nginx-set-conf migrate
 - **`--disable_domain_listen` / `migrate`:** wildcard listens let unknown SNI fall through to the first vhost. Run `setup-default` first.
 - **`--enable_http3`:** needs nginx ≥ 1.25.0 and UDP/443 open in the firewall.
 - **`sync --force`:** local customisations in the base configs are lost (backup under `/var/backups/nginx_set_conf/`).
+- **Invalid YAML entry is skipped, not fatal:** a vhost with a missing or malformed value (no `domain`, a port like `80 `, a trailing newline) is skipped with `ERROR:` on stdout; the other entries are deployed and nginx is reloaded. The exit code stays 0, so check the output. Before 1.19.6 a missing `domain`/`ip` key or a number as `cert_name` aborted the batch after earlier vhosts were written.
 - **Log file:** `/var/log/nginx_set_conf/nginx_set_conf.log` (mode 0600) records domains, IPs and executed commands.
 
 ## Machine-readable outputs

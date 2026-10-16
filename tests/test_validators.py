@@ -516,3 +516,37 @@ class TestValidateRootPath:
             cert_name="dl.example.com",
             root_path="/opt/www",
         )
+
+
+class TestTrailingNewlineAndTypes:
+    """`$` with re.match also matched before a final newline; int() accepted
+    " 80" and "1_0". The raw value goes into the config, so both must fail."""
+
+    @pytest.mark.parametrize(
+        ("validator", "value"),
+        [
+            (validate_domain, "example.com\n"),
+            (validate_cert_name, "/etc/letsencrypt/live/example.com\n"),
+            (validate_cert_key, "/etc/ssl/private/example.key\n"),
+            (validate_auth_file, "/etc/nginx/htpasswd\n"),
+            (validate_root_path, "/opt/www\n"),
+        ],
+    )
+    def test_trailing_newline_rejected(self, validator, value):
+        with pytest.raises(ValidationError):
+            validator(value)
+
+    @pytest.mark.parametrize("port", [" 80", "80\n", "1_0", "８０", "+80"])
+    def test_port_must_be_plain_digits(self, port):
+        with pytest.raises(ValidationError):
+            validate_port(port)
+
+    def test_non_text_value_is_a_validation_error(self):
+        with pytest.raises(ValidationError, match="'cert_name' must be text"):
+            validate_all_inputs(
+                config_template="odoo_ssl",
+                domain="example.com",
+                ip="1.2.3.4",
+                port="8069",
+                cert_name=12345,  # type: ignore[arg-type]
+            )

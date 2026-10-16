@@ -20,7 +20,9 @@ import logging
 import os
 import re
 import shutil
+import stat
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -51,6 +53,36 @@ logger = logging.getLogger("nginx_set_conf")
 # the `*` glob character out of `/etc/nginx/conf.d/` filenames while still
 # making the wildcard intent obvious to operators.
 _WILDCARD_FILENAME_PREFIX = "_wildcard."
+
+
+def atomic_write_text(path: str | os.PathLike, content: str) -> None:
+    """Write ``content`` to ``path`` so readers see either the old or the new file.
+
+    The text goes to a temporary file in the target's directory, is synced to
+    disk and renamed over the target. A crash mid-write leaves the previous
+    file intact instead of a truncated config that fails the next nginx start.
+    A symlinked target is resolved first, so the link keeps pointing at the
+    updated file. The mode of an existing target is kept; a new file gets 0644.
+    The temporary name ends in ``.tmp`` so a ``conf.d/*.conf`` include never
+    picks it up.
+    """
+    target = os.path.realpath(path)
+    try:
+        mode = stat.S_IMODE(os.stat(target).st_mode)
+    except FileNotFoundError:
+        mode = 0o644
+    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(target), prefix=f".{os.path.basename(target)}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp_path, mode)
+        os.replace(tmp_path, target)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp_path)
+        raise
 
 
 def _safe_conf_filename(domain: str) -> str:
@@ -776,8 +808,7 @@ def setup_default_server(
 
     try:
         os.makedirs(target_path, exist_ok=True)
-        with open(conf_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        atomic_write_text(conf_path, content)
         logger.info("Wrote default config: %s", conf_path)
     except OSError as e:
         logger.error("Could not write %s: %s", conf_path, e)
@@ -1108,7 +1139,6 @@ def execute_commands(
     target_file = os.path.join(server_path, f"{_safe_conf_filename(domain)}.conf")
     if not dry_run:
         logger.info("Writing configuration to %s", target_file)
-        with open(target_file, "w", encoding="utf-8") as f:
-            f.write(content)
+        atomic_write_text(target_file, content)
     else:
         logger.info("[DRY RUN] Would write configuration to %s", target_file)

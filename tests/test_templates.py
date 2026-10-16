@@ -1017,13 +1017,11 @@ class TestHttp3DefaultCatchAll:
 
 
 class TestRawSentinelStorage:
-    """Regression guard: after Task 2, the TEMPLATES dict must store raw
-    templates (with /tmp sentinel), not pre-processed ones.  These tests use
-    xfail markers so they report the correct pre-condition failure on the
-    pre-refactor codebase (Task 1 commit) and pass once Task 2 lands.
+    """Regression guard: the TEMPLATES dict must store raw templates (with the
+    /tmp sentinel), not pre-processed ones. The cache path is substituted per
+    vhost at deploy time.
     """
 
-    @pytest.mark.xfail(reason="COR-01: all_templates.py pre-substitution not yet removed")
     def test_raw_sentinel_not_in_registered_templates(self):
         """Every template with proxy_cache_path must store /tmp (raw sentinel),
         not a pre-processed /var/cache/nginx/... path."""
@@ -1039,7 +1037,6 @@ class TestRawSentinelStorage:
                     "raw sentinel expected after COR-01 fix"
                 )
 
-    @pytest.mark.xfail(reason="COR-03: CACHE_PATH_SENTINEL not yet defined")
     def test_sentinel_constant_matches_template_literals(self):
         """CACHE_PATH_SENTINEL must be importable and its path component (/tmp)
         must appear in every template that carries a proxy_cache_path directive."""

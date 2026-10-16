@@ -9,6 +9,10 @@ import ipaddress
 import os
 import re
 
+# The patterns below are applied with re.fullmatch(). With re.match(), the
+# trailing `$` also matches before a final newline, so "example.com\n" passed
+# and the newline went into the generated config.
+
 # RFC 1123 compliant hostname regex (also allows wildcard subdomains)
 _DOMAIN_RE = re.compile(
     r"^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*"
@@ -105,7 +109,7 @@ def validate_domain(domain: str) -> str:
         raise ValidationError("Domain name must not be empty")
     if len(domain) > 253:
         raise ValidationError(f"Domain name too long: {len(domain)} chars (max 253)")
-    if not _DOMAIN_RE.match(domain):
+    if not _DOMAIN_RE.fullmatch(domain):
         raise ValidationError(f"Invalid domain name: '{domain}'. Must be a valid RFC 1123 hostname")
     return domain
 
@@ -145,10 +149,11 @@ def validate_port(port: str) -> str:
     """
     if not port:
         return port
-    try:
-        port_int = int(port)
-    except ValueError as e:
-        raise ValidationError(f"Invalid port: '{port}'. Must be a number") from e
+    # int() alone accepts " 80\n", "1_0" and full-width digits, and the raw
+    # string is what ends up in the config. Only plain ASCII digits pass.
+    if not (port.isascii() and port.isdigit()):
+        raise ValidationError(f"Invalid port: '{port}'. Must be a number")
+    port_int = int(port)
     if not 1 <= port_int <= 65535:
         raise ValidationError(f"Port out of range: {port_int}. Must be between 1 and 65535")
     return str(port_int)
@@ -236,7 +241,7 @@ def validate_cert_name(cert_name: str) -> str:
     """
     if not cert_name:
         return cert_name
-    if not _CERT_PATH_RE.match(cert_name):
+    if not _CERT_PATH_RE.fullmatch(cert_name):
         raise ValidationError(
             f"Invalid certificate name: '{cert_name}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
@@ -259,7 +264,7 @@ def validate_cert_key(cert_key: str) -> str:
     """
     if not cert_key:
         return cert_key
-    if not _CERT_PATH_RE.match(cert_key):
+    if not _CERT_PATH_RE.fullmatch(cert_key):
         raise ValidationError(
             f"Invalid certificate key path: '{cert_key}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
@@ -290,7 +295,7 @@ def validate_auth_file(auth_file: str) -> str:
     """
     if not auth_file:
         return auth_file
-    if not _AUTH_FILE_RE.match(auth_file):
+    if not _AUTH_FILE_RE.fullmatch(auth_file):
         raise ValidationError(
             f"Invalid auth file path: '{auth_file}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
@@ -373,7 +378,7 @@ def validate_root_path(root_path: str) -> str:
     """
     if not root_path:
         return root_path
-    if not _CERT_PATH_RE.match(root_path):
+    if not _CERT_PATH_RE.fullmatch(root_path):
         raise ValidationError(
             f"Invalid root path: '{root_path}'. "
             "Only alphanumeric characters, dots, slashes, hyphens, and underscores are allowed"
@@ -410,6 +415,28 @@ def validate_all_inputs(
     Raises:
         ValidationError: If any parameter is invalid.
     """
+    # A YAML value like `cert_name: 12345` arrives as an int; without this
+    # check len()/re raise TypeError, which aborts a YAML batch midway instead
+    # of skipping the one bad entry.
+    string_fields = {
+        "config_template": config_template,
+        "domain": domain,
+        "ip": ip,
+        "port": port,
+        "cert_name": cert_name,
+        "cert_key": cert_key,
+        "pollport": pollport,
+        "grpcport": grpcport,
+        "redirect_domain": redirect_domain,
+        "auth_file": auth_file,
+        "allowed_ips": allowed_ips,
+        "target_path": target_path,
+        "backend_ip": backend_ip,
+        "root_path": root_path,
+    }
+    for field, value in string_fields.items():
+        if not isinstance(value, str):
+            raise ValidationError(f"'{field}' must be text, got {type(value).__name__}: {value!r}")
     validate_config_template(config_template)
     # COR-02: redirect_domain is required for redirect and redirect_ssl templates.
     # Without it, the literal sentinel "target.domain.de" leaks into nginx log paths.

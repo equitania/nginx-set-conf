@@ -12,6 +12,7 @@ from nginx_set_conf.utils import (
     _replace_placeholder,
     _safe_conf_filename,
     _warn_public_backend_ip,
+    atomic_write_text,
     execute_commands,
     get_default_vars,
     parse_yaml,
@@ -682,3 +683,41 @@ class TestCreateCertIfNeeded:
         conf = self._deploy(str(tmp_path))
         assert os.path.exists(conf)
         assert ["certbot", "certonly"] in calls
+
+
+class TestAtomicWriteText:
+    def test_creates_file_with_0644(self, tmp_path):
+        target = tmp_path / "example.com.conf"
+        atomic_write_text(target, "server {}\n")
+        assert target.read_text(encoding="utf-8") == "server {}\n"
+        assert oct(target.stat().st_mode & 0o777) == oct(0o644)
+
+    def test_keeps_mode_of_existing_file(self, tmp_path):
+        target = tmp_path / "nginx.conf"
+        target.write_text("old", encoding="utf-8")
+        target.chmod(0o600)
+        atomic_write_text(target, "new")
+        assert target.read_text(encoding="utf-8") == "new"
+        assert oct(target.stat().st_mode & 0o777) == oct(0o600)
+
+    def test_symlink_keeps_pointing_at_updated_file(self, tmp_path):
+        real = tmp_path / "real.conf"
+        real.write_text("old", encoding="utf-8")
+        link = tmp_path / "link.conf"
+        link.symlink_to(real)
+        atomic_write_text(link, "new")
+        assert link.is_symlink()
+        assert real.read_text(encoding="utf-8") == "new"
+
+    def test_failed_write_keeps_old_file_and_leaves_no_temp(self, tmp_path, monkeypatch):
+        target = tmp_path / "example.com.conf"
+        target.write_text("old", encoding="utf-8")
+
+        def boom(*_args):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(os, "replace", boom)
+        with pytest.raises(OSError, match="disk full"):
+            atomic_write_text(target, "new")
+        assert target.read_text(encoding="utf-8") == "old"
+        assert [p.name for p in tmp_path.iterdir()] == ["example.com.conf"]

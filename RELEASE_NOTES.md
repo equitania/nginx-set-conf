@@ -1,5 +1,35 @@
 # RELEASE NOTES
 
+## Version 1.19.6 (16.10.2026)
+
+### Fixed
+
+- **[FIX]** **One bad entry in a YAML batch aborted the whole deploy halfway.** A missing `domain`,
+  `ip` or `config_template` key raised `KeyError`, and a number where text is expected (for example
+  `cert_name: 12345`) raised `TypeError`. The run stopped after the earlier vhosts were already
+  written, before `nginx -t` and the reload, so the next nginx restart loaded a half-applied state.
+  Every YAML field is now read as text; a missing or invalid value skips that one entry with an
+  error, and the remaining entries are deployed and nginx is reloaded as usual.
+- An empty YAML key such as `cert_key:` was turned into the text `None`. It is now treated as empty.
+- **[FIX]** **Input validation accepted a trailing newline.** Domain, certificate, key, auth-file
+  and root paths were checked with a pattern that also matched before a final line break, so
+  `example.com` followed by a newline passed and the newline went into the generated config. Ports
+  now have to be plain digits; `" 80"`, `"1_0"` or full-width digits are rejected. Such configs
+  were already refused by `nginx -t`, so no directive could be injected — the error now shows up
+  at validation, naming the field.
+- **[FIX]** **Config files are written atomically.** Vhosts, `00-default.conf` and the synced base
+  configs (`nginx.conf`, `general.conf`, `security.conf`) are written to a temporary file in the
+  same directory and then renamed over the target. A crash or full disk mid-write no longer leaves
+  a truncated config that keeps nginx from starting. The mode of an existing file is kept, a
+  symlinked target stays a symlink.
+
+### Tests
+
+- The deploy sequence (start → base-config pre-flight → vhosts → `nginx -t` →
+  `reload-or-restart`) is now covered by tests, including the abort paths. Two template tests that
+  were still marked as expected failures although the underlying change had long landed now count
+  as regular tests again.
+
 ## Version 1.19.5 (16.10.2026)
 
 ### Fixed

@@ -227,6 +227,18 @@ def _run_show(config_template: str) -> bool:
     return False
 
 
+def _yaml_text(entry, key):
+    """Return a YAML vhost field as text, "" when the key is missing or empty.
+
+    YAML turns `port: 8069` into an int and `cert_name:` into None. Every field
+    becomes a string here, so execute_commands' validation rejects a bad or
+    missing value and skips that one entry instead of a KeyError or TypeError
+    aborting the batch after earlier vhosts were already written.
+    """
+    value = entry.get(key)
+    return "" if value is None else str(value)
+
+
 def _run_deploy(
     config_template,
     ip,
@@ -269,29 +281,30 @@ def _run_deploy(
     if config_path:
         yaml_config_files = parse_yaml_folder(config_path)
         for yaml_config_file in yaml_config_files:
-            for _, yaml_config in yaml_config_file.items():
-                config_template = yaml_config["config_template"]
-                ip = yaml_config["ip"]
-                domain = yaml_config["domain"]
-                port = str(yaml_config.get("port", ""))
-                cert_name = yaml_config.get("cert_name", "")
-                cert_key = yaml_config.get("cert_key", "")
-                pollport = str(yaml_config.get("pollport", ""))
-                grpcport = str(yaml_config.get("grpcport", ""))
-                redirect_domain = str(yaml_config.get("redirect_domain", ""))
-                auth_file = str(yaml_config.get("auth_file", ""))
-                allowed_ips = str(yaml_config.get("allowed_ips", ""))
-                yaml_backend_ip = str(yaml_config.get("backend_ip", ""))
-                yaml_root_path = str(yaml_config.get("root_path", ""))
+            for entry_name, yaml_config in yaml_config_file.items():
+                config_template = _yaml_text(yaml_config, "config_template")
+                ip = _yaml_text(yaml_config, "ip")
+                domain = _yaml_text(yaml_config, "domain")
+                port = _yaml_text(yaml_config, "port")
+                cert_name = _yaml_text(yaml_config, "cert_name")
+                cert_key = _yaml_text(yaml_config, "cert_key")
+                pollport = _yaml_text(yaml_config, "pollport")
+                grpcport = _yaml_text(yaml_config, "grpcport")
+                redirect_domain = _yaml_text(yaml_config, "redirect_domain")
+                auth_file = _yaml_text(yaml_config, "auth_file")
+                allowed_ips = _yaml_text(yaml_config, "allowed_ips")
+                yaml_backend_ip = _yaml_text(yaml_config, "backend_ip")
+                yaml_root_path = _yaml_text(yaml_config, "root_path")
                 yaml_disable_domain_listen = yaml_config.get("disable_domain_listen", False)
                 yaml_enable_http3 = yaml_config.get("enable_http3", False)
-                yaml_target_path = str(yaml_config.get("target_path", ""))
+                yaml_target_path = _yaml_text(yaml_config, "target_path")
                 if not yaml_target_path:
                     yaml_target_path = target_path
 
                 logger.info(
-                    "Generating configuration for %s using template %s",
+                    "Generating configuration for %s (%s) using template %s",
                     domain,
+                    entry_name,
                     config_template,
                 )
 
