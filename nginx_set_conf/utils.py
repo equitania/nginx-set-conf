@@ -516,38 +516,55 @@ def _inject_http3_directives(
     return result
 
 
-def _create_cert_if_needed(cert_name: str, dry_run: bool = False) -> None:
+def _create_cert_if_needed(cert_name: str, dry_run: bool = False) -> bool:
     """Check for Let's Encrypt certificate and create if missing.
 
     Args:
         cert_name: Certificate/domain name.
         dry_run: If True, only print what would be done.
+
+    Returns:
+        True if the certificate exists afterwards (always True on dry_run).
     """
     if dry_run:
         logger.info(
             "[DRY RUN] Would check for and possibly create certificate for: %s",
             cert_name,
         )
-        return
+        return True
 
     fullchain = f"/etc/letsencrypt/live/{cert_name}/fullchain.pem"
     privkey = f"/etc/letsencrypt/live/{cert_name}/privkey.pem"
     cert_exists = os.path.isfile(fullchain) and os.path.isfile(privkey)
 
     if not cert_exists:
+        # certbot --standalone needs port 80, so nginx steps aside — and must
+        # come back: the deploy ends with a reload, which systemd refuses on a
+        # stopped unit, and every vhost on the host stayed down.
         _run_command(["systemctl", "stop", "nginx.service"])
-        _run_command(
-            [
-                "certbot",
-                "certonly",
-                "--standalone",
-                "--agree-tos",
-                "--register-unsafely-without-email",
-                "-d",
+        try:
+            issued = _run_command(
+                [
+                    "certbot",
+                    "certonly",
+                    "--standalone",
+                    "--agree-tos",
+                    "--register-unsafely-without-email",
+                    "-d",
+                    cert_name,
+                ]
+            )
+        finally:
+            _run_command(["systemctl", "start", "nginx.service"])
+        if not issued:
+            logger.error(
+                "certbot could not create a certificate for %s — check that the domain "
+                "resolves to this host and see /var/log/letsencrypt/letsencrypt.log",
                 cert_name,
-            ]
-        )
+            )
+            return False
         logger.info("Certificate created for: %s", cert_name)
+    return True
 
 
 def _rewrite_listen_directives(content: str) -> tuple[str, int]:
@@ -1073,6 +1090,18 @@ def execute_commands(
         logger.info("Set redirect domain in conf to %s", redirect_domain)
         content = _replace_placeholder(content, default_vars["template_redirect_domain"], redirect_domain)
 
+    # Obtain Let's Encrypt certificates BEFORE writing the vhost. A vhost that
+    # points at a missing certificate fails `nginx -t` — and with it the start
+    # of nginx, taking every other vhost on the host offline.
+    cert_ok = True
+    if cert_key == cert_name:
+        cert_ok = _create_cert_if_needed(cert_name, dry_run)
+    if cert_ok and "redirect_ssl" in config_template and redirect_domain:
+        cert_ok = _create_cert_if_needed(redirect_domain, dry_run)
+    if not cert_ok:
+        logger.error("Skipping %s: no certificate, the vhost was not written", domain)
+        return
+
     # Write final configuration to target. `_safe_conf_filename` strips any
     # wildcard glob (`*.foo` → `_wildcard.foo`) so the on-disk filename is
     # safe to enumerate with shell globs and `rm /etc/nginx/conf.d/*.conf`.
@@ -1083,11 +1112,3 @@ def execute_commands(
             f.write(content)
     else:
         logger.info("[DRY RUN] Would write configuration to %s", target_file)
-
-    # Handle Let's Encrypt certificate creation
-    if cert_key == cert_name:
-        _create_cert_if_needed(cert_name, dry_run)
-
-    # Handle redirect SSL certificate
-    if "redirect_ssl" in config_template and redirect_domain:
-        _create_cert_if_needed(redirect_domain, dry_run)

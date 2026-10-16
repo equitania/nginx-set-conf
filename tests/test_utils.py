@@ -612,3 +612,73 @@ class TestRetrieveOptionalInput:
         monkeypatch.setattr(builtins, "input", lambda _: (_ for _ in ()).throw(EOFError()))
         with pytest.raises(SystemExit):
             retrieve_optional_input("prompt: ")
+
+
+class TestCreateCertIfNeeded:
+    """certbot --standalone stops nginx; it must always be started again."""
+
+    def _record(self, monkeypatch, certbot_ok=True):
+        from nginx_set_conf import utils
+
+        calls = []
+
+        def fake_run(args, dry_run=False, check=False):
+            calls.append(args[:2])
+            return certbot_ok if args[0] == "certbot" else True
+
+        monkeypatch.setattr(utils, "_run_command", fake_run)
+        monkeypatch.setattr(utils.os.path, "isfile", lambda _: False)
+        return utils, calls
+
+    def test_nginx_restarted_after_certbot(self, monkeypatch):
+        utils, calls = self._record(monkeypatch)
+        utils._create_cert_if_needed("example.com")
+        assert calls == [
+            ["systemctl", "stop"],
+            ["certbot", "certonly"],
+            ["systemctl", "start"],
+        ]
+
+    def test_nginx_restarted_and_error_logged_when_certbot_fails(self, monkeypatch, caplog):
+        utils, calls = self._record(monkeypatch, certbot_ok=False)
+        with caplog.at_level(logging.ERROR):
+            assert utils._create_cert_if_needed("example.com") is False
+        assert calls[-1] == ["systemctl", "start"]
+        assert "certbot could not create a certificate for example.com" in caplog.text
+
+    def test_existing_cert_leaves_nginx_alone(self, monkeypatch):
+        utils, calls = self._record(monkeypatch)
+        monkeypatch.setattr(utils.os.path, "isfile", lambda _: True)
+        assert utils._create_cert_if_needed("example.com") is True
+        assert calls == []
+
+    def _deploy(self, target):
+        execute_commands(
+            config_template="odoo_ssl",
+            domain="new.example.com",
+            ip="203.0.113.10",
+            cert_name="new.example.com",
+            cert_key="",
+            port="8069",
+            pollport="8072",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=target,
+            dry_run=False,
+        )
+        return os.path.join(target, "new.example.com.conf")
+
+    def test_vhost_not_written_when_certbot_fails(self, monkeypatch, tmp_path, caplog):
+        # A vhost pointing at a missing certificate would keep nginx from starting.
+        self._record(monkeypatch, certbot_ok=False)
+        with caplog.at_level(logging.ERROR):
+            conf = self._deploy(str(tmp_path))
+        assert not os.path.exists(conf)
+        assert "Skipping new.example.com" in caplog.text
+
+    def test_vhost_written_after_certbot_succeeds(self, monkeypatch, tmp_path):
+        _, calls = self._record(monkeypatch)
+        conf = self._deploy(str(tmp_path))
+        assert os.path.exists(conf)
+        assert ["certbot", "certonly"] in calls

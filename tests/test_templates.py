@@ -1086,6 +1086,14 @@ class TestOdooBasicAuthScope:
     proxied to Odoo without the password prompt.
     """
 
+    @pytest.fixture(autouse=True)
+    def _cert_present(self, monkeypatch):
+        # Let's Encrypt branch: pretend the certificate exists, so neither
+        # systemctl nor certbot runs and the vhost gets written.
+        from nginx_set_conf import utils
+
+        monkeypatch.setattr(utils, "_create_cert_if_needed", lambda *a, **kw: True)
+
     AUTH = "/etc/nginx/.htpasswd"
 
     def _served_block(self, content, template):

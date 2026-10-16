@@ -397,8 +397,10 @@ def _run_deploy(
                 "keeps the previous configuration. Fix the generated config and re-run."
             )
         # Graceful reload (no traffic drop) instead of disruptive restart.
+        # reload-or-restart only reloads a running nginx, but starts a stopped
+        # one — a plain reload leaves a stopped nginx down.
         logger.info("Reloading nginx service")
-        _run_service_command(["systemctl", "reload", "nginx.service"])
+        _run_service_command(["systemctl", "reload-or-restart", "nginx.service"])
         logger.info("Checking nginx service status")
         _run_service_command(["systemctl", "status", "nginx.service"])
         logger.info("Checking nginx version")

@@ -1,5 +1,26 @@
 # RELEASE NOTES
 
+## Version 1.19.5 (16.10.2026)
+
+### Fixed
+
+- **[FIX]** **A deploy that created a new certificate left nginx stopped — every vhost on the host
+  went offline.** For a missing Let's Encrypt certificate, `deploy` stops nginx so that
+  `certbot --standalone` can use port 80, but never started it again. The final
+  `systemctl reload` is refused by systemd on a stopped unit ("Unit cannot be reloaded because it
+  is inactive"), so the run ended with nginx down although certbot had succeeded. nginx is now
+  started again right after certbot, also when certbot fails.
+- The final step uses `systemctl reload-or-restart`: it still reloads a running nginx gracefully,
+  but starts one that is not running.
+- A failed certbot run is logged as an error naming the domain and pointing to
+  `/var/log/letsencrypt/letsencrypt.log`. Before, its outcome was only visible in the debug log and
+  the deploy reported "Certificate created" either way.
+- **[FIX]** **One domain without a certificate could take the whole host offline.** The vhost was
+  written before certbot ran. When certbot failed (DNS not yet pointing at the host, rate limit),
+  the new vhost referenced a missing certificate, `nginx -t` failed and nginx could not start.
+  Certificates are now obtained first; if certbot fails, that vhost is skipped with an error and
+  the remaining vhosts are deployed as usual.
+
 ## Version 1.19.4 (30.09.2026)
 
 ### Fixed
