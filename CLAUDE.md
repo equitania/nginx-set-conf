@@ -21,6 +21,18 @@ uv pip install -e ".[dev]"
   root and `/etc/nginx` on a server; the user runs them. When unsure what exists on a server, ask.
 - **Publishing is local only** (`uv build` + `uvpublish` by the user) — never add a publish step to CI.
 
+## Branches and release push
+
+Work happens on the year branch — the one checked out, named after the current year (`2026` in
+10/2026). `develop` is the default branch and follows it. Commit, push and tag only when asked;
+when a release is pushed, do all of it:
+
+1. Push the year branch to **both** remotes: `origin` (GitLab) and `upstream` (GitHub mirror).
+2. Tag the release commit `vX.Y.Z` (lightweight, like the earlier tags) and push the tag to both.
+3. Fast-forward `develop` to the year branch (`git fetch . <year>:develop`) and push it to both.
+   If that is not a fast-forward, `develop` has commits of its own — stop and ask instead of
+   merging or forcing.
+
 ## Rules that are easy to get wrong
 
 - **The flag-only call form must keep working.** Operators copy
