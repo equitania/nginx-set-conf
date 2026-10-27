@@ -57,6 +57,7 @@ nginx-set-conf --config_path=/root/docker-builds/ngx-conf   # standard server ru
 | Command | Purpose |
 |---|---|
 | `deploy` | Generate vhost configs (YAML folder or options), `nginx -t`, reload |
+| `wizard` | Create YAML vhost files step by step, then optionally deploy them |
 | `show TEMPLATE` | Print a template without applying it |
 | `templates` | List the available templates |
 | `verify` | Compare the base configs on the server with the embedded ones |
@@ -66,6 +67,17 @@ nginx-set-conf --config_path=/root/docker-builds/ngx-conf   # standard server ru
 | `migrate` | Rewrite hostname-bound listen directives to wildcard |
 
 The flag-only form of earlier versions keeps working unchanged: `--config_path=…`, `--verify_config`, `--sync_config --force`, `--backup_config`, `--setup_default`, `--migrate_to_wildcard` and `--show_template` are routed to the matching command. The one change: `nginx-set-conf` without any argument now prints the overview; the interactive prompt is started with `nginx-set-conf deploy`.
+
+#### YAML wizard (v1.20.0)
+
+`nginx-set-conf wizard` creates the YAML files for you. Pick a template from an arrow-key list (type to filter), then answer only the questions that template needs — ports for Odoo, the gRPC port for Qdrant, the target domain for a redirect, the document root for static sites. The server IP is pre-filled, the certificate name defaults to the domain, and the usual ports are suggested. Every answer is checked with the deploy's own validation as you type. Rarely used settings (backend IP, basic auth, IP allow-list, HTTP/3, wildcard listen) only come up if you ask for them.
+
+Before saving you see a summary and can save, edit again or discard. Each vhost is written to its own file, `<domain>.yaml`, in `/root/docker-builds/ngx-conf` (change it with `--config_path`); the wizard warns if the domain already exists there. Then choose *Add another vhost*, *Finish* or *Cancel*. *Finish* lists the new files and asks whether to deploy them right away — only those files, with the usual pre-flight, `nginx -t` and reload. Ctrl-C discards only the vhost being entered; files already saved stay.
+
+```bash
+nginx-set-conf wizard                    # files go to /root/docker-builds/ngx-conf
+nginx-set-conf wizard --dry_run          # the optional deploy at the end changes nothing
+```
 
 #### Supported Templates
 
@@ -863,6 +875,7 @@ nginx-set-conf --config_path=/root/docker-builds/ngx-conf   # Standardaufruf auf
 | Befehl | Zweck |
 |---|---|
 | `deploy` | vHost-Konfigurationen erzeugen (YAML-Ordner oder Optionen), `nginx -t`, reload |
+| `wizard` | YAML-Dateien für vHosts Schritt für Schritt anlegen, danach auf Wunsch deployen |
 | `show TEMPLATE` | Template anzeigen, ohne es anzuwenden |
 | `templates` | Verfügbare Templates auflisten |
 | `verify` | Basis-Konfigurationen auf dem Server mit den eingebetteten vergleichen |
@@ -900,6 +913,17 @@ Die reine Flag-Form früherer Versionen funktioniert unverändert weiter: `--con
 - `--backup_config` - Backup der aktuellen Server-Konfiguration erstellen
 - `--migrate_to_wildcard` - Atomische Umschreibung hostname-gebundener listen-Direktiven (siehe unten)
 - `--setup_default` - Default_server-Catch-all für unbekannte SNI installieren (siehe unten)
+
+#### YAML-Assistent (v1.20.0)
+
+`nginx-set-conf wizard` legt die YAML-Dateien für dich an. Du wählst ein Template aus einer Liste (Pfeiltasten, Tippen filtert) und beantwortest nur die Fragen, die dieses Template braucht: die Ports bei Odoo, den gRPC-Port bei Qdrant, die Zieldomain bei einer Weiterleitung, das Dokumentverzeichnis bei statischen Seiten. Die Server-IP ist vorausgefüllt, als Zertifikatsname ist die Domain vorgeschlagen, und die üblichen Ports sind voreingestellt. Jede Eingabe wird sofort mit derselben Prüfung wie beim Deploy kontrolliert. Selten gebrauchte Einstellungen (Backend-IP, Basic Auth, IP-Allowlist, HTTP/3, Wildcard-Listen) erscheinen nur, wenn du sie anforderst.
+
+Vor dem Speichern siehst du eine Zusammenfassung und kannst speichern, noch einmal bearbeiten oder verwerfen. Jeder vHost landet in einer eigenen Datei `<domain>.yaml` in `/root/docker-builds/ngx-conf` (änderbar mit `--config_path`); existiert die Domain dort schon, warnt der Assistent. Danach wählst du *Add another vhost*, *Finish* oder *Cancel*. *Finish* zeigt die neuen Dateien und fragt, ob sie gleich deployt werden sollen — nur diese Dateien, mit dem üblichen Pre-flight, `nginx -t` und Reload. Ctrl-C verwirft nur den gerade eingegebenen vHost; bereits gespeicherte Dateien bleiben erhalten.
+
+```bash
+nginx-set-conf wizard                    # Dateien landen in /root/docker-builds/ngx-conf
+nginx-set-conf wizard --dry_run          # der optionale Deploy am Ende ändert nichts
+```
 
 ### IP-gebundene listen-Direktiven (v1.11.0)
 

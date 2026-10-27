@@ -11,13 +11,14 @@
 
 - **Invoke:** `nginx-set-conf <command> [options]` (runs as root on the nginx host)
 - **Install:** `uv tool install nginx-set-conf` (or `pip install nginx-set-conf`)
-- **Version:** 1.19.7
+- **Version:** 1.20.0
 - **Self-serve:** `nginx-set-conf capability-card` prints this card from the installed tool (live version injected)
 - **Framework:** Python / Click  ·  **Human docs:** `README.md` (EN/DE), `RELEASE_NOTES.md`
 
 ## Capabilities at a glance
 - Deploy one vhost per domain from a named template (Odoo, Flowise, Qdrant, n8n, Nextcloud, static sites, redirects, …).
 - Batch-deploy every vhost defined in a folder of YAML files — the standard server run.
+- Create those YAML files interactively with `wizard` (one `<domain>.yaml` per vhost, optional deploy of just the new files).
 - Obtain a Let's Encrypt certificate automatically (certbot standalone) or use an own certificate.
 - Protect a vhost with HTTP basic auth (htpasswd) and/or an IP allow-list.
 - Enable HTTP/3 (QUIC) listeners and the `Alt-Svc` header per vhost.
@@ -38,6 +39,7 @@
 | `nginx-set-conf show` | Print a template without applying it | TEMPLATE |
 | `nginx-set-conf sync` | Write the embedded base configs to the server | --force |
 | `nginx-set-conf templates` | List available templates | — |
+| `nginx-set-conf wizard` | Create YAML vhost files step by step (interactive, needs a TTY) | --config_path DIR (default /root/docker-builds/ngx-conf), --target_path TEXT, --dry_run |
 | `nginx-set-conf verify` | Compare the base configs on the server with the embedded ones | — |
 
 Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choice · `--flag` boolean.
@@ -117,6 +119,7 @@ nginx-set-conf migrate
 ```
 
 ## Guardrails & gotchas
+- **`wizard` is for humans.** It needs a terminal (exits 1 without one). An agent writes the YAML entry directly instead (see *YAML vhost entry*).
 - **Root on the nginx host only.** `deploy` (without `--dry_run`), `sync`, `backup`, `setup-default`, `migrate` write under `/etc/nginx` and call `systemctl`. Never run them from a workstation.
 - **Overwrites without asking:** `deploy` writes `<target_path>/<domain>.conf` and silently replaces an existing file of that name, including hand edits. Keep customisations in the YAML, not in the generated file.
 - **Downtime on new certificates:** if `/etc/letsencrypt/live/<cert_name>/` is missing, `deploy` **stops nginx** and runs `certbot certonly --standalone` (needs port 80 free and DNS pointing at the host), then starts nginx again (≥ 1.19.5; before, nginx stayed down after the deploy). If certbot fails, the vhost is **not written** and the deploy continues with the next one, so a domain without DNS cannot keep nginx from starting. Existing certificates are reused.

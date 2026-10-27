@@ -1125,3 +1125,60 @@ class TestOdooBasicAuthScope:
         assert "auth_basic_user_file" not in content
         assert "Restricted Area" not in content
         assert "#authentication" in content
+
+
+class TestCertificateOnlyWhereUsed:
+    """certbot runs only for templates that reference a certificate.
+
+    Until 1.20.0 every deploy without cert_key asked certbot for cert_name, also
+    for the HTTP-only templates. With no cert_name (as in the YAML examples for
+    redirect and odoo_http) certbot got an empty name, failed, and the vhost was
+    skipped; with a cert_name it fetched a certificate nobody used.
+    """
+
+    @pytest.fixture
+    def cert_calls(self, monkeypatch):
+        from nginx_set_conf import utils
+
+        calls = []
+        monkeypatch.setattr(utils, "_create_cert_if_needed", lambda name, *a, **kw: calls.append(name) or False)
+        return calls
+
+    def _deploy(self, tmp_path, template, cert_name="", redirect_domain=""):
+        return execute_commands(
+            config_template=template,
+            domain="old.example.com",
+            ip="1.2.3.4",
+            cert_name=cert_name,
+            cert_key="",
+            port="11000" if template.startswith("odoo") else "",
+            pollport="12000" if template.startswith("odoo") else "",
+            redirect_domain=redirect_domain,
+            auth_file="",
+            allowed_ips="",
+            target_path=str(tmp_path),
+            dry_run=False,
+        )
+
+    def test_http_redirect_is_written_without_certbot(self, tmp_path, cert_calls):
+        assert self._deploy(tmp_path, "redirect", redirect_domain="www.example.com") is True
+        assert cert_calls == []
+        assert (tmp_path / "old.example.com.conf").exists()
+
+    @pytest.mark.parametrize("cert_name", ["", "old.example.com"])
+    def test_odoo_http_is_written_without_certbot(self, tmp_path, cert_calls, cert_name):
+        assert self._deploy(tmp_path, "odoo_http", cert_name=cert_name) is True
+        assert cert_calls == []
+
+    def test_ssl_template_still_requires_its_certificate(self, tmp_path, cert_calls):
+        assert self._deploy(tmp_path, "odoo_ssl", cert_name="old.example.com") is False
+        assert cert_calls == ["old.example.com"]
+        assert not (tmp_path / "old.example.com.conf").exists()
+
+    def test_redirect_ssl_still_gets_both_certificates(self, tmp_path, monkeypatch):
+        from nginx_set_conf import utils
+
+        calls = []
+        monkeypatch.setattr(utils, "_create_cert_if_needed", lambda name, *a, **kw: calls.append(name) or True)
+        assert self._deploy(tmp_path, "redirect_ssl", "old.example.com", "www.example.com") is True
+        assert calls == ["old.example.com", "www.example.com"]

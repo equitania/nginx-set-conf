@@ -150,7 +150,7 @@ def parse_yaml(yaml_file: str) -> dict[str, Any] | Literal[False]:
             return False
 
 
-def parse_yaml_folder(path: str) -> list:
+def parse_yaml_folder(path: str, only_files: list[str] | None = None) -> list:
     """Parses all YAML files in a directory.
 
     Searches for files with .yaml or .yml extensions in the specified directory
@@ -162,13 +162,18 @@ def parse_yaml_folder(path: str) -> list:
 
     Args:
         path: Directory path containing YAML files.
+        only_files: If given, only these files (base names or paths) are read —
+            the wizard deploys just the vhosts it wrote.
 
     Returns:
         List of dicts mapping entry name to vhost settings, one per file that
         holds at least one vhost entry.
     """
+    wanted = {os.path.basename(f) for f in only_files} if only_files is not None else None
     yaml_objects = []
     for file in os.listdir(path):
+        if wanted is not None and file not in wanted:
+            continue
         if file.endswith(".yaml") or file.endswith(".yml"):
             yaml_object = parse_yaml(os.path.join(path, file))
             if not yaml_object:
@@ -986,6 +991,9 @@ def execute_commands(
         logger.error("No valid config template found for: %s", config_template)
         print("No valid config template")
         return False
+    # HTTP-only templates (redirect, odoo_http) carry no certificate placeholder
+    # and must not trigger certbot.
+    uses_certificate = default_vars["template_crt"] in content
 
     # Apply cache path fix with regex (domain-specific unique IDs).
     # _SENTINEL_PATH: derive the path segment from the constant so the regex
@@ -1130,7 +1138,7 @@ def execute_commands(
     # points at a missing certificate fails `nginx -t` — and with it the start
     # of nginx, taking every other vhost on the host offline.
     cert_ok = True
-    if cert_key == cert_name:
+    if uses_certificate and cert_key == cert_name:
         cert_ok = _create_cert_if_needed(cert_name, dry_run)
     if cert_ok and "redirect_ssl" in config_template and redirect_domain:
         cert_ok = _create_cert_if_needed(redirect_domain, dry_run)

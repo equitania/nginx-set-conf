@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nginx-set-conf"
-version = "1.19.7"
+version = "1.20.0"
 description = "Python library for generating nginx reverse proxy configurations for Docker applications."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -32,6 +32,7 @@ classifiers = [
 dependencies = [
     "click>=8.5.0",
     "PyYAML>=6.0.3",
+    "questionary>=2.1",
 ]
 
 [project.optional-dependencies]
@@ -123,7 +124,7 @@ module = ["yaml"]
 ignore_missing_imports = true
 
 [tool.bumpversion]
-current_version = "1.19.7"
+current_version = "1.20.0"
 commit = true
 tag = true
 tag_name = "v{new_version}"

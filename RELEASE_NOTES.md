@@ -1,5 +1,37 @@
 # RELEASE NOTES
 
+## Version 1.20.0 (27.10.2026)
+
+### Added
+
+- **[ADD]** **`nginx-set-conf wizard` — create the YAML vhost files interactively.** Pick a
+  template from an arrow-key list (type to filter) and answer only the questions that template
+  needs: both ports for Odoo, the gRPC port for Qdrant, the target domain for a redirect, the
+  document root for static sites. The questions are derived from the template's own placeholders,
+  so a new template gets the right ones automatically. The server IP is pre-filled, the
+  certificate name defaults to the domain and the usual ports are suggested; every answer is
+  checked with the deploy's validation as it is typed. Backend IP, basic auth, IP allow-list,
+  HTTP/3 and wildcard listen are asked only on request.
+- Each vhost is saved as `<domain>.yaml` in `/root/docker-builds/ngx-conf` (`--config_path` to
+  change it), after a summary with *Save*, *Edit again* or *Discard*. The wizard warns when the
+  file exists or another YAML in the folder already defines the domain. *Add another vhost*
+  keeps template and IP; *Finish* asks whether to deploy the new files right away — only those
+  files, with pre-flight, `nginx -t` and reload as usual (`--dry_run` and `--target_path` apply).
+  Ctrl-C discards only the vhost being entered.
+- New dependency: `questionary`.
+- `parse_yaml_folder()` takes an optional `only_files` list; the deploy uses it for the files
+  the wizard wrote.
+
+### Fixed
+
+- **[FIX]** **HTTP-only vhosts (`redirect`, `odoo_http`) were skipped on a real deploy.** Every
+  deploy without `cert_key` asked certbot for `cert_name`, also for templates that use no
+  certificate. Without a `cert_name` — as in the YAML examples for these two templates — certbot
+  got an empty name, failed, and the vhost was not written (`Skipping …: no certificate`). With a
+  `cert_name`, nginx was stopped for certbot and a certificate was fetched that nothing used.
+  certbot now runs only for templates that reference a certificate. `--dry_run` never showed the
+  problem, because it does not call certbot.
+
 ## Version 1.19.7 (16.10.2026)
 
 ### Fixed

@@ -24,6 +24,7 @@ Typical usage example:
 import logging
 import os
 import subprocess
+import sys
 from logging.handlers import RotatingFileHandler
 
 import click
@@ -41,6 +42,7 @@ from .utils import (
     setup_default_server,
 )
 from .validators import ValidationError
+from .wizard import DEFAULT_CONFIG_PATH, QuestionaryPrompter, run_wizard
 
 # Setup logging
 logger = logging.getLogger("nginx_set_conf")
@@ -108,7 +110,7 @@ DEFAULT_TARGET_PATH = "/etc/nginx/conf.d"
 
 # The call operators copy from one server to the next — kept on ONE line in
 # the help so it can be copied without re-joining a wrapped line.
-STANDARD_CALL = "nginx-set-conf --config_path=/root/docker-builds/ngx-conf"
+STANDARD_CALL = f"nginx-set-conf --config_path={DEFAULT_CONFIG_PATH}"
 
 
 def welcome():
@@ -284,6 +286,7 @@ def _run_deploy(
     config_path,
     target_path,
     dry_run,
+    config_files=None,
 ):
     if dry_run:
         logger.info("DRY RUN MODE: No actual changes will be made to your system")
@@ -309,7 +312,7 @@ def _run_deploy(
     skipped = []
 
     if config_path:
-        yaml_config_files = parse_yaml_folder(config_path)
+        yaml_config_files = parse_yaml_folder(config_path, only_files=config_files)
         for yaml_config_file in yaml_config_files:
             for entry_name, yaml_config in yaml_config_file.items():
                 config_template = _yaml_text(yaml_config, "config_template")
@@ -658,6 +661,64 @@ does the same.
 @_options(DEPLOY_OPTIONS)
 def deploy_command(**params):
     _run_deploy(**params)
+
+
+def _stdin_is_terminal() -> bool:
+    return sys.stdin.isatty()
+
+
+@start_nginx_set_conf.command(
+    "wizard",
+    context_settings=CONTEXT_SETTINGS,
+    short_help="Create YAML vhost files step by step",
+    help=f"""Ask step by step for the vhosts to set up and save each one as
+<domain>.yaml in the config folder. Only the values the chosen template needs
+are asked, and every answer is checked right away. When you finish, the wizard
+offers to deploy the new files (after asking).
+
+\b
+  nginx-set-conf wizard
+  nginx-set-conf wizard --config_path={DEFAULT_CONFIG_PATH}
+""",
+)
+@click.option(
+    "--config_path",
+    metavar="DIR",
+    default=DEFAULT_CONFIG_PATH,
+    show_default=True,
+    help="Folder the YAML files are written to",
+)
+@_options([_TARGET_PATH_OPTION, _DRY_RUN_OPTION])
+def wizard_command(config_path: str, target_path: str | None, dry_run: bool) -> None:
+    if not _stdin_is_terminal():
+        raise click.ClickException("The wizard needs an interactive terminal.")
+
+    def deploy(files: list[str]) -> None:
+        # Everything else comes from the YAML files, so the single-vhost
+        # arguments stay empty.
+        _run_deploy(
+            config_template=None,
+            ip=None,
+            domain=None,
+            port=None,
+            cert_name=None,
+            cert_key=None,
+            pollport=None,
+            grpcport=None,
+            redirect_domain=None,
+            auth_file=None,
+            allowed_ips=None,
+            backend_ip=None,
+            root_path=None,
+            disable_domain_listen=False,
+            enable_http3=False,
+            config_path=config_path,
+            config_files=files,
+            target_path=target_path,
+            dry_run=dry_run,
+        )
+
+    run_wizard(config_path, QuestionaryPrompter(), deploy)
 
 
 @start_nginx_set_conf.command(
