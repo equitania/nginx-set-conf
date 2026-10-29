@@ -160,6 +160,36 @@ class TestEntry:
         assert open(path, encoding="utf-8").readline().startswith("# Created by nginx-set-conf")
         assert parse_yaml_folder(str(tmp_path)) == [{"erp.example.com": entry}]
 
+    def test_write_appends_new_domain_and_keeps_comments(self, tmp_path):
+        path = tmp_path / "demo.yaml"
+        path.write_text("# hand-made\nkpi18:\n  config_template: odoo_ssl\n  domain: a.example.com\n")
+        entry = {"config_template": "n8n", "ip": "203.0.113.10", "domain": "b.example.com", "port": 5678}
+        assert wizard.write_entry(str(tmp_path), entry, str(path)) == str(path)
+        text = path.read_text()
+        assert text.startswith("# hand-made\n")
+        assert "# Added by nginx-set-conf" in text
+        assert list(yaml.safe_load(text)) == ["kpi18", "b.example.com"]
+
+    def test_write_replaces_entry_of_same_domain(self, tmp_path):
+        path = tmp_path / "demo.yaml"
+        path.write_text(
+            "kpi18:\n  config_template: odoo_ssl\n  domain: a.example.com\n  port: 11000\n"
+            "kpi19:\n  config_template: odoo_ssl\n  domain: b.example.com\n  port: 11001\n"
+        )
+        entry = {"config_template": "odoo_ssl", "ip": "203.0.113.10", "domain": "a.example.com", "port": 11005}
+        wizard.write_entry(str(tmp_path), entry, str(path))
+        data = _load(path)
+        assert list(data) == ["kpi18", "kpi19"]
+        assert data["kpi18"]["port"] == 11005
+        assert data["kpi19"]["port"] == 11001
+
+    def test_write_never_reuses_a_key_of_another_domain(self, tmp_path):
+        path = tmp_path / "demo.yaml"
+        path.write_text("b.example.com:\n  config_template: odoo_ssl\n  domain: other.example.com\n")
+        entry = {"config_template": "n8n", "ip": "203.0.113.10", "domain": "b.example.com", "port": 5678}
+        wizard.write_entry(str(tmp_path), entry, str(path))
+        assert list(_load(path)) == ["b.example.com", "b.example.com_2"]
+
     def test_find_domain_in_folder(self, tmp_path):
         (tmp_path / "old.yaml").write_text("Odoo:\n  config_template: odoo_ssl\n  domain: erp.example.com\n")
         (tmp_path / "other.yaml").write_text("backup:\n  path: /srv\n")
@@ -270,6 +300,98 @@ class TestFlow:
         entry = _load(written[0])["erp.example.com"]
         assert entry["port"] == 11001
         assert entry["pollport"] == 12000
+
+    def test_several_odoo_instances_in_one_file(self, tmp_path):
+        first = str(tmp_path / "erp.example.com.yaml")
+        answers = [
+            *ODOO_ANSWERS,
+            "save",
+            "another",
+            DEFAULT,  # odoo_ssl
+            DEFAULT,  # ip
+            "erp2.example.com",
+            "11001",
+            "12001",
+            DEFAULT,  # letsencrypt
+            DEFAULT,  # cert name
+            False,
+            first,  # add to the file saved before
+            "finish",
+            True,
+        ]
+        deployed = []
+        written = wizard.run_wizard(str(tmp_path), ScriptedPrompter(answers), deployed.append)
+
+        assert written == [first]
+        assert deployed == [[first]]
+        assert [p.name for p in tmp_path.iterdir()] == ["erp.example.com.yaml"]
+        vhosts = parse_yaml_folder(str(tmp_path))[0]
+        assert [v["domain"] for v in vhosts.values()] == ["erp.example.com", "erp2.example.com"]
+        assert vhosts["erp2.example.com"]["port"] == 11001
+
+    def test_named_file_then_add_second_instance(self, tmp_path):
+        group = str(tmp_path / "demo-kpi.yaml")
+        answers = [
+            *ODOO_ANSWERS,
+            "named-file",
+            "demo-kpi",  # .yaml is added
+            "another",
+            DEFAULT,
+            DEFAULT,
+            "erp2.example.com",
+            "11001",
+            "12001",
+            DEFAULT,
+            DEFAULT,
+            False,
+            group,
+            "cancel",
+        ]
+        written = wizard.run_wizard(str(tmp_path), ScriptedPrompter(answers), lambda files: None)
+        assert written == [group]
+        assert list(_load(group)) == ["erp.example.com", "erp2.example.com"]
+
+    def test_named_file_refuses_foreign_yaml(self, tmp_path):
+        (tmp_path / "docker2update.yaml").write_text("update:\n  path: /srv\n")
+        answers = [*ODOO_ANSWERS, "named-file", "docker2update", True, "demo", "cancel"]
+        written = wizard.run_wizard(str(tmp_path), ScriptedPrompter(answers), lambda files: None)
+        assert written == [str(tmp_path / "demo.yaml")]
+        assert _load(tmp_path / "docker2update.yaml") == {"update": {"path": "/srv"}}
+
+    @pytest.mark.parametrize("name", ["../etc/x", "sub/x", ".hidden", "a..yaml", ""])
+    def test_file_name_must_be_plain(self, name):
+        with pytest.raises(ValidationError):
+            wizard.yaml_file_name(name)
+
+    def test_file_name_gets_yaml_suffix(self):
+        assert wizard.yaml_file_name("demo-kpi") == "demo-kpi.yaml"
+        assert wizard.yaml_file_name("demo.yml") == "demo.yml"
+
+    def test_add_to_existing_file_in_folder(self, tmp_path):
+        group = tmp_path / "demo.yaml"
+        group.write_text("kpi18:\n  config_template: odoo_ssl\n  domain: a.example.com\n")
+        (tmp_path / "docker2update.yaml").write_text("update:\n  path: /srv\n")
+        prompter = ScriptedPrompter([*ODOO_ANSWERS, "other-file", str(group), "cancel"])
+        written = wizard.run_wizard(str(tmp_path), prompter, lambda files: None)
+        assert written == [str(group)]
+        assert list(_load(group)) == ["kpi18", "erp.example.com"]
+
+    def test_other_file_menu_back_returns_to_save_menu(self, tmp_path):
+        (tmp_path / "demo.yaml").write_text("kpi18:\n  config_template: odoo_ssl\n  domain: a.example.com\n")
+        prompter = ScriptedPrompter([*ODOO_ANSWERS, "other-file", "back", "save", "cancel"])
+        written = wizard.run_wizard(str(tmp_path), prompter, lambda files: None)
+        assert written == [str(tmp_path / "erp.example.com.yaml")]
+
+    def test_own_file_holding_several_vhosts_is_not_overwritten(self, tmp_path):
+        own = tmp_path / "erp.example.com.yaml"
+        own.write_text(
+            "erp:\n  config_template: odoo_ssl\n  domain: erp.example.com\n"
+            "shop:\n  config_template: odoo_ssl\n  domain: shop.example.com\n"
+        )
+        answers = ["odoo_ssl", DEFAULT, "erp.example.com", True, *ODOO_ANSWERS[3:], "save", "cancel"]
+        wizard.run_wizard(str(tmp_path), ScriptedPrompter(answers), lambda files: None)
+        assert list(_load(own)) == ["erp", "shop"]
+        assert _load(own)["erp"]["port"] == 11000
 
     def test_ctrl_c_keeps_saved_files_and_does_not_deploy(self, tmp_path):
         deployed = []

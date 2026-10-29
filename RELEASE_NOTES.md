@@ -1,5 +1,26 @@
 # RELEASE NOTES
 
+## Version 1.20.1 (29.10.2026)
+
+### Changed
+
+- **[CHG]** **The wizard can put several vhosts into one YAML file.** The save menu now offers
+  *Save to `<domain>.yaml`*, *Save to a file with a name of your choice…* (a plain name such as
+  `demo-kpi`, `.yaml` is added), *Add to …* for every file saved in this run, and *Add to
+  another file in the folder…* for the vhost files already there. Several Odoo instances no
+  longer need one file each.
+- *Edit again* is now *Change answers (nothing saved)*. It asks the same vhost again; it never
+  saved the previous one, which was easy to misread as "save and continue".
+- The deploy offer at the end shows how many vhosts each file holds. Whole files are deployed,
+  so vhosts already in a file the wizard added to are rebuilt as well.
+
+### Fixed
+
+- **[FIX]** **The wizard no longer overwrites a file that holds other vhosts.** Saving to an
+  existing `<domain>.yaml` replaced the whole file, so other instances defined in it were lost.
+  A new domain is now appended (comments stay); an entry for the same domain is replaced in
+  place. A file without vhosts (for example `docker2update.yaml`) is never offered as a target.
+
 ## Version 1.20.0 (27.10.2026)
 
 ### Added

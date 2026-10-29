@@ -1,10 +1,11 @@
-"""Interactive wizard that writes one YAML vhost file per domain.
+"""Interactive wizard that writes YAML vhost files.
 
 The wizard asks only for the values the chosen template actually uses — the
 fields are derived from the placeholders in the template itself, so a new
 template gets the right questions without touching this module. Every answer
-is checked with the same validators the deploy uses, and each vhost is saved
-as ``<domain>.yaml`` in the config folder, ready for
+is checked with the same validators the deploy uses. Each vhost is saved as
+``<domain>.yaml`` in the config folder or added to a vhost file that is
+already there (several Odoo instances in one file), ready for
 ``nginx-set-conf --config_path=<folder>``.
 
 All terminal I/O goes through a prompter object (``QuestionaryPrompter`` in
@@ -14,6 +15,7 @@ real use), so the flow can be driven by a scripted prompter in tests.
 from __future__ import annotations
 
 import os
+import re
 import socket
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -87,10 +89,14 @@ NEXT_ANOTHER = "another"
 NEXT_FINISH = "finish"
 NEXT_CANCEL = "cancel"
 
-# Answers of the summary menu.
+# Answers of the summary menu. Adding to an existing file answers with its path.
 SUMMARY_SAVE = "save"
+SUMMARY_NAMED_FILE = "named-file"
+SUMMARY_OTHER_FILE = "other-file"
+SUMMARY_BACK = "back"
 SUMMARY_EDIT = "edit"
 SUMMARY_DISCARD = "discard"
+EDIT_LABEL = "Change answers (nothing saved)"
 
 
 class WizardAborted(Exception):
@@ -157,25 +163,56 @@ def config_filename(domain: str) -> str:
     return f"{_safe_conf_filename(domain)}.yaml"
 
 
-def find_domain_in_folder(folder: str, domain: str) -> list[str]:
-    """Return the YAML files in ``folder`` that already define a vhost for ``domain``."""
+def _is_vhost(entry: object) -> bool:
+    return isinstance(entry, dict) and "config_template" in entry
+
+
+def vhost_file_data(path: str) -> dict | None:
+    """Content of a YAML that holds at least one vhost entry, else None (missing, broken, foreign)."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+    except (OSError, yaml.YAMLError):
+        return None
+    if not isinstance(data, dict) or not any(_is_vhost(entry) for entry in data.values()):
+        return None
+    return data
+
+
+def entry_key_for(data: dict, domain: str) -> str | None:
+    """Key of the vhost entry in ``data`` that serves ``domain``."""
+    for key, entry in data.items():
+        if _is_vhost(entry) and str(entry.get("domain")) == domain:
+            return str(key)
+    return None
+
+
+def vhost_files_in_folder(folder: str) -> list[str]:
+    """Paths of the YAML files in ``folder`` that hold vhost entries."""
     if not os.path.isdir(folder):
         return []
+    paths = (os.path.join(folder, file) for file in sorted(os.listdir(folder)) if file.endswith((".yaml", ".yml")))
+    return [path for path in paths if vhost_file_data(path) is not None]
+
+
+_FILE_NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
+
+def yaml_file_name(name: str) -> str:
+    """Check a file name typed by the user and add ``.yaml`` if it has no YAML suffix."""
+    name = name.strip()
+    if not _FILE_NAME_PATTERN.fullmatch(name) or ".." in name:
+        raise ValidationError("Use a plain file name: letters, digits, '.', '_' and '-', no path")
+    return name if name.endswith((".yaml", ".yml")) else f"{name}.yaml"
+
+
+def find_domain_in_folder(folder: str, domain: str) -> list[str]:
+    """Return the YAML files in ``folder`` that already define a vhost for ``domain``."""
     found = []
-    for file in sorted(os.listdir(folder)):
-        if not file.endswith((".yaml", ".yml")):
-            continue
-        try:
-            with open(os.path.join(folder, file), encoding="utf-8") as handle:
-                data = yaml.safe_load(handle)
-        except (OSError, yaml.YAMLError):
-            continue
-        if not isinstance(data, dict):
-            continue
-        for entry in data.values():
-            if isinstance(entry, dict) and "config_template" in entry and str(entry.get("domain")) == domain:
-                found.append(file)
-                break
+    for path in vhost_files_in_folder(folder):
+        data = vhost_file_data(path)
+        if data is not None and entry_key_for(data, domain) is not None:
+            found.append(os.path.basename(path))
     return found
 
 
@@ -219,19 +256,59 @@ def validate_entry(entry: dict) -> None:
         raise ValidationError("enable_http3 and disable_domain_listen cannot be combined")
 
 
+def _stamp(verb: str) -> str:
+    return f"# {verb} by nginx-set-conf {__version__} wizard on {date.today().strftime('%d.%m.%Y')}\n"
+
+
+def _dump(data: dict) -> str:
+    return yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
+
+
 def render_entry(entry: dict) -> str:
     """YAML text of a vhost file, with a header naming its origin."""
-    header = f"# Created by nginx-set-conf {__version__} wizard on {date.today().strftime('%d.%m.%Y')}\n"
-    body = yaml.safe_dump({entry["domain"]: entry}, sort_keys=False, allow_unicode=True, default_flow_style=False)
-    return header + body
+    return _stamp("Created") + _dump({entry["domain"]: entry})
 
 
-def write_entry(folder: str, entry: dict) -> str:
-    """Write the entry to ``<folder>/<domain>.yaml`` atomically and return the path."""
+def write_entry(folder: str, entry: dict, path: str | None = None) -> str:
+    """Write the entry atomically and return the path.
+
+    The target is ``path`` or ``<folder>/<domain>.yaml``. A target that
+    already holds vhosts keeps them: a new domain is appended (comments stay),
+    an entry for the same domain is replaced. Any other existing file is
+    overwritten.
+    """
     os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, config_filename(entry["domain"]))
-    atomic_write_text(path, render_entry(entry))
+    path = path or os.path.join(folder, config_filename(entry["domain"]))
+    data = vhost_file_data(path)
+    if data is None:
+        atomic_write_text(path, render_entry(entry))
+        return path
+    key = entry_key_for(data, entry["domain"])
+    if key is not None:
+        # Replacing needs a full re-dump; comments in the file are lost.
+        data[key] = entry
+        atomic_write_text(path, _stamp("Updated") + _dump(data))
+        return path
+    key, n = entry["domain"], 2
+    while key in data:
+        key, n = f"{entry['domain']}_{n}", n + 1
+    with open(path, encoding="utf-8") as handle:
+        text = handle.read().rstrip("\n")
+    atomic_write_text(path, f"{text}\n\n{_stamp('Added')}{_dump({key: entry})}")
     return path
+
+
+def target_note(path: str, domain: str) -> str:
+    """What saving the vhost for ``domain`` into ``path`` would do."""
+    if not os.path.exists(path):
+        return "new file"
+    data = vhost_file_data(path)
+    if data is None:
+        return "overwrites the file"
+    if entry_key_for(data, domain) is not None:
+        return f"replaces the entry for {domain}"
+    count = sum(1 for entry in data.values() if _is_vhost(entry))
+    return f"added to its {count} vhost(s)"
 
 
 # ---------------------------------------------------------------------------
@@ -307,7 +384,8 @@ def _ask_domain(prompter: Prompter, folder: str, default: str) -> str:
             return domain
         others = [f for f in existing if f != target]
         if os.path.exists(os.path.join(folder, target)):
-            click.secho(f"  {target} already exists and would be overwritten.", fg="yellow")
+            note = target_note(os.path.join(folder, target), domain)
+            click.secho(f"  {target} already exists (saving to it: {note}).", fg="yellow")
         if others:
             click.secho(f"  {domain} is also defined in: {', '.join(others)}", fg="yellow")
         if prompter.confirm("Continue with this domain anyway?", default=False):
@@ -453,19 +531,76 @@ def _ask_advanced(prompter: Prompter, fields: TemplateFields, values: dict, prev
         )
 
 
-def show_summary(folder: str, entry: dict) -> None:
-    """Print the entry and the file it goes to."""
-    path = os.path.join(folder, config_filename(entry["domain"]))
+def show_summary(entry: dict) -> None:
+    """Print the entry; the save menu names the file it goes to."""
     width = max(len(key) for key in entry)
     click.echo()
-    click.secho(f"  {path}", bold=True)
+    click.secho(f"  vhost {entry['domain']}", bold=True)
     for key, value in entry.items():
         if isinstance(value, bool):
             value = "true" if value else "false"
         click.echo(f"    {key.ljust(width)}  {value}")
-    if os.path.exists(path):
-        click.secho("  The existing file will be overwritten.", fg="yellow")
     click.echo()
+
+
+def _save_choices(folder: str, entry: dict, written: list[str]) -> list[tuple[str, str]]:
+    """Save menu: own file, the files saved in this run, other vhost files, edit, discard."""
+    domain = entry["domain"]
+    own = os.path.join(folder, config_filename(domain))
+    choices = [
+        (f"Save to {os.path.basename(own)} ({target_note(own, domain)})", SUMMARY_SAVE),
+        ("Save to a file with a name of your choice…", SUMMARY_NAMED_FILE),
+    ]
+    for path in reversed(written):
+        if path != own:
+            choices.append((f"Add to {os.path.basename(path)} ({target_note(path, domain)})", path))
+    if any(path != own and path not in written for path in vhost_files_in_folder(folder)):
+        choices.append(("Add to another file in the folder…", SUMMARY_OTHER_FILE))
+    choices += [(EDIT_LABEL, SUMMARY_EDIT), ("Discard", SUMMARY_DISCARD)]
+    return choices
+
+
+def _ask_other_file(prompter: Prompter, folder: str, entry: dict, written: list[str]) -> str:
+    """Pick one of the folder's other vhost files; returns its path or SUMMARY_BACK."""
+    own = os.path.join(folder, config_filename(entry["domain"]))
+    others = [path for path in vhost_files_in_folder(folder) if path != own and path not in written]
+    choices = [(f"{os.path.basename(p)} ({target_note(p, entry['domain'])})", p) for p in others]
+    return prompter.select("Add to which file?", [*choices, ("Back", SUMMARY_BACK)], default=SUMMARY_BACK)
+
+
+def _ask_named_file(prompter: Prompter, folder: str, entry: dict) -> str:
+    """Ask for a file name in ``folder``; returns its path or SUMMARY_BACK.
+
+    An existing file is accepted only if it holds vhosts — the entry is then
+    added to it; any other file would be overwritten.
+    """
+    while True:
+        name = prompter.text(
+            "File name (in the config folder, .yaml is added):",
+            validate=_validator(yaml_file_name),
+        )
+        path = os.path.join(folder, yaml_file_name(name))
+        if not os.path.exists(path):
+            return path
+        note = target_note(path, entry["domain"])
+        if note == "overwrites the file":
+            click.secho(f"  {os.path.basename(path)} exists and holds no vhosts; choose another name.", fg="yellow")
+        elif prompter.confirm(f"{os.path.basename(path)} exists ({note}). Use it?", default=True):
+            return path
+        if not prompter.confirm("Enter another file name?", default=True):
+            return SUMMARY_BACK
+
+
+def _ask_save(prompter: Prompter, folder: str, entry: dict, written: list[str]) -> str:
+    """Show the save menu until a target, edit or discard is chosen."""
+    while True:
+        action = prompter.select("Save this vhost?", _save_choices(folder, entry, written), default=SUMMARY_SAVE)
+        if action == SUMMARY_NAMED_FILE:
+            action = _ask_named_file(prompter, folder, entry)
+        elif action == SUMMARY_OTHER_FILE:
+            action = _ask_other_file(prompter, folder, entry, written)
+        if action != SUMMARY_BACK:
+            return action
 
 
 def run_wizard(folder: str, prompter: Prompter, deploy: Callable[[list[str]], None]) -> list[str]:
@@ -491,21 +626,17 @@ def run_wizard(folder: str, prompter: Prompter, deploy: Callable[[list[str]], No
                     click.secho(f"  {e}", fg="red")
                     action = prompter.select(
                         "This vhost cannot be saved:",
-                        [("Edit again", SUMMARY_EDIT), ("Discard", SUMMARY_DISCARD)],
+                        [(EDIT_LABEL, SUMMARY_EDIT), ("Discard", SUMMARY_DISCARD)],
                         default=SUMMARY_EDIT,
                     )
                 else:
-                    show_summary(folder, entry)
-                    action = prompter.select(
-                        "Save this vhost?",
-                        [("Save", SUMMARY_SAVE), ("Edit again", SUMMARY_EDIT), ("Discard", SUMMARY_DISCARD)],
-                        default=SUMMARY_SAVE,
-                    )
+                    show_summary(entry)
+                    action = _ask_save(prompter, folder, entry, written)
                 if action != SUMMARY_EDIT:
                     break
                 values = ask_vhost(prompter, folder, values)
-            if action == SUMMARY_SAVE:
-                path = write_entry(folder, entry)
+            if action != SUMMARY_DISCARD:
+                path = write_entry(folder, entry, None if action == SUMMARY_SAVE else action)
                 if path not in written:
                     written.append(path)
                 click.secho(f"  Saved {path}", fg="green")
@@ -539,10 +670,13 @@ def run_wizard(folder: str, prompter: Prompter, deploy: Callable[[list[str]], No
 
 def _offer_deploy(prompter: Prompter, written: list[str], deploy: Callable[[list[str]], None]) -> bool:
     """Ask before deploying the new files; True if the deploy ran."""
-    click.echo("\nNew vhost files:")
+    # Whole files are deployed, so vhosts that were already in a file are rebuilt too.
+    click.echo("\nVhost files written:")
     for path in written:
-        click.echo(f"  {path}")
-    if not prompter.confirm(f"Deploy these {len(written)} vhost(s) now (nginx -t, then reload)?", default=False):
+        data = vhost_file_data(path) or {}
+        count = sum(1 for entry in data.values() if _is_vhost(entry))
+        click.echo(f"  {path} ({count} vhost(s))")
+    if not prompter.confirm(f"Deploy these {len(written)} file(s) now (nginx -t, then reload)?", default=False):
         return False
     deploy(written)
     return True
