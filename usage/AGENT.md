@@ -11,14 +11,14 @@
 
 - **Invoke:** `nginx-set-conf <command> [options]` (runs as root on the nginx host)
 - **Install:** `uv tool install nginx-set-conf` (or `pip install nginx-set-conf`)
-- **Version:** 1.20.0
+- **Version:** 1.20.1
 - **Self-serve:** `nginx-set-conf capability-card` prints this card from the installed tool (live version injected)
 - **Framework:** Python / Click  ·  **Human docs:** `README.md` (EN/DE), `RELEASE_NOTES.md`
 
 ## Capabilities at a glance
 - Deploy one vhost per domain from a named template (Odoo, Flowise, Qdrant, n8n, Nextcloud, static sites, redirects, …).
 - Batch-deploy every vhost defined in a folder of YAML files — the standard server run.
-- Create those YAML files interactively with `wizard` (one `<domain>.yaml` per vhost, optional deploy of just the new files).
+- Create those YAML files interactively with `wizard` (`<domain>.yaml`, a named file, or added to an existing vhost file — several instances per file; optional deploy of just the written files).
 - Obtain a Let's Encrypt certificate automatically (certbot standalone) or use an own certificate.
 - Protect a vhost with HTTP basic auth (htpasswd) and/or an IP allow-list.
 - Enable HTTP/3 (QUIC) listeners and the `Alt-Svc` header per vhost.

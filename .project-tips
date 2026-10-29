@@ -1,4 +1,4 @@
-# nginx-set-conf v1.20.0 | python/uv
+# nginx-set-conf v1.20.1 | python/uv
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ▸ Setup:   uv venv --python 3.14 && venv+ && uv pip install -e ".[dev]"
 ▸ Wizard:  nginx-set-conf wizard --dry_run
