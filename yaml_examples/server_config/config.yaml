@@ -222,6 +222,7 @@ WordPress:
   #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
   #auth_file: authfile  # Server-wide; /wp-json/ and the MCP endpoint stay open for application passwords
   #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #mcp_allowed_ips: "192.0.2.20,198.51.100.0/24"  # Only these clients reach /wp-json/mcp/
   #enable_http3: true
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key

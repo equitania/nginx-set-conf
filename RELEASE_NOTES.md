@@ -1,5 +1,17 @@
 # RELEASE NOTES
 
+## Version 1.22.0 (05.11.2026)
+
+### Added
+
+- **[ADD]** **`mcp_allowed_ips` — restrict only the WordPress MCP endpoint.** YAML key
+  `mcp_allowed_ips` or `--mcp_allowed_ips`: a comma-separated list of IPs/CIDR blocks. Only these
+  clients reach `/wp-json/mcp/`, everyone else gets 403; the rest of the site stays public. It is
+  checked like `allowed_ips`. The list replaces `allowed_ips` for that endpoint, because nginx
+  access rules of a location override those of the server block. Templates without an MCP
+  endpoint reject the key and skip the vhost. The wizard asks for it under the advanced options
+  of a `wordpress` vhost.
+
 ## Version 1.21.0 (05.11.2026)
 
 ### Added

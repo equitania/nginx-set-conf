@@ -287,6 +287,7 @@ def _run_deploy(
     target_path,
     dry_run,
     config_files=None,
+    mcp_allowed_ips=None,
 ):
     if dry_run:
         logger.info("DRY RUN MODE: No actual changes will be made to your system")
@@ -326,6 +327,7 @@ def _run_deploy(
                 redirect_domain = _yaml_text(yaml_config, "redirect_domain")
                 auth_file = _yaml_text(yaml_config, "auth_file")
                 allowed_ips = _yaml_text(yaml_config, "allowed_ips")
+                yaml_mcp_allowed_ips = _yaml_text(yaml_config, "mcp_allowed_ips")
                 yaml_backend_ip = _yaml_text(yaml_config, "backend_ip")
                 yaml_root_path = _yaml_text(yaml_config, "root_path")
                 entry_label = f"{entry_name} ({domain or 'no domain'})"
@@ -366,6 +368,7 @@ def _run_deploy(
                     backend_ip=yaml_backend_ip or None,
                     enable_http3=yaml_enable_http3,
                     root_path=yaml_root_path or None,
+                    mcp_allowed_ips=yaml_mcp_allowed_ips or None,
                 ):
                     skipped.append(entry_label)
     elif config_template and ip and domain and cert_name and (port or root_path):
@@ -393,6 +396,7 @@ def _run_deploy(
             backend_ip=backend_ip,
             enable_http3=enable_http3,
             root_path=root_path,
+            mcp_allowed_ips=mcp_allowed_ips,
         ):
             skipped.append(domain)
     else:
@@ -579,6 +583,11 @@ DEPLOY_OPTIONS = [
         help="Comma-separated IPs/CIDR blocks allowed to connect (e.g. '192.168.1.0/24,10.0.0.50')",
     ),
     click.option(
+        "--mcp_allowed_ips",
+        metavar="LIST",
+        help="wordpress: IPs/CIDR blocks allowed to reach the MCP endpoint /wp-json/mcp/ (others get 403)",
+    ),
+    click.option(
         "--enable_http3",
         is_flag=True,
         help=(
@@ -613,7 +622,7 @@ DEPLOY_SECTIONS = {
         "redirect_domain",
     ],
     "Certificate": ["cert_name", "cert_key"],
-    "Access": ["auth_file", "allowed_ips"],
+    "Access": ["auth_file", "allowed_ips", "mcp_allowed_ips"],
     "Listen": ["enable_http3", "disable_domain_listen"],
     "Run": ["target_path", "dry_run"],
 }

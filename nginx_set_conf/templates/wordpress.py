@@ -119,6 +119,8 @@ server {
     # --- MCP endpoint (MCP Adapter: /wp-json/mcp/<server>) ------------------
     # Streamable HTTP: no buffering, long timeouts.
     location ^~ /wp-json/mcp/ {
+        # mcp_allowed_ips: only these clients reach the endpoint (403 otherwise)
+        #mcp_ip_restrictions
         auth_basic off;
         limit_req zone=wpmcp burst=20 nodelay;
         proxy_buffering off;

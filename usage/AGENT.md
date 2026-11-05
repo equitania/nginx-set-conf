@@ -33,7 +33,7 @@
 |---|---|---|
 | `nginx-set-conf backup` | Back up the current nginx configuration | — |
 | `nginx-set-conf capability-card` | Print this agent capability card | — |
-| `nginx-set-conf deploy` | Generate vhost configs and reload nginx | --config_path TEXT, --config_template TEXT, --domain TEXT, --ip TEXT, --port TEXT, --pollport TEXT, --grpcport TEXT, --backend_ip TEXT, --root_path TEXT, --redirect_domain TEXT, --cert_name TEXT, --cert_key TEXT, --auth_file TEXT, --allowed_ips TEXT, --enable_http3, --disable_domain_listen, --target_path TEXT, --dry_run |
+| `nginx-set-conf deploy` | Generate vhost configs and reload nginx | --config_path TEXT, --config_template TEXT, --domain TEXT, --ip TEXT, --port TEXT, --pollport TEXT, --grpcport TEXT, --backend_ip TEXT, --root_path TEXT, --redirect_domain TEXT, --cert_name TEXT, --cert_key TEXT, --auth_file TEXT, --allowed_ips TEXT, --mcp_allowed_ips TEXT, --enable_http3, --disable_domain_listen, --target_path TEXT, --dry_run |
 | `nginx-set-conf migrate` | Rewrite hostname-bound listen directives to wildcard | --target_path TEXT, --dry_run |
 | `nginx-set-conf setup-default` | Install the catch-all for unknown SNI (00-default.conf) | --target_path TEXT, --dry_run |
 | `nginx-set-conf show` | Print a template without applying it | TEMPLATE |
@@ -79,6 +79,7 @@ erp.example.com:
   pollport: 12000
   cert_name: erp.example.com
   # optional: backend_ip, auth_file, allowed_ips, enable_http3: true,
+  #           mcp_allowed_ips (wordpress only: MCP endpoint allow-list),
   #           disable_domain_listen: true, root_path, redirect_domain, cert_key, target_path
 ```
 

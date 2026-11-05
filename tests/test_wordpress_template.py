@@ -121,3 +121,60 @@ class TestRateLimitZoneNames:
         )
         content = (tmp_path / "erp.example.com.conf").read_text()
         assert "zone=odoo_ssl_erp_example_com_ratelimit:16m" in content
+
+
+class TestMcpAllowedIps:
+    def test_restriction_lands_inside_mcp_location_only(self, tmp_path):
+        content = _render(tmp_path, mcp_allowed_ips="192.0.2.20, 198.51.100.0/24")
+        mcp = content.split("location ^~ /wp-json/mcp/ {", 1)[1].split("}", 1)[0]
+        assert "        allow 192.0.2.20;\n        allow 198.51.100.0/24;\n        deny all;" in mcp
+        assert content.count("deny all;") == 1
+
+    def test_combines_with_site_wide_allowlist(self, tmp_path):
+        content = _render(tmp_path, allowed_ips="203.0.113.0/24", mcp_allowed_ips="192.0.2.20")
+        assert "    allow 203.0.113.0/24;" in content
+        assert "        allow 192.0.2.20;" in content
+
+    def test_invalid_entry_skips_vhost(self, tmp_path):
+        kwargs = {
+            "config_template": "wordpress",
+            "domain": "www.example.com",
+            "ip": "192.0.2.10",
+            "cert_name": "www.example.com",
+            "cert_key": "/etc/ssl/test.key",
+            "port": "8180",
+            "pollport": "",
+            "redirect_domain": "",
+            "auth_file": "",
+            "allowed_ips": "",
+            "target_path": str(tmp_path),
+            "dry_run": False,
+            "mcp_allowed_ips": "all;\n    include /etc/passwd;\n    #",
+        }
+        assert execute_commands(**kwargs) is False
+        assert list(tmp_path.glob("*.conf")) == []
+
+    def test_rejected_for_template_without_mcp_endpoint(self, tmp_path):
+        result = execute_commands(
+            config_template="odoo_ssl",
+            domain="erp.example.com",
+            ip="192.0.2.10",
+            cert_name="erp.example.com",
+            cert_key="/etc/ssl/test.key",
+            port="8069",
+            pollport="8072",
+            redirect_domain="",
+            auth_file="",
+            allowed_ips="",
+            target_path=str(tmp_path),
+            dry_run=False,
+            mcp_allowed_ips="192.0.2.20",
+        )
+        assert result is False
+        assert list(tmp_path.glob("*.conf")) == []
+
+    def test_wizard_asks_only_for_wordpress(self):
+        from nginx_set_conf.wizard import template_fields
+
+        assert template_fields("wordpress").mcp_allowed_ips is True
+        assert template_fields("odoo_ssl").mcp_allowed_ips is False

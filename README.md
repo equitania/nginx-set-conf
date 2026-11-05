@@ -679,6 +679,23 @@ server {
 - Applied before location-specific rules
 - Use `deny all` as final rule for security
 
+#### MCP endpoint only (`wordpress`, v1.22.0)
+
+`mcp_allowed_ips` (YAML) / `--mcp_allowed_ips` restricts just the WordPress MCP endpoint
+`/wp-json/mcp/`; the rest of the site stays public. Other clients get 403. The list replaces
+`allowed_ips` for that endpoint (nginx access rules of a location override the server block),
+so with both set only `mcp_allowed_ips` decides who reaches it. Other templates reject the key.
+
+```yaml
+WordPress:
+  config_template: wordpress
+  ip: 203.0.113.10
+  domain: www.example.com
+  port: 8180
+  cert_name: www.example.com
+  mcp_allowed_ips: "192.0.2.20,198.51.100.0/24"
+```
+
 ### Practical Usage Scenarios
 
 #### Scenario 1: Consistency Check Before Deployment

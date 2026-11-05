@@ -840,6 +840,7 @@ def execute_commands(
     backend_ip=None,
     enable_http3=False,
     root_path=None,
+    mcp_allowed_ips=None,
 ):
     """Generates and deploys Nginx config files based on input parameters.
 
@@ -864,6 +865,8 @@ def execute_commands(
         backend_ip: Backend IP for proxy_pass/grpc_pass (default: 127.0.0.1).
         enable_http3: If True, emit QUIC/HTTP/3 listen directives and Alt-Svc header.
         root_path: Document root for static-serving templates (default: /opt/www).
+        mcp_allowed_ips: Comma-separated IPs/CIDR blocks allowed to reach the MCP
+            endpoint only (templates with a #mcp_ip_restrictions marker, e.g. wordpress).
 
     Returns:
         True if the vhost was written (or would be, with dry_run); False if it
@@ -888,6 +891,7 @@ def execute_commands(
             backend_ip=backend_ip or "",
             enable_http3=enable_http3,
             root_path=root_path or "",
+            mcp_allowed_ips=mcp_allowed_ips or "",
         )
     except ValidationError as e:
         logger.error("Input validation failed: %s", e)
@@ -1137,6 +1141,19 @@ def execute_commands(
                 ip_lines.append(f"    allow {ip_entry};")
         ip_lines.append("    deny all;")
         content = _insert_after_marker(content, "#ip_restrictions", ip_lines)
+
+    # MCP-only IP restrictions. nginx access rules of a location replace those
+    # of the server block, so this list alone decides who reaches the endpoint.
+    if mcp_allowed_ips:
+        if "#mcp_ip_restrictions" not in content:
+            message = f"Template '{config_template}' has no MCP endpoint; mcp_allowed_ips is only for: wordpress"
+            logger.error("Input validation failed: %s", message)
+            print(f"ERROR: {message}")
+            return False
+        logger.info("Set MCP IP restrictions to %s", mcp_allowed_ips)
+        mcp_lines = [f"        allow {entry.strip()};" for entry in mcp_allowed_ips.split(",") if entry.strip()]
+        mcp_lines.append("        deny all;")
+        content = _insert_after_marker(content, "#mcp_ip_restrictions", mcp_lines)
 
     # Handle redirect domain
     if "redirect" in config_template and redirect_domain:

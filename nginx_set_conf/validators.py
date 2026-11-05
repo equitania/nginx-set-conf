@@ -406,6 +406,7 @@ def validate_all_inputs(
     backend_ip: str = "",
     enable_http3: bool = False,
     root_path: str = "",
+    mcp_allowed_ips: str = "",
 ) -> None:
     """Validate all input parameters at once.
 
@@ -434,6 +435,7 @@ def validate_all_inputs(
         "target_path": target_path,
         "backend_ip": backend_ip,
         "root_path": root_path,
+        "mcp_allowed_ips": mcp_allowed_ips,
     }
     for field, value in string_fields.items():
         if not isinstance(value, str):
@@ -465,6 +467,8 @@ def validate_all_inputs(
         validate_auth_file(auth_file)
     if allowed_ips:
         validate_allowed_ips(allowed_ips)
+    if mcp_allowed_ips:
+        validate_allowed_ips(mcp_allowed_ips)
     if target_path:
         validate_target_path(target_path)
     if backend_ip:

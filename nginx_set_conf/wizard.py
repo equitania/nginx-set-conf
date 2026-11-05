@@ -80,6 +80,7 @@ ENTRY_KEYS = (
     "backend_ip",
     "auth_file",
     "allowed_ips",
+    "mcp_allowed_ips",
     "enable_http3",
     "disable_domain_listen",
 )
@@ -118,6 +119,7 @@ class TemplateFields:
     auth: bool
     allowed_ips: bool
     http3: bool
+    mcp_allowed_ips: bool = False
 
 
 def template_fields(name: str) -> TemplateFields:
@@ -137,6 +139,7 @@ def template_fields(name: str) -> TemplateFields:
         auth="#authentication" in content,
         allowed_ips="#ip_restrictions" in content,
         http3=certificate and name not in HTTP3_EXCLUDED_TEMPLATES,
+        mcp_allowed_ips="#mcp_ip_restrictions" in content,
     )
 
 
@@ -249,6 +252,7 @@ def validate_entry(entry: dict) -> None:
         redirect_domain=text("redirect_domain"),
         auth_file=text("auth_file"),
         allowed_ips=text("allowed_ips"),
+        mcp_allowed_ips=text("mcp_allowed_ips"),
         backend_ip=text("backend_ip"),
         enable_http3=bool(entry.get("enable_http3")),
         root_path=text("root_path"),
@@ -495,6 +499,8 @@ def _advanced_options(fields: TemplateFields) -> str:
         names.append("basic auth")
     if fields.allowed_ips:
         names.append("IP allowlist")
+    if fields.mcp_allowed_ips:
+        names.append("MCP IP allowlist")
     if fields.http3:
         names.append("HTTP/3")
     names.append("wildcard listen")
@@ -519,6 +525,12 @@ def _ask_advanced(prompter: Prompter, fields: TemplateFields, values: dict, prev
         values["allowed_ips"] = prompter.text(
             "Allowed IPs/CIDR, comma-separated (empty = everyone):",
             default=prev.get("allowed_ips", ""),
+            validate=_validator(validate_allowed_ips, required=False),
+        )
+    if fields.mcp_allowed_ips:
+        values["mcp_allowed_ips"] = prompter.text(
+            "IPs/CIDR allowed to use the MCP endpoint, comma-separated (empty = everyone):",
+            default=prev.get("mcp_allowed_ips", ""),
             validate=_validator(validate_allowed_ips, required=False),
         )
     if fields.http3:
