@@ -60,6 +60,7 @@ DEFAULT_PORTS = {
     "qdrant": "6333",
     "flowise": "3000",
     "guacamole": "8080",
+    "wordpress": "8180",
 }
 DEFAULT_POLLPORT = "12000"
 DEFAULT_GRPCPORT = "6334"

@@ -47,6 +47,7 @@ class TestTemplateRegistry:
             "static_public_ssl",
             "static_ssl",
             "supabase",
+            "wordpress",
         }
         assert set(TEMPLATES.keys()) == expected
 
@@ -138,6 +139,7 @@ class TestTemplateBackendIpPlaceholder:
             "pwa",
             "qdrant",
             "supabase",
+            "wordpress",
         ]
         for name in proxy_templates:
             content = TEMPLATES[name]
@@ -218,6 +220,7 @@ class TestIpBoundListen:
         "redirect",
         "redirect_ssl",
         "supabase",
+        "wordpress",
     ]
 
     def test_all_service_templates_use_ip_bound_listen_80(self):
@@ -453,6 +456,7 @@ class TestHttp3DirectiveInjection:
             "code_server",
             "supabase",
             "qdrant",
+            "wordpress",
         ):
             content = TEMPLATES[tmpl_name]
             # Replace placeholder so it looks like substituted content

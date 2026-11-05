@@ -1015,16 +1015,25 @@ def execute_commands(
         lambda m: f"{m.group(1)}{unique_id}_cache:",
         content,
     )
-    # Third re.sub: rewrite the limit_req_zone name (COR-05).
+
+    # Third/fourth re.sub: make every limit_req_zone name unique per vhost and
+    # rewrite the limit_req references to match (COR-05). The classic zone
+    # `iprl` keeps its historic name `<unique_id>_ratelimit`; any further zone
+    # of a template (e.g. wordpress: wplogin, wpmcp) becomes
+    # `<unique_id>_<name>`, so two zones in one file never collapse into one
+    # name (nginx would reject the duplicate).
+    def _zone_name(name: str) -> str:
+        return f"{unique_id}_ratelimit" if name == "iprl" else f"{unique_id}_{name}"
+
+    declared_zones = set(re.findall(r"limit_req_zone\s+[^\s]+\s+zone=([^\s:]+):", content))
     content = re.sub(
-        r"(limit_req_zone\s+[^\s]+\s+zone=)[^\s:]+:",
-        lambda m: f"{m.group(1)}{unique_id}_ratelimit:",
+        r"(limit_req_zone\s+[^\s]+\s+zone=)([^\s:]+):",
+        lambda m: f"{m.group(1)}{_zone_name(m.group(2))}:",
         content,
     )
-    # Fourth re.sub: rewrite limit_req zone references (COR-05).
     content = re.sub(
-        r"(limit_req\s+zone=)[^\s;]+",
-        lambda m: f"{m.group(1)}{unique_id}_ratelimit",
+        r"(limit_req\s+zone=)([^\s;]+)",
+        lambda m: f"{m.group(1)}{_zone_name(m.group(2)) if m.group(2) in declared_zones else unique_id + '_ratelimit'}",
         content,
     )
 

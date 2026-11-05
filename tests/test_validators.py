@@ -307,6 +307,7 @@ class TestValidateConfigTemplate:
             "redirect",
             "redirect_ssl",
             "supabase",
+            "wordpress",
         ]
         for t in templates:
             assert validate_config_template(t) == t

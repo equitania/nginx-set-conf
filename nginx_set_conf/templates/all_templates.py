@@ -26,6 +26,7 @@ from nginx_set_conf.templates.redirect_ssl import TEMPLATE as REDIRECT_SSL_TEMPL
 from nginx_set_conf.templates.static_public_ssl import TEMPLATE as STATIC_PUBLIC_SSL_TEMPLATE
 from nginx_set_conf.templates.static_ssl import TEMPLATE as STATIC_SSL_TEMPLATE
 from nginx_set_conf.templates.supabase import TEMPLATE as SUPABASE_TEMPLATE
+from nginx_set_conf.templates.wordpress import TEMPLATE as WORDPRESS_TEMPLATE
 
 # Sentinel string used as the raw cache-path placeholder in every template that
 # declares a proxy_cache_path directive.  Defined once here so that the utils.py
@@ -124,6 +125,7 @@ TEMPLATES = {
     "flowise": FLOWISE_TEMPLATE,
     "guacamole": GUACAMOLE_TEMPLATE,
     "patchmon": PATCHMON_TEMPLATE,
+    "wordpress": WORDPRESS_TEMPLATE,
     # Weitere Templates hier hinzufügen, wenn sie erstellt wurden
 }
 
@@ -152,6 +154,7 @@ TEMPLATE_DESCRIPTIONS = {
     "static_public_ssl": "Static site with ssl, indexable and markdown-aware",
     "static_ssl": "Static files with ssl, not indexed (noindex)",
     "supabase": "Supabase database server with ssl/http2",
+    "wordpress": "WordPress (Docker, Apache image) with ssl/http2, login rate limit and MCP endpoint",
 }
 
 

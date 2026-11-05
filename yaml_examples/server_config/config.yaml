@@ -213,6 +213,27 @@ Supabase:
   #cert_name: /etc/ssl/your-certificate.crt
   #cert_key: /etc/ssl/your-private-key.key
 
+WordPress:
+  config_template: wordpress
+  ip:
+  domain: www.
+  port: 8180  # WP_HTTP_PORT of the compose stack, published on 127.0.0.1 only
+  cert_name: www.
+  #backend_ip: "::1"  # Optional: Backend IP for proxy_pass (default: 127.0.0.1)
+  #auth_file: authfile  # Server-wide; /wp-json/ and the MCP endpoint stay open for application passwords
+  #allowed_ips: "192.168.1.0/24,10.0.0.50"
+  #enable_http3: true
+  #cert_name: /etc/ssl/your-certificate.crt
+  #cert_key: /etc/ssl/your-private-key.key
+
+# Bare domain -> www (own certificate, fetched by certbot like every vhost)
+WordPress apex redirect:
+  config_template: redirect_ssl
+  ip:
+  domain: example.com
+  redirect_domain: www.example.com
+  cert_name: example.com
+
 PatchMon:
   config_template: patchmon
   ip:

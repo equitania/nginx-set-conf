@@ -60,6 +60,7 @@ VALID_TEMPLATES = {
     "static_public_ssl",
     "static_ssl",
     "supabase",
+    "wordpress",
 }
 
 # Backward compatibility: old template names with ngx_ prefix

@@ -49,7 +49,7 @@ Defaults: `--target_path` = `/etc/nginx/conf.d`, `--backend_ip` = `127.0.0.1`, `
 ### Templates (`--config_template` / YAML `config_template`)
 `code_server`, `fast_report`, `flowise`, `guacamole`, `kasm`, `mailpit`, `n8n`, `nextcloud`,
 `odoo_http`, `odoo_ssl`, `patchmon`, `pgadmin`, `portainer`, `pwa`, `qdrant`, `redirect`,
-`redirect_ssl`, `static_public_ssl`, `static_ssl`, `supabase`. `default_ssl_reject` is listed
+`redirect_ssl`, `static_public_ssl`, `static_ssl`, `supabase`, `wordpress`. `default_ssl_reject` is listed
 but installed only via `setup-default`. Authoritative list: `nginx-set-conf templates`.
 
 | Need | Extra input |

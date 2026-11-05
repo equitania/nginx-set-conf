@@ -102,6 +102,7 @@ nginx-set-conf wizard --dry_run          # the optional deploy at the end change
 - `static_public_ssl` - Public static site meant to be found by search engines and AI agents: clean URLs (`/page` serves `page.html`), markdown served as `text/markdown` (gzip, CORS, and the `.md` variant of a page for `Accept: text/markdown`), canonical `Link` headers, and for `/pdf/<name>.pdf` a `Link` to `/<name>.md`. Document root via `--root_path`
 - `static_ssl` - Static website / file-download hosting with SSL/HTTP2 (serves files from a local document root, no upstream backend; configure the root with `--root_path`, default `/opt/www`). Sends `X-Robots-Tag: noindex` — use `static_public_ssl` for sites that should be indexed
 - `supabase` - Supabase database server with SSL/HTTP2
+- `wordpress` - WordPress in Docker (official image, Apache variant) with SSL/HTTP2: login rate limit, blocked `xmlrpc.php` and PHP in uploads, MCP endpoint `/wp-json/mcp/` unbuffered with long timeouts, browser caching for static files. Point the bare domain at it with a `redirect_ssl` entry
 
 #### Configuration Management Options
 
@@ -478,7 +479,7 @@ certificates via SNI fallback. Deploy `--setup_default` first.
 ## HTTP/3 / QUIC (--enable_http3)
 
 HTTP/3 opt-in support is available since v1.14.0. The `--enable_http3` flag adds QUIC + HTTP/3
-listen directives to 14 browser-facing SSL templates. By default the flag is **off** — existing
+listen directives to 16 browser-facing SSL templates. By default the flag is **off** — existing
 operators see no change until they explicitly set it. When HTTP/3 is unavailable (wrong nginx
 version, firewall closed), browsers automatically fall back to HTTP/2 over TCP and the feature
 degrades silently.
@@ -541,7 +542,7 @@ Both the CLI flag and the YAML key produce identical output.
 
 ### Supported templates
 
-The following 14 browser-facing templates support `--enable_http3`:
+The following 16 browser-facing templates support `--enable_http3`:
 
 | Template | Rationale |
 |----------|-----------|
@@ -560,6 +561,7 @@ The following 14 browser-facing templates support `--enable_http3`:
 | `static_ssl` | Static sites / file downloads — HTTP/3 lowers latency |
 | `static_public_ssl` | Public static sites — HTTP/3 lowers latency |
 | `qdrant` | REST port only — gRPC port stays HTTP/2 |
+| `wordpress` | Public website and admin UI |
 
 ### Excluded templates
 
@@ -906,6 +908,7 @@ Die reine Flag-Form früherer Versionen funktioniert unverändert weiter: `--con
 - `redirect` - Domain-Weiterleitung ohne SSL
 - `redirect_ssl` - Domain-Weiterleitung mit SSL
 - `supabase` - Supabase Datenbankserver mit SSL/HTTP2
+- `wordpress` - WordPress im Docker-Container (offizielles Image, Apache-Variante) mit SSL/HTTP2: Rate-Limit für den Login, gesperrtes `xmlrpc.php` und kein PHP in Uploads, MCP-Endpunkt `/wp-json/mcp/` ohne Pufferung mit langen Timeouts, Browser-Cache für statische Dateien. Die Domain ohne `www` leitet ein `redirect_ssl`-Eintrag darauf um
 
 #### Konfigurationsverwaltungsoptionen
 

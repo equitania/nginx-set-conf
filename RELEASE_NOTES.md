@@ -1,5 +1,35 @@
 # RELEASE NOTES
 
+## Version 1.21.0 (05.11.2026)
+
+### Added
+
+- **[ADD]** **New template `wordpress`** for WordPress in Docker (official image, Apache
+  variant, published on `127.0.0.1:<port>`). It follows the other templates: IP-bound listen,
+  certificate from certbot, the shared `security.conf` and `general.conf`, `#ip_restrictions`
+  and server-wide basic auth. WordPress-specific parts:
+  - `xmlrpc.php`, PHP files in `wp-content/uploads/` and `wp-config.php`/`readme.html`/
+    `license.txt` answer 403.
+  - `wp-login.php` is rate limited (10 requests/minute per client, burst 5, then 429).
+  - The MCP endpoint `/wp-json/mcp/` (WordPress MCP Adapter) runs unbuffered with 300 s
+    timeouts and its own rate limit. `/wp-json/` and the MCP endpoint switch basic auth off, so
+    application passwords keep working when the site is behind basic auth.
+  - Static files get `expires 30d` without an `add_header` of their own, so the security
+    headers stay in effect.
+  - Upload limit 64 MB, to match the PHP settings of the compose stack.
+  - HTTP/3 capable (`enable_http3: true`).
+
+  The bare domain is redirected to `www` with a `redirect_ssl` entry; see the example in
+  `yaml_examples/server_config/config.yaml`. The wizard suggests port 8180.
+
+### Changed
+
+- **[CHG]** **Every rate-limit zone of a template gets its own name per vhost.** The deploy
+  renamed every `limit_req_zone` of a vhost to the same `<template>_<domain>_ratelimit`, so a
+  template with two zones would have failed `nginx -t`. The classic zone keeps that name; any
+  further zone becomes `<template>_<domain>_<zone>`. Existing templates produce exactly the same
+  output as before.
+
 ## Version 1.20.1 (29.10.2026)
 
 ### Changed
