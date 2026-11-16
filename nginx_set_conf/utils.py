@@ -592,7 +592,17 @@ def _create_cert_if_needed(cert_name: str, dry_run: bool = False) -> bool:
                 ]
             )
         finally:
-            _run_command(["systemctl", "start", "nginx.service"])
+            # systemd counts every start of the unit. A batch with more than a
+            # handful of new certificates ran into its start limit
+            # ("start-limit-hit"): nginx stayed down for all vhosts. reset-failed
+            # clears that counter; on a healthy unit it does nothing.
+            _run_command(["systemctl", "reset-failed", "nginx.service"])
+            if not _run_command(["systemctl", "start", "nginx.service"]):
+                logger.error(
+                    "nginx did not start again after the certificate request for %s — "
+                    "see: systemctl status nginx.service",
+                    cert_name,
+                )
         if not issued:
             logger.error(
                 "certbot could not create a certificate for %s — check that the domain "

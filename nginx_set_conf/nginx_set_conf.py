@@ -460,9 +460,18 @@ def _run_deploy(
         # reload-or-restart only reloads a running nginx, but starts a stopped
         # one — a plain reload leaves a stopped nginx down.
         logger.info("Reloading nginx service")
-        _run_service_command(["systemctl", "reload-or-restart", "nginx.service"])
+        reload_result = _run_service_command(["systemctl", "reload-or-restart", "nginx.service"])
         logger.info("Checking nginx service status")
         _run_service_command(["systemctl", "status", "nginx.service"])
+        # The configuration is valid at this point (nginx -t passed), so a
+        # refused reload means the service itself is down. Ending with exit
+        # status 0 here hid a host whose every vhost was offline.
+        if reload_result is not None and reload_result.returncode != 0:
+            raise click.ClickException(
+                "nginx is not running: systemd refused to reload or start it (status above). "
+                "The vhost files are written and valid. Start it with: "
+                "systemctl reset-failed nginx.service && systemctl start nginx.service"
+            )
         logger.info("Checking nginx version")
         _run_service_command(["nginx", "-V"])
     else:

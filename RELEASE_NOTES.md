@@ -1,5 +1,21 @@
 # RELEASE NOTES
 
+## Version 1.22.1 (16.11.2026)
+
+### Fixed
+
+- **[FIX]** **A batch with several new certificates no longer leaves nginx stopped.** For every
+  missing certificate nginx is stopped and started again, because `certbot --standalone` needs
+  port 80. systemd counts these starts and refuses further ones once the unit's start limit is
+  reached (`start-limit-hit`; five starts within the interval on a hardened unit). A run that
+  requested ten certificates therefore ended with nginx down for every vhost on the host. The
+  start limit is now cleared with `systemctl reset-failed nginx.service` before each start, and an
+  error is logged if nginx still does not come back.
+- **[FIX]** **A deploy that ends with nginx not running exits with status 1.** The result of the
+  final `systemctl reload-or-restart nginx.service` was ignored, so the run above reported
+  success. The run now fails with a message that names the two commands to bring nginx back. The
+  vhost files are written and valid at that point; nothing is rolled back.
+
 ## Version 1.22.0 (05.11.2026)
 
 ### Added

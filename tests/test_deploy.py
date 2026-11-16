@@ -42,12 +42,13 @@ def _deploy_params(**overrides):
 class _Recorder:
     """Stands in for the system: service commands, pre-flight, vhost writes."""
 
-    def __init__(self, monkeypatch, preflight_ok=True, nginx_test_rc=0, failing_domains=()):
+    def __init__(self, monkeypatch, preflight_ok=True, nginx_test_rc=0, failing_domains=(), reload_rc=0):
         self.service_calls = []
         self.deployed = []
         self.failing_domains = set(failing_domains)
         self.preflight_ok = preflight_ok
         self.nginx_test_rc = nginx_test_rc
+        self.reload_rc = reload_rc
         monkeypatch.setattr(cli, "_run_service_command", self._service)
         monkeypatch.setattr(cli, "execute_commands", self._execute)
         recorder = self
@@ -61,7 +62,11 @@ class _Recorder:
 
     def _service(self, args, dry_run=False):
         self.service_calls.append(" ".join(args))
-        rc = self.nginx_test_rc if args == ["nginx", "-t"] else 0
+        rc = 0
+        if args == ["nginx", "-t"]:
+            rc = self.nginx_test_rc
+        elif args[:2] == ["systemctl", "reload-or-restart"]:
+            rc = self.reload_rc
         return subprocess.CompletedProcess(args, rc)
 
     def _execute(self, config_template, domain, ip, *args, **kwargs):
@@ -112,6 +117,14 @@ class TestDeployOrder:
         rec = _Recorder(monkeypatch)
         cli._run_deploy(**_deploy_params(dry_run=True))
         assert rec.service_calls == ["deploy example.com"]
+
+    def test_nginx_not_coming_back_fails_the_run(self, monkeypatch):
+        # 1.22.1: a deploy ended with exit status 0 while systemd had refused to
+        # start nginx ("start-limit-hit") and every vhost on the host was down.
+        rec = _Recorder(monkeypatch, reload_rc=1)
+        with pytest.raises(click.ClickException, match="nginx is not running"):
+            cli._run_deploy(**_deploy_params())
+        assert rec.service_calls[-1] == "systemctl status nginx.service"
 
 
 class TestYamlBatch:

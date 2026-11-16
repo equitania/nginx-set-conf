@@ -618,14 +618,16 @@ class TestRetrieveOptionalInput:
 class TestCreateCertIfNeeded:
     """certbot --standalone stops nginx; it must always be started again."""
 
-    def _record(self, monkeypatch, certbot_ok=True):
+    def _record(self, monkeypatch, certbot_ok=True, start_ok=True):
         from nginx_set_conf import utils
 
         calls = []
 
         def fake_run(args, dry_run=False, check=False):
             calls.append(args[:2])
-            return certbot_ok if args[0] == "certbot" else True
+            if args[0] == "certbot":
+                return certbot_ok
+            return start_ok if args[:2] == ["systemctl", "start"] else True
 
         monkeypatch.setattr(utils, "_run_command", fake_run)
         monkeypatch.setattr(utils.os.path, "isfile", lambda _: False)
@@ -637,8 +639,25 @@ class TestCreateCertIfNeeded:
         assert calls == [
             ["systemctl", "stop"],
             ["certbot", "certonly"],
+            ["systemctl", "reset-failed"],
             ["systemctl", "start"],
         ]
+
+    def test_start_limit_is_cleared_before_every_start(self, monkeypatch):
+        # 1.22.1: systemd counts each start. A batch with more than a handful of
+        # new certificates hit the unit's start limit and nginx stayed down.
+        utils, calls = self._record(monkeypatch)
+        for number in range(10):
+            utils._create_cert_if_needed(f"host{number}.example.com")
+        starts = [i for i, call in enumerate(calls) if call == ["systemctl", "start"]]
+        assert len(starts) == 10
+        assert all(calls[i - 1] == ["systemctl", "reset-failed"] for i in starts)
+
+    def test_error_logged_when_nginx_does_not_come_back(self, monkeypatch, caplog):
+        utils, _ = self._record(monkeypatch, start_ok=False)
+        with caplog.at_level(logging.ERROR):
+            assert utils._create_cert_if_needed("example.com") is True
+        assert "nginx did not start again" in caplog.text
 
     def test_nginx_restarted_and_error_logged_when_certbot_fails(self, monkeypatch, caplog):
         utils, calls = self._record(monkeypatch, certbot_ok=False)
