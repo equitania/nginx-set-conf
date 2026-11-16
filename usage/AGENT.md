@@ -11,7 +11,7 @@
 
 - **Invoke:** `nginx-set-conf <command> [options]` (runs as root on the nginx host)
 - **Install:** `uv tool install nginx-set-conf` (or `pip install nginx-set-conf`)
-- **Version:** 1.20.1
+- **Version:** 1.22.1
 - **Self-serve:** `nginx-set-conf capability-card` prints this card from the installed tool (live version injected)
 - **Framework:** Python / Click  ·  **Human docs:** `README.md` (EN/DE), `RELEASE_NOTES.md`
 
@@ -123,7 +123,7 @@ nginx-set-conf migrate
 - **`wizard` is for humans.** It needs a terminal (exits 1 without one). An agent writes the YAML entry directly instead (see *YAML vhost entry*).
 - **Root on the nginx host only.** `deploy` (without `--dry_run`), `sync`, `backup`, `setup-default`, `migrate` write under `/etc/nginx` and call `systemctl`. Never run them from a workstation.
 - **Overwrites without asking:** `deploy` writes `<target_path>/<domain>.conf` and silently replaces an existing file of that name, including hand edits. Keep customisations in the YAML, not in the generated file.
-- **Downtime on new certificates:** if `/etc/letsencrypt/live/<cert_name>/` is missing, `deploy` **stops nginx** and runs `certbot certonly --standalone` (needs port 80 free and DNS pointing at the host), then starts nginx again (≥ 1.19.5; before, nginx stayed down after the deploy). If certbot fails, the vhost is **not written** and the deploy continues with the next one, so a domain without DNS cannot keep nginx from starting. Existing certificates are reused.
+- **Downtime on new certificates:** if `/etc/letsencrypt/live/<cert_name>/` is missing, `deploy` **stops nginx** and runs `certbot certonly --standalone` (needs port 80 free and DNS pointing at the host), then starts nginx again (≥ 1.19.5; before, nginx stayed down after the deploy). If certbot fails, the vhost is **not written** and the deploy continues with the next one, so a domain without DNS cannot keep nginx from starting. Existing certificates are reused. **Several new certificates in one run:** each one stops and starts nginx; before 1.22.1 the fifth start hit systemd's start limit (`start-limit-hit`) and nginx stayed down while the run exited 0 — recover with `systemctl reset-failed nginx.service && systemctl start nginx.service`. Since 1.22.1 the limit is cleared before each start.
 - **Own certificate:** `--cert_name` = full path to the `.crt`, `--cert_key` = full path to the key. Omit `--cert_key` for Let's Encrypt.
 - **Pre-flight on every deploy:** the three base configs are checked and auto-repaired before the first vhost is written; a failing repair aborts the deploy. Skipped with `--dry_run`. The embedded `nginx.conf` runs workers as `nginx`; on a host without that user but with `www-data` (Debian/Ubuntu distro package) it writes `user www-data;` instead.
 - **Safe reload:** `nginx -t` runs before `systemctl reload-or-restart` (reloads a running nginx, starts a stopped one); on failure the running nginx keeps the old config and the command exits non-zero — but the new `.conf` file is already on disk. Fix or remove it before the next reload.
@@ -140,7 +140,7 @@ nginx-set-conf migrate
 
 ## Machine-readable outputs
 None. All commands log human-readable text; `show` and `capability-card` print raw text to stdout.
-Exit code is non-zero when `sync`, `backup`, `setup-default`, `migrate` fail, when `nginx -t` rejects a deploy, when the base-config pre-flight fails, or when any vhost was skipped (≥ 1.19.7, both the `deploy` subcommand and the flag-only form). The other legacy flags (`--sync_config` etc.) still exit 0 on failure.
+Exit code is non-zero when `sync`, `backup`, `setup-default`, `migrate` fail, when `nginx -t` rejects a deploy, when the base-config pre-flight fails, when any vhost was skipped (≥ 1.19.7, both the `deploy` subcommand and the flag-only form), or when nginx is not running after the final reload (≥ 1.22.1). The other legacy flags (`--sync_config` etc.) still exit 0 on failure.
 
 ## Deeper docs
 - `README.md` — templates in detail, HTTP/3, own certificates, htpasswd setup (EN + DE).
